@@ -9,7 +9,7 @@ Bring your markdown to life with this VS Code extension! Execute code blocks and
 
 Execute code blocks in markdown files by pressing the corresponding Play button at the top of the code block.
 
-- Languages currently supported:
+- Languages to be supported:
   - Golang
     - Executed from a main.go file.
     - Executed from within a package as a _test.go file.
@@ -20,7 +20,7 @@ Execute code blocks in markdown files by pressing the corresponding Play button 
   - TypeScript
     - Executed from a .ts file.
 
-- Languages currently supported with an accompanying extension:
+- Languages to be supported with an accompanying extension:
   - MySQL
     - Executed using the MySQL extension.
   - HTTP
