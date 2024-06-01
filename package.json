@@ -12,10 +12,112 @@
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "codebook-md configuration",
+      "properties": {
+        "codebook-md.rootPath": {
+          "description": "The root path of the workspace. This is used to resolve relative paths in code blocks.",
+          "type": "string",
+          "scope": "window"
+        },
+        "codebook-md.tempPath": {
+          "description": "Path where temporary exec-related files will be stored",
+          "type": "string",
+          "scope": "window"
+        },
+        "codebook-md.permalinkPrefix": {
+          "description": "Prefix for identifying permalinks. When matched in a markdown, the permalink will be converted to a link to the same file/lines in VS Code.",
+          "type": "string"
+        },
+        "codebook-md.go": {
+          "type": "object",
+          "properties": {
+            "execType": {
+              "type": "string",
+              "default": "run",
+              "enum": [
+                "run",
+                "test"
+              ],
+              "description": "Execution type for Go; 'run' will run using a 'main.go' using 'go run'; 'test' will run from a local '_test.go' file using 'go test'."
+            },
+            "execTypeRunFilename": {
+              "type": "string",
+              "default": "main.go",
+              "description": "Filename to use for 'run' execution type."
+            },
+            "execTypeTestFilename": {
+              "type": "string",
+              "default": "md_notebook_exec_test.go",
+              "description": "Filename to use for 'test' execution type."
+            },
+            "execTypeTestBuildTag": {
+              "type": "string",
+              "default": "md_notebook_exec",
+              "description": "Build tag to use for 'test' execution type. This tag is added to the top of the test file to help ensure it doesn't run in normal test runs."
+            },
+            "goimportsCmd": {
+              "type": "string",
+              "default": "gopls imports",
+              "enum": [
+                "gopls imports",
+                "goimports"
+              ],
+              "description": "'goimports' requires goimports to be installed. If false, 'gopls imports' will be used."
+            }
+          }
+        }
+      }
+    },
     "commands": [
       {
         "command": "codebook-md.helloWorld",
         "title": "Hello World"
+      }
+    ],
+    "languages": [
+      {
+        "id": "sql",
+        "aliases": [
+          "SQL"
+        ],
+        "extensions": [
+          "sql"
+        ],
+        "firstLine": "(^|\\s)(SELECT|UPDATE)\\s.*"
+      },
+      {
+        "id": "sh",
+        "aliases": [
+          "Shell"
+        ],
+        "extensions": [
+          "sh"
+        ],
+        "firstLine": "^#!.*\\b(bash|sh)\\b"
+      },
+      {
+        "id": "http",
+        "aliases": [
+          "HTTP"
+        ],
+        "extensions": [
+          "http"
+        ],
+        "firstLine": "(^|\\s)(GET|POST|PUT|DELETE)\\s.*"
+      }
+    ],
+    "notebooks": [
+      {
+        "type": "codebook-md",
+        "displayName": "codebook-md",
+        "priority": "default",
+        "selector": [
+          {
+            "filenamePattern": "*.{md,markdown}"
+          }
+        ]
       }
     ]
   },
