@@ -51,12 +51,12 @@
             },
             "execTypeTestFilename": {
               "type": "string",
-              "default": "md_notebook_exec_test.go",
+              "default": "codebook_md_exec_test.go",
               "description": "Filename to use for 'test' execution type."
             },
             "execTypeTestBuildTag": {
               "type": "string",
-              "default": "md_notebook_exec",
+              "default": "playground",
               "description": "Build tag to use for 'test' execution type. This tag is added to the top of the test file to help ensure it doesn't run in normal test runs."
             },
             "goimportsCmd": {
@@ -163,9 +163,7 @@
     "typescript": "^5.4.5",
     "vscode-test": "^1.6.1",
     "webpack": "^5.91.0",
-    "webpack-cli": "^5.1.4"
-  },
-  "dependencies": {
+    "webpack-cli": "^5.1.4",
     "vscode": "^1.1.37"
   }
 }
