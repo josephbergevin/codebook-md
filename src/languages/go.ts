@@ -14,6 +14,9 @@ const goConfig = () => workspace.getConfiguration('codebook-md.go');
 export let processCellsGo = (cells: Cell[]): ChildProcessWithoutNullStreams => {
     let go = processCellsToExecGoConfig(cells);
 
+    console.log("execFile", go.execFile);
+    console.log("cell contents", go.execCode);
+
     // create the directory and main file
     mkdirSync(go.execDir, { recursive: true });
     writeFileSync(go.execFile, go.execCode);
@@ -113,10 +116,10 @@ export let processCellsToExecGoConfig = (cells: Cell[]): ExecGoConfig => {
         funcRecRegex: /func\s+\((\w+)\)\s*\w/,
         execFrom: "",
         execTypeRun: execType === 'run',
-        execTypeRunFilename: goConfig().get<string>('execTypeRunFilename') ?? '', // defalut value is in package.json
+        execTypeRunFilename: goConfig().get<string>('execTypeRunFilename') ?? 'main.go', // defalut value is in package.json
         execTypeTest: execType === 'test',
-        execTypeTestFilename: goConfig().get<string>('execTypeTestFilename') ?? '', // defalut value is in package.json
-        execTypeTestBuildTag: goConfig().get<string>('execTypeTestBuildTag') ?? '', // defalut value is in package.json
+        execTypeTestFilename: goConfig().get<string>('execTypeTestFilename') ?? 'md_notebook_exec_test.go', // defalut value is in package.json
+        execTypeTestBuildTag: goConfig().get<string>('execTypeTestBuildTag') ?? 'playground', // defalut value is in package.json
         execCode: "",
         execDir: "",
         execFile: "",
@@ -218,7 +221,7 @@ export let processCellsToExecGoConfig = (cells: Cell[]): ExecGoConfig => {
         go.execCmd = 'test';
         go.execArgs = ['-run=TestExecNotebook', '-tags=playground'];
     } else {
-        go.execCode = `package main\n${go.imports}func main() {\nlog.SetOutput(os.Stdout)\n${go.innerScope} ${go.outerScope}\n`;
+        go.execCode = `package main\n${go.imports}\n\nfunc main() {\nlog.SetOutput(os.Stdout)\n${go.innerScope} ${go.outerScope}\n}\n`;
         go.execDir = config.getTempPath();
         go.execFilename = go.execTypeRunFilename;
         go.execFile = path.join(go.execDir, go.execFilename);
