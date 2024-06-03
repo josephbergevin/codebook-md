@@ -1,7 +1,7 @@
 // md provides the functions to parse the markdown files and extract the code snippets.
 import { TextDecoder, TextEncoder } from 'util';
 import { NotebookCellKind, NotebookCellData, window } from 'vscode';
-import { workspace } from 'vscode';
+import * as vscode from 'vscode';
 import * as config from './config';
 
 
@@ -55,24 +55,6 @@ function isCodeBlockStart(line: string): boolean {
 
 function isCodeBlockEndLine(line: string): boolean {
     return !!line.match(/^\s*```/);
-}
-
-function isGitHubPermalink(line: string): boolean {
-    const workspaceRoot = config.readConfig().rootPath;
-    // return true if the line starts with or contains the permalink prefix
-    console.log(`Checking for permalink:`);
-    console.log(`\tworkspaceRoot: ${workspaceRoot}`);
-    console.log(`\tline: ${line}`);
-    if (line.startsWith(permalinkPrefix)) {
-        console.log(`\t\tFound permalink prefix - new link:`, permalinkToVSCodeScheme(line, permalinkPrefix, workspaceRoot));
-        return true;
-    } else if (line.includes(permalinkPrefix)) {
-        console.log(`\t\tFound permalink included - new link:`, permalinkToVSCodeScheme(line, permalinkPrefix, workspaceRoot));
-        return true;
-    } else {
-        console.log(`\t\tNo permalink found: ${line}`);
-        return false;
-    }
 }
 
 export function parseMarkdown(content: string): RawNotebookCell[] {
@@ -146,38 +128,52 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
         const startSourceIdx = i;
         while (true) {
             if (i >= lines.length) {
-                break;
-            }
-
-            const currLine = lines[i];
-            if (isCodeBlockStart(currLine)) {
-                break;
-            } else if (isGitHubPermalink(currLine)) {
-                // turn the permalink into a workspace link using permalinkToVSCodeScheme
-                const workspaceRoot = config.readConfig().rootPath;
-                const workspaceLink = permalinkToVSCodeScheme(currLine, permalinkPrefix, workspaceRoot);
+                let content = lines.slice(startSourceIdx, i).join('\n').trim();
                 cells.push({
                     language: 'markdown',
-                    content: `[Link to Repo](${workspaceLink}) - ${workspaceLink}`,
+                    content,
                     kind: NotebookCellKind.Markup,
                     leadingWhitespace: leadingWhitespace,
                     trailingWhitespace: ""
                 });
-                i++;
-                break;
+                return;
             }
+
+            const currLine = lines[i];
+            if (isCodeBlockStart(currLine)) {
+                let content = lines.slice(startSourceIdx, i).join('\n').trim();
+                cells.push({
+                    language: 'markdown',
+                    content,
+                    kind: NotebookCellKind.Markup,
+                    leadingWhitespace: leadingWhitespace,
+                    trailingWhitespace: ""
+                });
+                return;
+            }
+
+            // else if (isGitHubPermalink(currLine)) {
+            //     // turn the permalink into a workspace link using permalinkToVSCodeScheme
+            //     const workspaceRoot = config.readConfig().rootPath;
+            //     const codeDoc = permalinkToCodeDocument(currLine, permalinkPrefix, workspaceRoot);
+            //     let newLink = codeDoc.toFullFileLoc();
+            //     cells.push({
+            //         language: 'markdown',
+            //         content: `[Link to Repo](${newLink})`,
+            //         kind: NotebookCellKind.Markup,
+            //         leadingWhitespace: leadingWhitespace,
+            //         trailingWhitespace: ""
+            //     });
+            //     vscode.window.showTextDocument(
+            //         vscode.Uri.file(codeDoc.fileLoc),
+            //         { selection: new vscode.Range(codeDoc.previewLineBegin, 0, codeDoc.previewLineEnd, 0) },
+            //     );
+            //     i++;
+            //     return;
+            // }
 
             i++;
         }
-
-        let content = lines.slice(startSourceIdx, i).join('\n').trim();
-        cells.push({
-            language: 'markdown',
-            content,
-            kind: NotebookCellKind.Markup,
-            leadingWhitespace: leadingWhitespace,
-            trailingWhitespace: ""
-        });
     }
 
     return cells;
@@ -219,7 +215,23 @@ export function writeCellsToMarkdown(cells: ReadonlyArray<NotebookCellData>): st
     return result.substring(2);
 }
 
-// permalinkToVSCodeScheme returns the vscode scheme permalink
+function isGitHubPermalink(line: string): boolean {
+    const workspaceRoot = config.readConfig().rootPath;
+    // return true if the line starts with or contains the permalink prefix
+    console.log(`Checking for permalink:`);
+    console.log(`\tworkspaceRoot: ${workspaceRoot}`);
+    console.log(`\tline: ${line}`);
+    if (line.startsWith(permalinkPrefix)) {
+        return true;
+    } else if (line.includes(permalinkPrefix)) {
+        return true;
+    } else {
+        console.log(`\t\tNo permalink found: ${line}`);
+        return false;
+    }
+}
+
+// permalinkToVSCodeScheme returns the permalink converted to a CodeDocument object
 // permalinkToVSCodeScheme takes a link to a GitHub permalink and converts it to a workspace link by:
 // 1. replacing the prefix with the workspace root
 // 2. removing the commit hash or branch name
@@ -227,12 +239,7 @@ export function writeCellsToMarkdown(cells: ReadonlyArray<NotebookCellData>): st
 // Example: 
 // - before: https://github.com/josephbergevin/codebook-md/blob/520c1c66dcc6e1c5edf7fffe643bc8c463d02ee2/src/extension.ts#L9
 // - after: /Users/tijoe/go/src/github.com/josephbergevin/codebook-md/src/extension.ts:9
-// Example with inputs:
-// - permalink = 'https://github.com/josephbergevin/codebook-md/blob/520c1c66dcc6e1c5edf7fffe643bc8c463d02ee2/src/extension.ts#L9';
-// - permalinkPrefix = 'https://github.com/josephbergevin/codebook-md/blob/';
-// - workspaceRoot = '/Users/tijoe/go/src/github.com/josephbergevin/codebook-md';
-// - returns '/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/src/extension.ts:9'
-export function permalinkToVSCodeScheme(permalink: string, permalinkPrefix: string, workspaceRoot: string): string {
+export function permalinkToCodeDocument(permalink: string, permalinkPrefix: string, workspaceRoot: string): CodeDocument {
     const permalinkSuffix = permalink.replace(permalinkPrefix, '');
     const permalinkParts = permalinkSuffix.split('#');
     const filePathParts = permalinkParts[0].split('/');
@@ -241,6 +248,39 @@ export function permalinkToVSCodeScheme(permalink: string, permalinkPrefix: stri
         filePathParts.splice(commitHashIndex, 1); // remove the commit hash
     }
     const filePath = filePathParts.join('/');
+    const language = filePath.split('.').pop() || 'plaintext';
     const lineNumbers = permalinkParts[1].split('L').join('').split('-');
-    return `${workspaceRoot}/${filePath}:${lineNumbers.join('-')}`;
+    return new CodeDocument(
+        `${workspaceRoot}/${filePath}`,
+        parseInt(lineNumbers[0]),
+        parseInt(lineNumbers[1]),
+        language,
+    );
+}
+
+// CodeDoc is a class containing the data for a document in vscode: file loc, preview line begin, preview line end, language
+export class CodeDocument {
+    fileLoc: string;
+    previewLineBegin: number;
+    previewLineEnd: number;
+    language: string;
+
+    constructor(fileLoc: string, previewLineBegin: number, previewLineEnd: number, language: string) {
+        this.fileLoc = fileLoc;
+        this.previewLineBegin = previewLineBegin;
+        this.previewLineEnd = previewLineEnd;
+        this.language = language;
+    }
+
+    toFullFileLoc(): string {
+        return `${this.fileLoc}:${this.previewLineBegin}`;
+    }
+
+    // showTextDocument returns the promise of showing the text document in vscode
+    showTextDocument(): Thenable<vscode.TextEditor> {
+        return vscode.window.showTextDocument(
+            vscode.Uri.file(this.fileLoc),
+            { selection: new vscode.Range(this.previewLineBegin, 0, this.previewLineEnd, 0) },
+        );
+    }
 }

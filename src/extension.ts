@@ -1,6 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // import the functions from fmt.ts
 import * as fmt from './fmt';
@@ -25,6 +27,13 @@ export function activate(context: vscode.ExtensionContext) {
 	console.log('Congratulations, your extension "codebook-md" is now active!');
 	// post a message to the vscode OUTPUT
 	vscode.window.showInformationMessage('Codebook, MD is now active!');
+	// vscode.workspace.updateWorkspaceFolders(0, null, { uri: vscode.Uri.file('/Users/tijoe/go/src/github.com/josephbergevin/codebook-md') });
+
+	// add a folder ('/Users/tijoe/go/src/github.com/josephbergevin/codebook-md') to the workspace
+	// vscode.workspace.updateWorkspaceFolders(0, null, { uri: vscode.Uri.file('/Users/tijoe/go/src/github.com/josephbergevin/codebook-md') });
+
+	// open a folder ('/Users/tijoe/go/src/github.com/josephbergevin/codebook-md') in the workspace
+	// vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file('/Users/tijoe/go/src/github.com/josephbergevin/codebook-md'));
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
@@ -66,6 +75,75 @@ export function activate(context: vscode.ExtensionContext) {
 	};
 
 	context.subscriptions.push(workspace.registerNotebookSerializer('codebook-md', new MarkdownProvider(), notebookSettings));
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('codebook-md.showPreview', async () => {
+			const panel = vscode.window.createWebviewPanel(
+				'filePreview',
+				'File Preview',
+				vscode.ViewColumn.One,
+				{}
+			);
+
+			const codeDoc = new md.CodeDocument(
+				'/Users/tijoe/example.ts',
+				9,
+				15,
+				'ts',
+			);
+
+			const filePath = vscode.Uri.file(codeDoc.fileLoc);
+			const fileContent = await vscode.workspace.fs.readFile(filePath);
+			const fileText = Buffer.from(fileContent).toString('utf8');
+
+			const previewContent = fileText.split('\n').slice(codeDoc.previewLineBegin, codeDoc.previewLineEnd + 1).join('\n');
+
+			panel.webview.html = getWebviewContent(previewContent);
+		})
+	);
+
+	const provider: vscode.HoverProvider = {
+		provideHover(document, position, token) {
+			const range = document.getWordRangeAtPosition(position, /\[.*?\]\((.*?)\)/);
+			if (!range) {
+				return;
+			}
+
+			const text = document.getText(range);
+			const match = /\[.*?\]\((.*?)\)/.exec(text);
+			if (!match) {
+				return;
+			}
+
+			const filePath = match[1];
+			const fullPath = path.resolve(path.dirname(document.uri.fsPath), filePath);
+
+			if (!fs.existsSync(fullPath)) {
+				return;
+			}
+
+			const fileContent = fs.readFileSync(fullPath, 'utf8');
+			const truncatedContent = fileContent.length > 200 ? fileContent.substring(0, 200) + '...' : fileContent;
+
+			return new vscode.Hover(new vscode.MarkdownString(`\`\`\`\n${truncatedContent}\n\`\`\``));
+		}
+	};
+
+	context.subscriptions.push(vscode.languages.registerHoverProvider('markdown', provider));
+}
+
+function getWebviewContent(content: string): string {
+	return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Preview</title>
+</head>
+<body>
+    <pre>${content}</pre>
+</body>
+</html>`;
 }
 
 // This method is called when your extension is deactivated
