@@ -37,12 +37,20 @@ suite('Extension Test Suite', () => {
 
 // tests for md.ts
 suite('md.ts Test Suite', () => {
-	test('permalinkToVSCodeScheme should return the correct message', () => {
-		const permalink = 'https://github.com/josephbergevin/codebook-md/blob/520c1c66dcc6e1c5edf7fffe643bc8c463d02ee2/src/extension.ts#L9';
+	test('permalinkToCodeDocument should return the correct message', () => {
+		const permalink = 'https://github.com/josephbergevin/codebook-md/blob/520c1c66dcc6e1c5edf7fffe643bc8c463d02ee2/src/extension.ts#L9-L15';
 		const permalinkPrefix = 'https://github.com/josephbergevin/codebook-md/blob/';
 		const workspaceRoot = '/Users/tijoe/go/src/github.com/josephbergevin/codebook-md';
-		const message = md.permalinkToVSCodeScheme(permalink, permalinkPrefix, workspaceRoot);
-		assert.strictEqual(message, '/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/src/extension.ts:9');
+		const codeDoc = md.permalinkToCodeDocument(permalink, permalinkPrefix, workspaceRoot);
+		// test the object
+		assert.deepEqual(codeDoc, new md.CodeDocument(
+			'/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/src/extension.ts',
+			9,
+			15,
+			'ts',
+		));
+		// test the method toFullFileLoc
+		assert.deepEqual(codeDoc.toFullFileLoc(), '/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/src/extension.ts:9');
 	});
 });
 
