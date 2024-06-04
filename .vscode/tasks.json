@@ -35,6 +35,14 @@
 				"npm: watch-tests"
 			],
 			"problemMatcher": []
-		}
+		},
+		{
+			"label": "gpom",
+			"detail": "Calls git pull origin main with --autostash",
+			"type": "shell",
+			"command": "git",
+			"args": ["pull", "origin", "main", "--autostash"],
+			"problemMatcher": []
+		},
 	]
 }
