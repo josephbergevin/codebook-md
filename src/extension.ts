@@ -96,40 +96,50 @@ export function activate(context: vscode.ExtensionContext) {
 			const fileContent = await vscode.workspace.fs.readFile(filePath);
 			const fileText = Buffer.from(fileContent).toString('utf8');
 
-			const previewContent = fileText.split('\n').slice(codeDoc.previewLineBegin, codeDoc.previewLineEnd + 1).join('\n');
+			const previewContent = fileText.split('\n').slice(codeDoc.lineBegin, codeDoc.lineEnd + 1).join('\n');
 
 			panel.webview.html = getWebviewContent(previewContent);
 		})
 	);
 
-	const provider: vscode.HoverProvider = {
+	// hoverProvider will fire-off for any language, but will automatically return if the document.fileName 
+	// is not a markdown file
+	const hoverProvider = vscode.languages.registerHoverProvider(['*'], {
 		provideHover(document, position, token) {
-			const range = document.getWordRangeAtPosition(position, /\[.*?\]\((.*?)\)/);
-			if (!range) {
+			if (!document.fileName.endsWith('.md')) {
 				return;
 			}
 
-			const text = document.getText(range);
-			const match = /\[.*?\]\((.*?)\)/.exec(text);
-			if (!match) {
+			const text = document.lineAt(position.line).text;
+			const fileLoc = md.findCodeDocument(text);
+			if (!fileLoc) {
+				console.warn(`No match found for '${text}'`);
 				return;
 			}
 
-			const filePath = match[1];
-			const fullPath = path.resolve(path.dirname(document.uri.fsPath), filePath);
-
-			if (!fs.existsSync(fullPath)) {
+			const doc = md.parseFileLoc(fileLoc, document.uri.fsPath);
+			if (!fs.existsSync(doc.fileLoc)) {
+				console.error(`File not found: ${doc.fileLoc}`);
 				return;
 			}
 
-			const fileContent = fs.readFileSync(fullPath, 'utf8');
-			const truncatedContent = fileContent.length > 200 ? fileContent.substring(0, 200) + '...' : fileContent;
+			console.log(`Reading file: ${doc.fileLoc}`);
+			let fileContent = fs.readFileSync(doc.fileLoc, 'utf-8');
 
-			return new vscode.Hover(new vscode.MarkdownString(`\`\`\`\n${truncatedContent}\n\`\`\``));
+			// use doc.lineBegin to start from a specific line
+			if (doc.lineBegin > 0) {
+				const lines = fileContent.split('\n');
+				fileContent = lines.slice(doc.lineBegin - 1, doc.lineEnd).join('\n');
+			}
+
+			const markdownContent = new vscode.MarkdownString();
+			markdownContent.appendCodeblock(fileContent, doc.language);
+
+			return new vscode.Hover(markdownContent);
 		}
-	};
+	});
 
-	context.subscriptions.push(vscode.languages.registerHoverProvider('markdown', provider));
+	context.subscriptions.push(hoverProvider);
 }
 
 function getWebviewContent(content: string): string {
