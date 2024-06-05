@@ -2,7 +2,6 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import * as path from 'path';
 
 // import the functions from fmt.ts
 import * as fmt from './fmt';
@@ -22,30 +21,6 @@ const kernel = new Kernel();
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "codebook-md" is now active!');
-	// post a message to the vscode OUTPUT
-	vscode.window.showInformationMessage('Codebook, MD is now active!');
-	// vscode.workspace.updateWorkspaceFolders(0, null, { uri: vscode.Uri.file('/Users/tijoe/go/src/github.com/josephbergevin/codebook-md') });
-
-	// add a folder ('/Users/tijoe/go/src/github.com/josephbergevin/codebook-md') to the workspace
-	// vscode.workspace.updateWorkspaceFolders(0, null, { uri: vscode.Uri.file('/Users/tijoe/go/src/github.com/josephbergevin/codebook-md') });
-
-	// open a folder ('/Users/tijoe/go/src/github.com/josephbergevin/codebook-md') in the workspace
-	// vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file('/Users/tijoe/go/src/github.com/josephbergevin/codebook-md'));
-
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('codebook-md.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage(fmt.helloWorldMessage('Codebook, MD'));
-	});
-
-	context.subscriptions.push(disposable);
-
 	const controller = notebooks.createNotebookController('codebook-md', 'codebook-md', 'codebook-md');
 	controller.supportedLanguages = [
 		'go',

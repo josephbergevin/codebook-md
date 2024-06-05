@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { NotebookDocument, NotebookCell, NotebookController, NotebookCellOutput, NotebookCellOutputItem, NotebookRange, NotebookEdit, WorkspaceEdit, workspace } from 'vscode';
-import { processCellsGo } from "./languages/go";
 import { ChildProcessWithoutNullStreams, spawnSync } from 'child_process';
+import { Cell, CommentDecorator } from "./md";
+import * as go from "./languages/go";
 import * as vscode from 'vscode';
-
-import { Cell, CommentDecorator } from "./types";
 import * as util from "./exec";
 
 
@@ -87,7 +86,7 @@ export class Kernel {
                     return;
                 }
                 lastRunLanguage = "go";
-                output = processCellsGo(cellsStripped);
+                output = go.executeCells(cellsStripped);
                 break;
 
             default:
