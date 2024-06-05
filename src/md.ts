@@ -1,6 +1,6 @@
 // md provides the functions to parse the markdown files and extract the code snippets.
 import { TextDecoder, TextEncoder } from 'util';
-import { NotebookCellKind, NotebookCellData, window } from 'vscode';
+import { NotebookCellKind, NotebookCellData, NotebookCell } from 'vscode';
 import * as vscode from 'vscode';
 import * as config from './config';
 import * as path from 'path';
@@ -16,6 +16,17 @@ export interface RawNotebookCell {
     content: string;
     kind: NotebookCellKind;
     outputs?: [any];
+}
+
+export interface Cell {
+    index: number;
+    contents: string;
+    cell: NotebookCell;
+}
+
+export enum CommentDecorator {
+    clear = "codebook-md:clear",
+    skip = "codebook-md:skip",
 }
 
 interface ICodeBlockStart {
