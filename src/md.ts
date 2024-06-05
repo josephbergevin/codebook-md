@@ -3,6 +3,7 @@ import { TextDecoder, TextEncoder } from 'util';
 import { NotebookCellKind, NotebookCellData, window } from 'vscode';
 import * as vscode from 'vscode';
 import * as config from './config';
+import * as path from 'path';
 
 
 const permalinkPrefix = config.readConfig().permalinkPrefix;
@@ -166,7 +167,7 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
             //     });
             //     vscode.window.showTextDocument(
             //         vscode.Uri.file(codeDoc.fileLoc),
-            //         { selection: new vscode.Range(codeDoc.previewLineBegin, 0, codeDoc.previewLineEnd, 0) },
+            //         { selection: new vscode.Range(codeDoc.lineBegin, 0, codeDoc.lineEnd, 0) },
             //     );
             //     i++;
             //     return;
@@ -261,26 +262,71 @@ export function permalinkToCodeDocument(permalink: string, permalinkPrefix: stri
 // CodeDoc is a class containing the data for a document in vscode: file loc, preview line begin, preview line end, language
 export class CodeDocument {
     fileLoc: string;
-    previewLineBegin: number;
-    previewLineEnd: number;
+    lineBegin: number;
+    lineEnd: number;
     language: string;
 
-    constructor(fileLoc: string, previewLineBegin: number, previewLineEnd: number, language: string) {
+    constructor(fileLoc: string, lineBegin: number, lineEnd: number, language: string) {
+        if (lineEnd < lineBegin) {
+            lineEnd = lineBegin;
+        }
         this.fileLoc = fileLoc;
-        this.previewLineBegin = previewLineBegin;
-        this.previewLineEnd = previewLineEnd;
+        this.lineBegin = lineBegin;
+        this.lineEnd = lineEnd;
         this.language = language;
     }
 
-    toFullFileLoc(): string {
-        return `${this.fileLoc}:${this.previewLineBegin}`;
+    // returns the fileLoc - also includes the lineBegin if > 0
+    toFullFileLocPos(): string {
+        if (this.lineBegin > 0) {
+            return `${this.fileLoc}:${this.lineBegin}`;
+        }
+        return this.fileLoc;
     }
 
     // showTextDocument returns the promise of showing the text document in vscode
     showTextDocument(): Thenable<vscode.TextEditor> {
         return vscode.window.showTextDocument(
             vscode.Uri.file(this.fileLoc),
-            { selection: new vscode.Range(this.previewLineBegin, 0, this.previewLineEnd, 0) },
+            { selection: new vscode.Range(this.lineBegin, 0, this.lineEnd, 0) },
         );
     }
+}
+
+// findCodeDocument returns the CodeDocument object for a given line in a markdown file
+export function findCodeDocument(text: string): string | null {
+    const regex = /((\.\/|\.\.\/|\/|~\/)[\w/-]+(\.ts|\.sql|\.go)(:\d+(-\d+)?)?)/g;
+    const match = text.match(regex);
+    if (!match) {
+        return null;
+    }
+    return match[0];
+}
+
+// newCodeDocument returns a new CodeDocument object from a given file location - if it includes a line number, it will be parsed
+export function parseFileLoc(fileLoc: string, resolvePath: string): CodeDocument {
+    let fullPath = fileLoc;
+    if (!path.isAbsolute(fileLoc) && resolvePath) {
+        fullPath = path.resolve(path.dirname(resolvePath), fileLoc);
+    }
+    console.log(`Full path: ${fullPath}`);
+
+    let lineBegin = 0;
+    let lineEnd = 0;
+    const parts = fullPath.split(':');
+    fullPath = parts[0];
+    if (parts.length > 1) {
+        // split the line numbers as well
+        const lineParts = parts[1].split('-');
+        lineBegin = parseInt(lineParts[0]);
+        lineEnd = lineParts.length > 1 ? parseInt(lineParts[1]) : lineBegin;
+    }
+
+    let language = 'plaintext';
+    const ext = path.extname(fullPath);
+    if (ext) {
+        language = ext.substring(1);
+    }
+
+    return new CodeDocument(fullPath, lineBegin, lineEnd, language);
 }
