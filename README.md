@@ -2,8 +2,7 @@
 
 Bring your markdown to life with this VS Code extension! Execute code blocks and navigate to internal permalinks all in your local environment. Inspired by Jupyter notebooks, and a furious ongoing battle against boring documentation and markdown files.
 
-
-## Features (coming soon)
+## Features
 
 ### Executable code blocks
 
@@ -13,11 +12,11 @@ Execute code blocks in markdown files by pressing the corresponding Play button 
   - Golang
     - Executed from a main.go file.
     - Executed from within a package as a _test.go file.
-  - Shell/Bash
+  - Shell/Bash (coming soon)
     - Executed from a .sh file.
-  - JavaScript
+  - JavaScript (coming soon)
     - Executed from a .js file.
-  - TypeScript
+  - TypeScript (coming soon)
     - Executed from a .ts file.
 
 - Languages to be supported with an accompanying extension:
@@ -30,11 +29,14 @@ Execute code blocks in markdown files by pressing the corresponding Play button 
 
 Support for workspace, user, and folder-level configurations
 
-### Permalinks
-Permalinks in markdown that point to the current repository or workspace work as they do in GitHub, only locally.
+### File Link Hover
+File links detected in markdown code blocks can be hovered over to view the contents of the file. 
+- Line Numbers: If a line number is specified, the file will be previewed at that line.
+- Line Range: If a line range is specified, the file will be previewed from the start line to the end line.
 
 ### Output Configuration
 Output from executed code blocks can be configured in the following ways:
-- In the output panel at the bottom of the editor
-- In a new tab
-- In a file location specified in the settings
+- Below the code block
+- In the output panel at the bottom of the editor (coming soon)
+- In a new tab (coming soon)
+- In a file location specified in the settings (coming soon)
