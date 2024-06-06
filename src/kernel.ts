@@ -73,6 +73,7 @@ export class Kernel {
                 break;
 
             case "javascript":
+            case "js":
                 if (util.commandNotOnPath("node", "https://nodejs.org/")) {
                     exec.end(false, (new Date).getTime());
                     return;
@@ -80,8 +81,9 @@ export class Kernel {
                 output = javascript.executeCell(cell);
                 break;
 
-            case "js":
-                if (util.commandNotOnPath("node", "https://nodejs.org/")) {
+            case "typescript":
+            case "ts":
+                if (util.commandNotOnPath("ts-node", "https://www.npmjs.com/package/ts-node")) {
                     exec.end(false, (new Date).getTime());
                     return;
                 }
