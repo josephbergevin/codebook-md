@@ -1,14 +1,25 @@
-Here is a permalink:
-https://github.com/josephbergevin/codebook-md/blob/520c1c66dcc6e1c5edf7fffe643bc8c463d02ee2/src/extension.ts#L9-L13
-
 ```go
-package main
+fmt.Println("Hello, World!")
+```
 
-import "fmt"
+```text
+Hello, World!
+```
 
-func main() {
-    fmt.Println("Hello, World!")
-}
+```sh
+echo "Hello, World!"
+```
+
+```bash
+echo "Hello, World!"
+```
+
+```bash
+echo "Hello, World!"
+```
+
+```shellscript
+echo "Hello, World!"
 ```
 
 ```shell-script
