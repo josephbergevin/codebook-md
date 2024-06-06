@@ -3,6 +3,7 @@ import { NotebookDocument, NotebookCell, NotebookController, NotebookCellOutput,
 import { ChildProcessWithoutNullStreams, spawnSync } from 'child_process';
 import * as md from "./md";
 import * as go from "./languages/go";
+import * as javascript from "./languages/javascript";
 import * as bash from "./languages/bash";
 import * as vscode from 'vscode';
 import * as util from "./exec";
@@ -69,6 +70,22 @@ export class Kernel {
                     return;
                 }
                 output = go.executeCell(cell);
+                break;
+
+            case "javascript":
+                if (util.commandNotOnPath("node", "https://nodejs.org/")) {
+                    exec.end(false, (new Date).getTime());
+                    return;
+                }
+                output = javascript.executeCell(cell);
+                break;
+
+            case "js":
+                if (util.commandNotOnPath("node", "https://nodejs.org/")) {
+                    exec.end(false, (new Date).getTime());
+                    return;
+                }
+                output = javascript.executeCell(cell);
                 break;
 
             case "shell":
