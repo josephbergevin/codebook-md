@@ -80,75 +80,75 @@ export class Cell {
         this.config = new Config(goConfig);
 
         let parsingIter = 0;
-        for (const cell of cells) {
-            this.innerScope += `\nfmt.Println("!!output-start-cell")\n`;
-            let lines = cell.contents.split("\n");
-            for (let line of lines) {
-                line = line.trim();
-                let funcResult = line.match(this.funcRegex);
-                let funcRecResult = line.match(this.funcRecRegex);
-                if (funcResult) {
-                    if (funcResult[1] === "main") {
-                        this.containsMain = true;
-                        continue;
-                    } else {
-                        this.parsingFunc = true;
-                    }
-                }
-                if (funcRecResult) {
-                    this.parsingFunc = true;
-                }
-                if (line.startsWith("type")) {
-                    this.parsingFunc = true;
-                }
-
-                if (line.startsWith("import (")) {
-                    this.parsingImports = true;
-                } else if (this.parsingImports) {
-                    if (line === ")") {
-                        this.parsingImports = false;
-                    } else if (line === "") {
-                        continue;
-                    } else {
-                        this.importNumber++;
-                        // append line to the imports array
-                        this.imports.push(line);
-                    }
-                } else if (line.startsWith("import")) {
-                    this.importNumber++;
-                    this.imports.push(line);
-                } else if (line.startsWith("// exec_from:")) {
-                    // set the execFrom value to the line so we can use it later
-                    this.config.execFrom = line;
+        // only execute the last cell
+        const cell = cells[cells.length - 1];
+        this.innerScope += `\nfmt.Println("!!output-start-cell")\n`;
+        let lines = cell.contents.split("\n");
+        for (let line of lines) {
+            line = line.trim();
+            let funcResult = line.match(this.funcRegex);
+            let funcRecResult = line.match(this.funcRecRegex);
+            if (funcResult) {
+                if (funcResult[1] === "main") {
+                    this.containsMain = true;
                     continue;
-                } else if (this.parsingFunc) {
-                    this.outerScope += line;
-                    this.outerScope += "\n";
                 } else {
-                    this.innerScope += line;
-                    this.innerScope += "\n";
+                    this.parsingFunc = true;
                 }
+            }
+            if (funcRecResult) {
+                this.parsingFunc = true;
+            }
+            if (line.startsWith("type")) {
+                this.parsingFunc = true;
+            }
 
-                if (this.parsingFunc) {
-                    if (line[0] === "}") {
-                        if (parsingIter === 1) {
-                            parsingIter = 0;
-                            this.parsingFunc = false;
-                        } else {
-                            parsingIter--;
-                        }
-                    }
-                    if (line[line.length - 1] === "{") {
-                        parsingIter++;
+            if (line.startsWith("import (")) {
+                this.parsingImports = true;
+            } else if (this.parsingImports) {
+                if (line === ")") {
+                    this.parsingImports = false;
+                } else if (line === "") {
+                    continue;
+                } else {
+                    this.importNumber++;
+                    // append line to the imports array
+                    this.imports.push(line);
+                }
+            } else if (line.startsWith("import")) {
+                this.importNumber++;
+                this.imports.push(line);
+            } else if (line.startsWith("// exec_from:")) {
+                // set the execFrom value to the line so we can use it later
+                this.config.execFrom = line;
+                continue;
+            } else if (this.parsingFunc) {
+                this.outerScope += line;
+                this.outerScope += "\n";
+            } else {
+                this.innerScope += line;
+                this.innerScope += "\n";
+            }
+
+            if (this.parsingFunc) {
+                if (line[0] === "}") {
+                    if (parsingIter === 1) {
+                        parsingIter = 0;
+                        this.parsingFunc = false;
+                    } else {
+                        parsingIter--;
                     }
                 }
+                if (line[line.length - 1] === "{") {
+                    parsingIter++;
+                }
             }
-            // Drop the closing curly brace if there was a main function
-            if (this.containsMain) {
-                this.innerScope = this.innerScope.trim().slice(0, -1);
-                this.containsMain = false;
-            }
-        };
+        }
+        // Drop the closing curly brace if there was a main function
+        if (this.containsMain) {
+            this.innerScope = this.innerScope.trim().slice(0, -1);
+            this.containsMain = false;
+        }
 
         if (this.config.execTypeTest) {
             // if goConfig.execType is set and the value is 'test`, then create the file in the current package

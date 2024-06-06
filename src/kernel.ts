@@ -3,9 +3,9 @@ import { NotebookDocument, NotebookCell, NotebookController, NotebookCellOutput,
 import { ChildProcessWithoutNullStreams, spawnSync } from 'child_process';
 import { Cell, CommentDecorator } from "./md";
 import * as go from "./languages/go";
+import * as bash from "./languages/bash";
 import * as vscode from 'vscode';
 import * as util from "./exec";
-
 
 export let lastRunLanguage = '';
 
@@ -13,12 +13,14 @@ export let lastRunLanguage = '';
 // and running it through different languages, then returning results in the same format.
 export class Kernel {
     async executeCells(doc: NotebookDocument, cells: NotebookCell[], ctrl: NotebookController): Promise<void> {
+        console.log(`kernel.executeCells called with ${cells.length} cells`);
         for (const cell of cells) {
             await this.executeCell(doc, [cell], ctrl);
         }
     }
 
     async executeCell(doc: NotebookDocument, cells: NotebookCell[], ctrl: NotebookController): Promise<void> {
+        console.log(`kernel.executeCell called with ${cells.length} cells`);
         let decoder = new TextDecoder;
         let encoder = new TextEncoder;
         let exec = ctrl.createNotebookCellExecution(cells[0]);
@@ -89,6 +91,55 @@ export class Kernel {
                 output = go.executeCells(cellsStripped);
                 break;
 
+            case "shell":
+                if (util.commandNotOnPath("bash", "https://www.gnu.org/software/bash/")) {
+                    exec.end(false, (new Date).getTime());
+                    return;
+                }
+                lastRunLanguage = "bash";
+                output = bash.executeCells(cellsStripped);
+                break;
+            case "zsh":
+                if (util.commandNotOnPath("bash", "https://www.gnu.org/software/bash/")) {
+                    exec.end(false, (new Date).getTime());
+                    return;
+                }
+                lastRunLanguage = "bash";
+                output = bash.executeCells(cellsStripped);
+                break;
+            case "sh":
+                if (util.commandNotOnPath("bash", "https://www.gnu.org/software/bash/")) {
+                    exec.end(false, (new Date).getTime());
+                    return;
+                }
+                lastRunLanguage = "bash";
+                output = bash.executeCells(cellsStripped);
+                break;
+            case "shellscript":
+                if (util.commandNotOnPath("bash", "https://www.gnu.org/software/bash/")) {
+                    exec.end(false, (new Date).getTime());
+                    return;
+                }
+                lastRunLanguage = "bash";
+                output = bash.executeCells(cellsStripped);
+                break;
+            case "shell-script":
+                if (util.commandNotOnPath("bash", "https://www.gnu.org/software/bash/")) {
+                    exec.end(false, (new Date).getTime());
+                    return;
+                }
+                lastRunLanguage = "bash";
+                output = bash.executeCells(cellsStripped);
+                break;
+            case "bash":
+                if (util.commandNotOnPath("bash", "https://www.gnu.org/software/bash/")) {
+                    exec.end(false, (new Date).getTime());
+                    return;
+                }
+                lastRunLanguage = "bash";
+                output = bash.executeCells(cellsStripped);
+                break;
+
             default:
                 exec.end(true, (new Date).getTime());
                 return;
@@ -98,10 +149,12 @@ export class Kernel {
 
         output.stderr.on("data", async (data: Uint8Array) => {
             errorText = data.toString();
-            if (errorText) {
-                exec.appendOutput([new NotebookCellOutput([NotebookCellOutputItem.text(errorText, mimeType)])]);
+            if (errorText === "") {
+                errorText = "An error occurred - no error text was returned.";
+                console.error("error text is empty");
             }
-
+            exec.appendOutput([new NotebookCellOutput([NotebookCellOutputItem.text(errorText, mimeType)])]);
+            exec.end(true, (new Date).getTime());
         });
 
         let buf = Buffer.from([]);
@@ -109,6 +162,7 @@ export class Kernel {
         let currentCellLang = cellsStripped[cellsStripped.length - 1] as Cell;
 
         output.stdout.on('data', (data: Uint8Array) => {
+            console.log(`stdout: ${data}`);
             let arr = [buf, data];
             buf = Buffer.concat(arr);
             let outputs = decoder.decode(buf).split(/!!output-start-cell[\n,""," "]/g);
@@ -121,7 +175,6 @@ export class Kernel {
             if (!clearOutput && currentCellOutput.trim()) {
                 exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.text(currentCellOutput)])]);
             }
-
         });
 
         output.on('close', (_) => {

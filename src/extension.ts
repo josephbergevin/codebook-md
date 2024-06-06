@@ -88,7 +88,7 @@ export function activate(context: vscode.ExtensionContext) {
 			const text = document.lineAt(position.line).text;
 			const fileLoc = md.findCodeDocument(text);
 			if (!fileLoc) {
-				console.warn(`No match found for '${text}'`);
+				// no file link found in the line
 				return;
 			}
 

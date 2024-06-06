@@ -3,6 +3,7 @@ import vscode from "vscode";
 
 // spawnCommand is a helper function to child_process.spawn, with error handling
 export const spawnCommand = (command: string, args: string[], options: any): ChildProcessWithoutNullStreams => {
+  console.log(`Running ${command} ${args.join(' ')} with options:`, options);
   try {
     return spawn(command, args, options);
   } catch (error) {
