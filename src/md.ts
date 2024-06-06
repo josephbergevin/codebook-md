@@ -18,10 +18,16 @@ export interface RawNotebookCell {
     outputs?: [any];
 }
 
-export interface Cell {
+export class Cell {
     index: number;
     contents: string;
     cell: NotebookCell;
+
+    constructor(cell: NotebookCell) {
+        this.index = cell.index;
+        this.cell = cell;
+        this.contents = cell.document.getText();
+    }
 }
 
 export enum CommentDecorator {
