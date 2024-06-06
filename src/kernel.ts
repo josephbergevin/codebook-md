@@ -109,10 +109,20 @@ export class Kernel {
             buf = Buffer.concat(arr);
             // get the entire output of the cell
             const fullOutput = decoder.decode(buf);
-            // if the output contains the output start cell string /!!output-start-cell[\n,""," "]/g, only show the output after that
+            let displayOutput = fullOutput;
+
+            // if the displayOutput contains the start cell marker, remove everything before it
             const outputStartCell = "!!output-start-cell";
-            const outputStartCellIndex = fullOutput.indexOf(outputStartCell);
-            const displayOutput = fullOutput.substring(outputStartCellIndex + outputStartCell.length);
+            let startIndex = displayOutput.indexOf(outputStartCell);
+            if (startIndex !== -1) {
+                displayOutput = displayOutput.slice(startIndex + outputStartCell.length + 1);
+            }
+
+            // if the displayOutput contains the end cell marker, remove everything after it
+            let endIndex = displayOutput.indexOf("!!output-end-cell");
+            if (endIndex !== -1) {
+                displayOutput = displayOutput.slice(0, endIndex);
+            }
 
             // log out if the displayOutput is different from the fullOutput
             if (displayOutput !== fullOutput) {

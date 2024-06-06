@@ -10,8 +10,6 @@ import * as exec from "../exec";
 export let executeCell = (cell: md.Cell): ChildProcessWithoutNullStreams => {
     let bash = new Cell(cell, workspace.getConfiguration('codebook-md.bash'));
 
-    console.log("bash cell contents", bash.executableCode);
-
     // create the directory and main file
     mkdirSync(bash.config.execDir, { recursive: true });
     writeFileSync(bash.config.execFile, bash.executableCode);
@@ -46,7 +44,6 @@ export class Cell {
 
         this.executableCode = "#!/bin/bash\n\n";
         this.executableCode += "set -e\n\n";
-        this.executableCode += "echo !!output-start-cell\n\n";
         this.executableCode += this.innerScope;
     }
 }
