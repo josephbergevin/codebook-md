@@ -1,13 +1,11 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { NotebookDocument, NotebookCell, NotebookController, NotebookCellOutput, NotebookCellOutputItem, NotebookRange, NotebookEdit, WorkspaceEdit, workspace } from 'vscode';
 import { ChildProcessWithoutNullStreams, spawnSync } from 'child_process';
-import { Cell, CommentDecorator } from "./md";
+import * as md from "./md";
 import * as go from "./languages/go";
 import * as bash from "./languages/bash";
 import * as vscode from 'vscode';
 import * as util from "./exec";
-
-export let lastRunLanguage = '';
 
 // Kernel in this case matches Jupyter definition i.e. this is responsible for taking the frontend notebook
 // and running it through different languages, then returning results in the same format.
@@ -20,56 +18,37 @@ export class Kernel {
     }
 
     async executeCell(doc: NotebookDocument, cells: NotebookCell[], ctrl: NotebookController): Promise<void> {
-        console.log(`kernel.executeCell called with ${cells.length} cells`);
-        let decoder = new TextDecoder;
-        let encoder = new TextEncoder;
-        let exec = ctrl.createNotebookCellExecution(cells[0]);
+        switch (cells.length) {
+            case 0:
+                return;
 
-        let currentCell = cells[cells.length - 1];
+            case 1:
+                // continue below
+                break;
+
+            default:
+                console.error(`executeCell called with ${cells.length} cells - only 1 cell is supported at a time.`);
+                return;
+        }
+
+        const notebookCell = cells[0];
+        let decoder = new TextDecoder;
+        let exec = ctrl.createNotebookCellExecution(notebookCell);
+
         // Allow for the ability to cancel execution
         let token = exec.token;
         token.onCancellationRequested(() => {
             exec.end(false, (new Date).getTime());
         });
 
-        // Used for the cell timer counter
+        // start the cell timer counter
         exec.start((new Date).getTime());
-        // TODO check lang and change comment symbols
-        if (currentCell.document.getText().trimStart().startsWith("#" + CommentDecorator.skip)) {
-            exec.end(true, (new Date).getTime());
-            return;
-        }
-        exec.clearOutput(cells[0]);
 
-        // Get all cells up to this one
-        let range = new NotebookRange(0, cells[0].index + 1);
-        let cellsUpToCurrent = doc.getCells(range);
+        // clear the output of the cell
+        exec.clearOutput(notebookCell);
 
-        // Build a object containing languages and their cells
-        let cellsStripped: Cell[] = [];
-        let matchingCells = 0;
-        let pythonCells = 0;
-        for (const cell of cellsUpToCurrent) {
-            if (cell.document.languageId === cells[0].document.languageId) {
-                matchingCells++;
-                cellsStripped.push({
-                    index: matchingCells,
-                    contents: cell.document.getText(),
-                    cell: cell,
-                });
-            }
-            if (cells[0].document.languageId === "mojo") {
-                if (cell.document.languageId === "python") {
-                    pythonCells += 1;
-                }
-            }
-        }
-
-        // Get language that was used to run this cell
-        const lang = cells[0].document.languageId;
-
-        // Check if clearing output at the end
-        let clearOutput = false;
+        // convert the notebookCell to an md.Cell
+        const cell = new md.Cell(notebookCell);
 
         // Run the code
         let output: ChildProcessWithoutNullStreams;
@@ -80,6 +59,8 @@ export class Kernel {
             exec.end(false, (new Date).getTime());
         });
 
+        // Get language that was used to run this cell
+        const lang = notebookCell.document.languageId;
         const mimeType = `text/plain`;
         switch (lang) {
             case "go":
@@ -87,57 +68,20 @@ export class Kernel {
                     exec.end(false, (new Date).getTime());
                     return;
                 }
-                lastRunLanguage = "go";
-                output = go.executeCells(cellsStripped);
+                output = go.executeCell(cell);
                 break;
 
             case "shell":
-                if (util.commandNotOnPath("bash", "https://www.gnu.org/software/bash/")) {
-                    exec.end(false, (new Date).getTime());
-                    return;
-                }
-                lastRunLanguage = "bash";
-                output = bash.executeCells(cellsStripped);
-                break;
             case "zsh":
-                if (util.commandNotOnPath("bash", "https://www.gnu.org/software/bash/")) {
-                    exec.end(false, (new Date).getTime());
-                    return;
-                }
-                lastRunLanguage = "bash";
-                output = bash.executeCells(cellsStripped);
-                break;
             case "sh":
-                if (util.commandNotOnPath("bash", "https://www.gnu.org/software/bash/")) {
-                    exec.end(false, (new Date).getTime());
-                    return;
-                }
-                lastRunLanguage = "bash";
-                output = bash.executeCells(cellsStripped);
-                break;
             case "shellscript":
-                if (util.commandNotOnPath("bash", "https://www.gnu.org/software/bash/")) {
-                    exec.end(false, (new Date).getTime());
-                    return;
-                }
-                lastRunLanguage = "bash";
-                output = bash.executeCells(cellsStripped);
-                break;
             case "shell-script":
-                if (util.commandNotOnPath("bash", "https://www.gnu.org/software/bash/")) {
-                    exec.end(false, (new Date).getTime());
-                    return;
-                }
-                lastRunLanguage = "bash";
-                output = bash.executeCells(cellsStripped);
-                break;
             case "bash":
                 if (util.commandNotOnPath("bash", "https://www.gnu.org/software/bash/")) {
                     exec.end(false, (new Date).getTime());
                     return;
                 }
-                lastRunLanguage = "bash";
-                output = bash.executeCells(cellsStripped);
+                output = bash.executeCell(cell);
                 break;
 
             default:
@@ -159,22 +103,23 @@ export class Kernel {
 
         let buf = Buffer.from([]);
 
-        let currentCellLang = cellsStripped[cellsStripped.length - 1] as Cell;
-
         output.stdout.on('data', (data: Uint8Array) => {
             console.log(`stdout: ${data}`);
             let arr = [buf, data];
             buf = Buffer.concat(arr);
-            let outputs = decoder.decode(buf).split(/!!output-start-cell[\n,""," "]/g);
-            let currentCellOutput: string;
-            if (lastRunLanguage === "shell") {
-                currentCellOutput = outputs[1];
-            } else {
-                currentCellOutput = outputs[currentCellLang.index + pythonCells];
+            // get the entire output of the cell
+            const fullOutput = decoder.decode(buf);
+            // if the output contains the output start cell string /!!output-start-cell[\n,""," "]/g, only show the output after that
+            const outputStartCell = "!!output-start-cell";
+            const outputStartCellIndex = fullOutput.indexOf(outputStartCell);
+            const displayOutput = fullOutput.substring(outputStartCellIndex + outputStartCell.length);
+
+            // log out if the displayOutput is different from the fullOutput
+            if (displayOutput !== fullOutput) {
+                console.log(`displayOutput: ${displayOutput} | fullOutput: ${fullOutput}`);
             }
-            if (!clearOutput && currentCellOutput.trim()) {
-                exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.text(currentCellOutput)])]);
-            }
+
+            exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput)])]);
         });
 
         output.on('close', (_) => {
@@ -228,19 +173,6 @@ export class Kernel {
                                 selections: [new NotebookRange(cell.index - 1, cell.index)],
                                 preserveFocus: false,
                             });
-
-                            // let edits: vscode.NotebookCellData[] = [];
-                            // edits.push(new vscode.NotebookCellData(vscode.NotebookCellKind.Markup, replaceText, "markdown"));
-                            // const edit = new WorkspaceEdit();
-                            // const currentRange =new NotebookRange(i, i + 1)
-                            // let notebook_edit = NotebookEdit.replaceCells(currentRange, edits);
-                            // edit.set(cellsAll[i].notebook.uri, [notebook_edit]);
-                            // workspace.applyEdit(edit);
-                            // vscode.window.showNotebookDocument(vscode.window.activeNotebookEditor?.notebook as NotebookDocument, {
-                            //     viewColumn: vscode.window.activeNotebookEditor?.viewColumn,
-                            //     selections: [currentRange],
-                            //     preserveFocus: false
-                            // });
                         }
 
                         return "";

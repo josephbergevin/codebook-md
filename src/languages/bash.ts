@@ -7,8 +7,8 @@ import * as vscode from "vscode";
 import { workspace } from "vscode";
 import * as exec from "../exec";
 
-export let executeCells = (cells: md.Cell[]): ChildProcessWithoutNullStreams => {
-    let bash = new Cell(cells, workspace.getConfiguration('codebook-md.bash'));
+export let executeCell = (cell: md.Cell): ChildProcessWithoutNullStreams => {
+    let bash = new Cell(cell, workspace.getConfiguration('codebook-md.bash'));
 
     console.log("bash cell contents", bash.executableCode);
 
@@ -24,10 +24,9 @@ export class Cell {
     executableCode: string;
     config: Config;
 
-    constructor(cells: md.Cell[], bashConfig: vscode.WorkspaceConfiguration | undefined) {
+    constructor(cell: md.Cell, bashConfig: vscode.WorkspaceConfiguration | undefined) {
         this.config = new Config(bashConfig);
 
-        const cell = cells[cells.length - 1];
         let lines = cell.contents.split("\n");
         // form the innerScope with lines that don't start with # or set -e
         this.innerScope = "";

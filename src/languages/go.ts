@@ -8,8 +8,8 @@ import { workspace } from "vscode";
 import { join } from "path";
 import * as exec from "../exec";
 
-export let executeCells = (cells: md.Cell[]): ChildProcessWithoutNullStreams => {
-    let go = new Cell(cells, workspace.getConfiguration('codebook-md.go'));
+export let executeCell = (cell: md.Cell): ChildProcessWithoutNullStreams => {
+    let go = new Cell(cell, workspace.getConfiguration('codebook-md.go'));
 
     // define dir and mainFile as empty strings
     if (go.config.execFrom !== "") {
@@ -66,7 +66,7 @@ export class Cell {
     executableCode: string;
     config: Config;
 
-    constructor(cells: md.Cell[], goConfig: vscode.WorkspaceConfiguration | undefined) {
+    constructor(cell: md.Cell, goConfig: vscode.WorkspaceConfiguration | undefined) {
         this.imports = [];
         this.importNumber = 0;
         this.outerScope = "";
@@ -80,8 +80,6 @@ export class Cell {
         this.config = new Config(goConfig);
 
         let parsingIter = 0;
-        // only execute the last cell
-        const cell = cells[cells.length - 1];
         this.innerScope += `\nfmt.Println("!!output-start-cell")\n`;
         let lines = cell.contents.split("\n");
         for (let line of lines) {
