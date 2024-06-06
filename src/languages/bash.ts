@@ -8,13 +8,8 @@ import { workspace } from "vscode";
 import * as exec from "../exec";
 
 export let executeCell = (cell: md.Cell): ChildProcessWithoutNullStreams => {
-    let bash = new Cell(cell, workspace.getConfiguration('codebook-md.bash'));
-
-    // create the directory and main file
-    mkdirSync(bash.config.execDir, { recursive: true });
-    writeFileSync(bash.config.execFile, bash.executableCode);
-
-    return exec.spawnCommand('bash', [bash.config.execFile], { cwd: bash.config.execDir });
+    const bashCell = new Cell(cell, workspace.getConfiguration('codebook-md.bash'));
+    return bashCell.execute();
 };
 
 export class Cell {
@@ -45,6 +40,13 @@ export class Cell {
         this.executableCode = "#!/bin/bash\n\n";
         this.executableCode += "set -e\n\n";
         this.executableCode += this.innerScope;
+    }
+
+    execute(): ChildProcessWithoutNullStreams {
+        // create the directory and main file
+        mkdirSync(this.config.execDir, { recursive: true });
+        writeFileSync(this.config.execFile, this.executableCode);
+        return exec.spawnCommand('bash', [this.config.execFile], { cwd: this.config.execDir });
     }
 }
 

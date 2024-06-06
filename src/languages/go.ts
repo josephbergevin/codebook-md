@@ -9,47 +9,8 @@ import { join } from "path";
 import * as exec from "../exec";
 
 export let executeCell = (cell: md.Cell): ChildProcessWithoutNullStreams => {
-    let go = new Cell(cell, workspace.getConfiguration('codebook-md.go'));
-
-    // define dir and mainFile as empty strings
-    if (go.config.execFrom !== "") {
-        // notify in vscode with the execFrom val
-        [go.config.execDir, go.config.execFile] = getDirAndExecFile(go.config.execFrom);
-        // log out a message in vscode to indicate we're using go setting
-        vscode.window.showInformationMessage('found execFrom: ' + go.config.execFrom, 'executing from: ' + go.config.execFile);
-    }
-
-    console.log("execFile", go.config.execFile);
-    console.log("cell contents", go.executableCode);
-
-    // create the directory and main file
-    mkdirSync(go.config.execDir, { recursive: true });
-    writeFileSync(go.config.execFile, go.executableCode);
-
-    // run goimports on the file
-    if (go.config.useGoimports) {
-        exec.spawnCommandSync('goimports', ['-w', go.config.execFile], { cwd: go.config.execDir });
-    } else {
-        exec.spawnCommandSync('gopls', ['imports', '-w', go.config.execFile], { cwd: go.config.execDir });
-    }
-
-    if (go.config.execTypeTest) {
-        // prepend the generate message and the build tag to the file contents
-        // read the file contents from the go.config.execFile
-        readFile(go.config.execFile, 'utf8', (err, data) => {
-            if (err) {
-                console.error(err);
-                return;
-            }
-            let fileContents = data;
-            fileContents = `// +build ${go.config.execTypeTestBuildTag}\n\n` + fileContents;
-            writeFileSync(go.config.execFile, fileContents);
-        });
-
-        // if we're executing with a test, then we won't use the execFile in the command
-        return exec.spawnCommand('go', [go.config.execCmd, ...go.config.execArgs], { cwd: go.config.execDir });
-    }
-    return exec.spawnCommand('go', [go.config.execCmd, ...go.config.execArgs, go.config.execFile], { cwd: go.config.execDir });
+    const goCell = new Cell(cell, workspace.getConfiguration('codebook-md.go'));
+    return goCell.execute();
 };
 
 // Cell is a class that contains the configuration settings for executing go code from Cells
@@ -167,7 +128,50 @@ export class Cell {
             [this.config.execDir, this.config.execFile] = getDirAndExecFile(this.config.execFrom);
         }
     }
+
+    execute(): ChildProcessWithoutNullStreams {
+        // define dir and mainFile as empty strings
+        if (this.config.execFrom !== "") {
+            // notify in vscode with the execFrom val
+            [this.config.execDir, this.config.execFile] = getDirAndExecFile(this.config.execFrom);
+            // log out a message in vscode to indicate we're using go setting
+            vscode.window.showInformationMessage('found execFrom: ' + this.config.execFrom, 'executing from: ' + this.config.execFile);
+        }
+
+        console.log("execFile", this.config.execFile);
+        console.log("cell contents", this.executableCode);
+
+        // create the directory and main file
+        mkdirSync(this.config.execDir, { recursive: true });
+        writeFileSync(this.config.execFile, this.executableCode);
+
+        // run goimports on the file
+        if (this.config.useGoimports) {
+            exec.spawnCommandSync('goimports', ['-w', this.config.execFile], { cwd: this.config.execDir });
+        } else {
+            exec.spawnCommandSync('gopls', ['imports', '-w', this.config.execFile], { cwd: this.config.execDir });
+        }
+
+        if (this.config.execTypeTest) {
+            // prepend the generate message and the build tag to the file contents
+            // read the file contents from the this.config.execFile
+            readFile(this.config.execFile, 'utf8', (err, data) => {
+                if (err) {
+                    console.error(err);
+                    return;
+                }
+                let fileContents = data;
+                fileContents = `// +build ${this.config.execTypeTestBuildTag}\n\n` + fileContents;
+                writeFileSync(this.config.execFile, fileContents);
+            });
+
+            // if we're executing with a test, then we won't use the execFile in the command
+            return exec.spawnCommand('go', [this.config.execCmd, ...this.config.execArgs], { cwd: this.config.execDir });
+        }
+        return exec.spawnCommand('go', [this.config.execCmd, ...this.config.execArgs, this.config.execFile], { cwd: this.config.execDir });
+    }
 }
+
 
 export class Config {
     execFrom: string;
