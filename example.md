@@ -2,19 +2,7 @@
 fmt.Println("Hello, World!")
 ```
 
-```text
-Hello, World!
-```
-
-```sh
-echo "Hello, World!"
-```
-
-```bash
-echo "Hello, World!"
-```
-
-```bash
+```shellscript
 echo "Hello, World!"
 ```
 
@@ -22,7 +10,15 @@ echo "Hello, World!"
 echo "Hello, World!"
 ```
 
-```shell-script
+```shellscript
+echo "Hello, World!"
+```
+
+```shellscript
+echo "Hello, World!"
+```
+
+```shellscript
 echo "Hello, World!"
 ```
 
