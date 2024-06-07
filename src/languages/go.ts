@@ -112,10 +112,14 @@ export class Cell {
         if (this.config.execTypeTest) {
             // if goConfig.execType is set and the value is 'test`, then create the file in the current package
             // create the execCode for the benchmark file
-            this.executableCode = `package ${path.basename(this.config.execDir)}\n\n`;
+            let packageName = path.basename(this.config.execDir);
+            if (packageName.includes("-")) {
+                packageName = packageName.replace("-", "_");
+            }
+            this.executableCode = `package ${packageName}\n\n`;
             this.imports.push(`"testing"`);
             this.executableCode += `import (\n\t${this.imports.join("\n\t")}\n)\n\n`;
-            this.innerScope += `\nfmt.Println("!!output-start-cell")\n`;
+            this.innerScope += `\nfmt.Println("!!output-end-cell")\n`;
             this.executableCode += `func TestExecNotebook(t *testing.T) {\nlog.SetOutput(os.Stdout)\n${this.innerScope}}\n`;
             this.executableCode += this.outerScope;
         } else {
