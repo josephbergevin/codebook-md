@@ -12,11 +12,11 @@ Execute code blocks in markdown files by pressing the corresponding Play button 
   - Golang
     - Executed from a main.go file.
     - Executed from within a package as a _test.go file.
-  - Shell/Bash (coming soon)
+  - Shell/Bash
     - Executed from a .sh file.
-  - JavaScript (coming soon)
+  - JavaScript
     - Executed from a .js file.
-  - TypeScript (coming soon)
+  - TypeScript
     - Executed from a .ts file.
 
 - Languages to be supported with an accompanying extension:
