@@ -2,6 +2,10 @@
 fmt.Println("Hello, World!")
 ```
 
+```text
+Hello, World!
+```
+
 ```shellscript
 echo "Hello, World!"
 ```

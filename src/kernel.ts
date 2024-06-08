@@ -116,7 +116,7 @@ export class Kernel {
                 errorText = "An error occurred - no error text was returned.";
                 console.error("error text is empty");
             }
-            exec.appendOutput([new NotebookCellOutput([NotebookCellOutputItem.text(errorText, mimeType)])]);
+            exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.text(errorText)])]);
             exec.end(true, (new Date).getTime());
         });
 
@@ -159,55 +159,11 @@ export class Kernel {
                 exec.end(true, (new Date).getTime());
             }
 
-            // Loop through all the cells and increment version of image if it exists
-
-            if (doc.getCells().length >= (cells[0].index + 1)) {
-                let cell = doc.getCells(new NotebookRange(cells[0].index + 1, cells[0].index + 2))[0];
-                if (cell.kind === vscode.NotebookCellKind.Markup) {
-                    let text = cell.document.getText();
-                    text.replace(/(.*[^`]*<img\s*src\s*=\s*".*?)(\?version=(\d+))?"(.*)/g, (match, prefix, versionQuery, versionNum, suffix) => {
-                        if (match) {
-                            let replaceText = "";
-                            if (versionQuery) {
-                                //   If ?version= is present, increment the version number
-                                let newVersionNum = parseInt(versionNum, 10) + 1;
-                                replaceText = `${prefix}?version=${newVersionNum}"${suffix}`;
-                            } else {
-                                //   If ?version= is not present, add ?version=1
-                                replaceText = `${prefix}?version=1"${suffix}`;
-                            }
-                            let workspaceEdit = new vscode.WorkspaceEdit();
-                            let fullRange = new vscode.Range(
-                                0,
-                                0,
-                                cell.document.lineCount - 1,
-                                cell.document.lineAt(cell.document.lineCount - 1).text.length
-                            );
-                            workspaceEdit.replace(cell.document.uri, fullRange, replaceText);
-                            vscode.workspace.applyEdit(workspaceEdit);
-                            vscode.window.showNotebookDocument(vscode.window.activeNotebookEditor?.notebook as NotebookDocument, {
-                                viewColumn: vscode.window.activeNotebookEditor?.viewColumn,
-                                selections: [new NotebookRange(cell.index, cell.index + 1)],
-                                preserveFocus: true,
-                            }).then(() => {
-                                // Execute commands to toggle cell edit mode and then toggle it back to preview.
-                                vscode.commands.executeCommand('notebook.cell.edit').then(() => {
-                                    vscode.commands.executeCommand('notebook.cell.quitEdit').then(() => {
-                                        // Optionally, add any additional logic that needs to run after the refresh.
-                                    });
-                                });
-                            });
-                            vscode.window.showNotebookDocument(vscode.window.activeNotebookEditor?.notebook as NotebookDocument, {
-                                viewColumn: vscode.window.activeNotebookEditor?.viewColumn,
-                                selections: [new NotebookRange(cell.index - 1, cell.index)],
-                                preserveFocus: false,
-                            });
-                        }
-
-                        return "";
-                    });
-                }
-            }
+            // Clear all outputs for the entire document
+            console.log(`Clearing all outputs for ${doc.cellCount} cells...`);
+            doc.getCells().forEach(notebookCell => {
+                exec.clearOutput(notebookCell);
+            });
         });
     }
 }
