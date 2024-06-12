@@ -5,3 +5,4 @@ node_modules
 *.vsix
 apiplayground/
 codebook_md_exec_test.go
+.DS_Store
