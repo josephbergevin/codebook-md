@@ -1,3 +1,5 @@
+![Codebook MD Logo](src/img/logo.jpeg)
+
 # Codebook MD
 
 Bring your markdown to life with this VS Code extension! Execute code blocks and navigate to internal permalinks all in your local environment. Inspired by Jupyter notebooks, and a furious ongoing battle against boring documentation and markdown files.
