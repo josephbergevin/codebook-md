@@ -6,7 +6,7 @@
   "publisher": "josephbergevin",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/josephbergevin/codebook-md.git"
+    "url": "https://github.com/josephbergevin/codebook-md.git"
   },
   "version": "0.0.1",
   "engines": {
