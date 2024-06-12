@@ -1,4 +1,4 @@
-![Codebook MD Logo](src/img/logo.jpeg)
+![Codebook MD Logo](extension/src/img/logo.jpeg)
 
 # Codebook MD
 
@@ -11,9 +11,10 @@ Bring your markdown to life with this VS Code extension! Execute code blocks and
 Execute code blocks in markdown files by pressing the corresponding Play button at the top of the code block.
 
 - Languages to be supported:
+
   - Golang
     - Executed from a main.go file.
-    - Executed from within a package as a _test.go file.
+    - Executed from within a package as a \_test.go file.
   - Shell/Bash
     - Executed from a .sh file.
   - JavaScript
@@ -32,12 +33,16 @@ Execute code blocks in markdown files by pressing the corresponding Play button 
 Support for workspace, user, and folder-level configurations
 
 ### File Link Hover
-File links detected in markdown code blocks can be hovered over to view the contents of the file. 
+
+File links detected in markdown code blocks can be hovered over to view the contents of the file.
+
 - Line Numbers: If a line number is specified, the file will be previewed at that line.
 - Line Range: If a line range is specified, the file will be previewed from the start line to the end line.
 
 ### Output Configuration
+
 Output from executed code blocks can be configured in the following ways:
+
 - Below the code block
 - In the output panel at the bottom of the editor (coming soon)
 - In a new tab (coming soon)
