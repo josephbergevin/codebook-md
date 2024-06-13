@@ -4,8 +4,8 @@ import { ChildProcessWithoutNullStreams, spawnSync } from 'child_process';
 import * as md from "./md";
 import * as go from "./languages/go";
 import * as javascript from "./languages/javascript";
+import * as typescript from "./languages/typescript";
 import * as bash from "./languages/bash";
-import * as vscode from 'vscode';
 import * as util from "./exec";
 
 // Kernel in this case matches Jupyter definition i.e. this is responsible for taking the frontend notebook
@@ -87,7 +87,7 @@ export class Kernel {
                     exec.end(false, (new Date).getTime());
                     return;
                 }
-                output = javascript.executeCell(cell);
+                output = typescript.executeCell(cell);
                 break;
 
             case "shell":

@@ -56,6 +56,6 @@ export class Config {
 
     constructor(bashConfig: vscode.WorkspaceConfiguration | undefined) {
         this.execDir = config.getTempPath();
-        this.execFile = path.join(this.execDir, 'script.sh');
+        this.execFile = path.join(this.execDir, bashConfig?.get('execFilename') || 'codebook_md_exec.sh');
     }
 }

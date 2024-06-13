@@ -51,6 +51,6 @@ export class Config {
 
     constructor(javascriptConfig: vscode.WorkspaceConfiguration | undefined) {
         this.execDir = config.getTempPath();
-        this.execFile = path.join(this.execDir, 'script.js');
+        this.execFile = path.join(this.execDir, javascriptConfig?.get('execFilename') || 'codebook_md_exec.js');
     }
 }
