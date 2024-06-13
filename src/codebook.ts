@@ -1,6 +1,7 @@
 // md provides the functions to parse the markdown files and extract the code snippets.
 import { TextDecoder, TextEncoder } from 'util';
 import { NotebookCellKind, NotebookCellData, NotebookCell } from 'vscode';
+import { ChildProcessWithoutNullStreams } from "child_process";
 import * as vscode from 'vscode';
 import * as config from './config';
 import * as path from 'path';
@@ -18,16 +19,8 @@ export interface RawNotebookCell {
     outputs?: [any];
 }
 
-export class Cell {
-    index: number;
-    contents: string;
-    cell: NotebookCell;
-
-    constructor(cell: NotebookCell) {
-        this.index = cell.index;
-        this.cell = cell;
-        this.contents = cell.document.getText();
-    }
+export interface Cell {
+    execute(): ChildProcessWithoutNullStreams;
 }
 
 export enum CommentDecorator {
@@ -35,11 +28,13 @@ export enum CommentDecorator {
     skip = "codebook-md:skip",
 }
 
-interface ICodeBlockStart {
-    langId: string;
-}
+// StartOutput is a string that indicates the start of an output block
+export const StartOutput = `!!output-start-cell`;
 
-const LANG_IDS = new Map([
+// EndOutput is a string that indicates the end of an output block
+export const EndOutput = `!!output-end-cell`;
+
+const LANGUAGE_IDS = new Map([
     ['js', 'javascript'],
     ['ts', 'typescript'],
     ['rust', 'rust'],
@@ -55,8 +50,8 @@ const LANG_IDS = new Map([
     ['openai', 'openai'],
 ]);
 
-const LANG_ABBREVS = new Map(
-    Array.from(LANG_IDS.keys()).map(k => [LANG_IDS.get(k), k])
+const LANGUAGE_ABBREVS = new Map(
+    Array.from(LANGUAGE_IDS.keys()).map(k => [LANGUAGE_IDS.get(k), k])
 );
 
 function parseCodeBlockStart(line: string): string | null {
@@ -114,7 +109,7 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
     }
 
     function parseCodeBlock(leadingWhitespace: string, lang: string): void {
-        const language = LANG_IDS.get(lang) || lang;
+        const language = LANGUAGE_IDS.get(lang) || lang;
         const startSourceIdx = ++i;
         while (true) {
             const currLine = lines[i];
@@ -213,7 +208,7 @@ export function writeCellsToMarkdown(cells: ReadonlyArray<NotebookCellData>): st
                     }
                 }
             }
-            const languageAbbrev = LANG_ABBREVS.get(cell.languageId) ?? cell.languageId;
+            const languageAbbrev = LANGUAGE_ABBREVS.get(cell.languageId) ?? cell.languageId;
             const codePrefix = '```' + languageAbbrev + '\n';
             const contents = cell.value.split(/\r?\n/g)
                 .join('\n');
@@ -347,4 +342,21 @@ export function parseFileLoc(fileLoc: string, resolvePath: string): CodeDocument
     }
 
     return new CodeDocument(fullPath, lineBegin, lineEnd, language);
+}
+
+// notebookCellToInnerScope returns the innerScope of a notebook cell, removing 
+// 1. any lines that start with the given prefixes
+// 2. any lines that are empty
+export function notebookCellToInnerScope(cell: vscode.NotebookCell, ...prefixes: string[]): string {
+    let lines = cell.document.getText().split("\n");
+    let innerScope = "";
+    for (let line of lines) {
+        if (prefixes.some(prefix => line.startsWith(prefix))) {
+            continue;
+        } else if (line.trim() === "") {
+            continue;
+        }
+        innerScope += line + "\n";
+    }
+    return innerScope;
 }

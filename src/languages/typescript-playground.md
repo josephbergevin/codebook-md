@@ -59,10 +59,3 @@ for (let animal of animals) {
 }
 
 ```
-
-```text
-Woof!
-[rolls over]
-Meow!
-[catches mouse]
-```

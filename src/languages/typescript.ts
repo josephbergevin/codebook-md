@@ -2,36 +2,22 @@ import { ChildProcessWithoutNullStreams } from "child_process";
 import { mkdirSync, writeFileSync } from "fs";
 import * as path from "path";
 import * as config from "../config";
-import * as md from "../md";
+import * as codebook from "../codebook";
 import * as vscode from "vscode";
 import { workspace } from "vscode";
 import * as exec from "../exec";
 
-export let executeCell = (cell: md.Cell): ChildProcessWithoutNullStreams => {
-    const typescriptCell = new Cell(cell, workspace.getConfiguration('codebook-md.typescript'));
-    return typescriptCell.execute();
-};
-
-export class Cell {
+export class Cell implements codebook.Cell {
     innerScope: string; executableCode: string; config: Config;
 
-    constructor(cell: md.Cell, typescriptConfig: vscode.WorkspaceConfiguration | undefined) {
-        this.config = new Config(typescriptConfig);
+    constructor(notebookCell: vscode.NotebookCell) {
+        // get the configuration for the bash language
+        this.config = new Config(workspace.getConfiguration('codebook-md.typescript'));
 
-        let lines = cell.contents.split("\n");
         // form the innerScope with lines that don't start with # or set -e
-        this.innerScope = "";
-        for (let line of lines) {
-            if (line.startsWith("#")) {
-                continue;
-            } else if (line.trim() === "") {
-                continue;
-            }
+        this.innerScope = codebook.notebookCellToInnerScope(notebookCell, "#");
 
-            // otherwise, add the line to the innerScope
-            this.innerScope += line + "\n";
-        }
-
+        // form the executable code
         this.executableCode = this.innerScope;
     }
 

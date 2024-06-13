@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { NotebookDocument, NotebookCell, NotebookController, NotebookCellOutput, NotebookCellOutputItem, NotebookRange, NotebookEdit, WorkspaceEdit, workspace } from 'vscode';
 import { ChildProcessWithoutNullStreams, spawnSync } from 'child_process';
-import * as md from "./md";
+import * as codebook from "./codebook";
 import * as go from "./languages/go";
 import * as javascript from "./languages/javascript";
 import * as typescript from "./languages/typescript";
@@ -48,9 +48,6 @@ export class Kernel {
         // clear the output of the cell
         exec.clearOutput(notebookCell);
 
-        // convert the notebookCell to an md.Cell
-        const cell = new md.Cell(notebookCell);
-
         // Run the code
         let output: ChildProcessWithoutNullStreams;
 
@@ -62,14 +59,16 @@ export class Kernel {
 
         // Get language that was used to run this cell
         const lang = notebookCell.document.languageId;
-        const mimeType = `text/plain`;
+        let codebookCell: codebook.Cell;
         switch (lang) {
             case "go":
                 if (util.commandNotOnPath("go", "https://go.dev/doc/install")) {
                     exec.end(false, (new Date).getTime());
                     return;
                 }
-                output = go.executeCell(cell);
+
+                codebookCell = new go.Cell(notebookCell);
+                output = codebookCell.execute();
                 break;
 
             case "javascript":
@@ -78,7 +77,8 @@ export class Kernel {
                     exec.end(false, (new Date).getTime());
                     return;
                 }
-                output = javascript.executeCell(cell);
+                codebookCell = new javascript.Cell(notebookCell);
+                output = codebookCell.execute();
                 break;
 
             case "typescript":
@@ -87,7 +87,8 @@ export class Kernel {
                     exec.end(false, (new Date).getTime());
                     return;
                 }
-                output = typescript.executeCell(cell);
+                codebookCell = new typescript.Cell(notebookCell);
+                output = codebookCell.execute();
                 break;
 
             case "shell":
@@ -100,7 +101,8 @@ export class Kernel {
                     exec.end(false, (new Date).getTime());
                     return;
                 }
-                output = bash.executeCell(cell);
+                codebookCell = new bash.Cell(notebookCell);
+                output = codebookCell.execute();
                 break;
 
             default:
@@ -131,14 +133,13 @@ export class Kernel {
             let displayOutput = fullOutput;
 
             // if the displayOutput contains the start cell marker, remove everything before it
-            const outputStartCell = "!!output-start-cell";
-            let startIndex = displayOutput.indexOf(outputStartCell);
+            let startIndex = displayOutput.indexOf(codebook.StartOutput);
             if (startIndex !== -1) {
-                displayOutput = displayOutput.slice(startIndex + outputStartCell.length + 1);
+                displayOutput = displayOutput.slice(startIndex + codebook.StartOutput.length + 1);
             }
 
             // if the displayOutput contains the end cell marker, remove everything after it
-            let endIndex = displayOutput.indexOf("!!output-end-cell");
+            let endIndex = displayOutput.indexOf(codebook.EndOutput);
             if (endIndex !== -1) {
                 displayOutput = displayOutput.slice(0, endIndex);
             }
