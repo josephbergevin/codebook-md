@@ -30,13 +30,19 @@
           "scope": "window"
         },
         "codebook-md.tempPath": {
-          "description": "Path where temporary exec-related files will be stored",
+          "description": "Path where temporary exec-related file(s) will be stored.",
           "type": "string",
-          "scope": "window"
+          "scope": "window",
+          "default": "/tmp"
         },
         "codebook-md.permalinkPrefix": {
           "description": "Prefix for identifying permalinks. When matched in a markdown, the permalink will be converted to a link to the same file/lines in VS Code.",
           "type": "string"
+        },
+        "codebook-md.deleteExecFileOnSuccess": {
+          "description": "Delete the temporary exec file after a successful run.",
+          "type": "boolean",
+          "default": true
         },
         "codebook-md.go": {
           "type": "object",
@@ -75,14 +81,40 @@
               "description": "'goimports' requires goimports to be installed. If null, 'gopls imports' will be used."
             }
           }
+        },
+        "codebook-md.bash": {
+          "type": "object",
+          "properties": {
+            "execFilename": {
+              "type": "string",
+              "default": "codebook_md_exec.sh",
+              "description": "Filename to use for 'run' execution type."
+            }
+          }
+        },
+        "codebook-md.js": {
+          "type": "object",
+          "properties": {
+            "execFilename": {
+              "type": "string",
+              "default": "codebook_md_exec.js",
+              "description": "Filename to use for 'run' execution type."
+            }
+          }
+        },
+        "codebook-md.ts": {
+          "type": "object",
+          "properties": {
+            "execFilename": {
+              "type": "string",
+              "default": "codebook_md_exec.ts",
+              "description": "Filename to use for 'run' execution type."
+            }
+          }
         }
       }
     },
     "commands": [
-      {
-        "command": "codebook-md.helloWorld",
-        "title": "Hello World"
-      },
       {
         "command": "codebook-md.showPreview",
         "title": "Show Code Preview"

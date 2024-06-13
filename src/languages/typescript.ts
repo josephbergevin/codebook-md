@@ -6,6 +6,7 @@ import * as md from "../md";
 import * as vscode from "vscode";
 import { workspace } from "vscode";
 import * as exec from "../exec";
+
 export let executeCell = (cell: md.Cell): ChildProcessWithoutNullStreams => {
     const typescriptCell = new Cell(cell, workspace.getConfiguration('codebook-md.typescript'));
     return typescriptCell.execute();
@@ -47,6 +48,6 @@ export class Config {
 
     constructor(typescriptConfig: vscode.WorkspaceConfiguration | undefined) {
         this.execDir = config.getTempPath();
-        this.execFile = path.join(this.execDir, 'script.ts');
+        this.execFile = path.join(this.execDir, typescriptConfig?.get('execFilename') || 'codebook_md_exec.ts');
     }
 }

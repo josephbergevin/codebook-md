@@ -4,5 +4,5 @@ node_modules
 .vscode-test/
 *.vsix
 apiplayground/
-codebook_md_exec_test.go
+codebook_md_exec*
 .DS_Store
