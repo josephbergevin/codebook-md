@@ -2,19 +2,14 @@ import { ChildProcessWithoutNullStreams } from "child_process";
 import { mkdirSync, readFile, writeFileSync } from "fs";
 import * as path from "path";
 import * as config from "../config";
-import * as md from "../md";
+import * as codebook from "../codebook";
 import * as vscode from "vscode";
 import { workspace } from "vscode";
 import { join } from "path";
 import * as exec from "../exec";
 
-export let executeCell = (cell: md.Cell): ChildProcessWithoutNullStreams => {
-    const goCell = new Cell(cell, workspace.getConfiguration('codebook-md.go'));
-    return goCell.execute();
-};
-
 // Cell is a class that contains the configuration settings for executing go code from Cells
-export class Cell {
+export class Cell implements codebook.Cell {
     imports: string[];
     importNumber: number;
     outerScope: string;
@@ -27,7 +22,7 @@ export class Cell {
     executableCode: string;
     config: Config;
 
-    constructor(cell: md.Cell, goConfig: vscode.WorkspaceConfiguration | undefined) {
+    constructor(notebookCell: vscode.NotebookCell) {
         this.imports = [];
         this.importNumber = 0;
         this.outerScope = "";
@@ -38,11 +33,11 @@ export class Cell {
         this.funcRegex = /func\s+(\w+)\s*\(/;
         this.funcRecRegex = /func\s+\((\w+)\)\s*\w/;
         this.executableCode = "";
-        this.config = new Config(goConfig);
+        this.config = new Config(workspace.getConfiguration('codebook-md.go'));
 
         let parsingIter = 0;
-        this.innerScope += `\nfmt.Println("!!output-start-cell")\n`;
-        let lines = cell.contents.split("\n");
+        this.innerScope += `\nfmt.Println("${codebook.StartOutput}")\n`;
+        let lines = notebookCell.document.getText().split("\n");
         for (let line of lines) {
             line = line.trim();
             let funcResult = line.match(this.funcRegex);
@@ -119,7 +114,7 @@ export class Cell {
             this.executableCode = `package ${packageName}\n\n`;
             this.imports.push(`"testing"`);
             this.executableCode += `import (\n\t${this.imports.join("\n\t")}\n)\n\n`;
-            this.innerScope += `\nfmt.Println("!!output-end-cell")\n`;
+            this.innerScope += `\nfmt.Println("${codebook.EndOutput}")\n`;
             this.executableCode += `func TestExecNotebook(t *testing.T) {\nlog.SetOutput(os.Stdout)\n${this.innerScope}}\n`;
             this.executableCode += this.outerScope;
         } else {

@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as fmt from './fmt';
 
 // import the functions from md.ts
-import * as md from './md';
+import * as codebook from './codebook';
 
 // import { parseMarkdown, writeCellsToMarkdown, RawNotebookCell } from './markdownParser';
 import { Kernel } from './kernel';
@@ -60,7 +60,7 @@ export function activate(context: vscode.ExtensionContext) {
 				{}
 			);
 
-			const codeDoc = new md.CodeDocument(
+			const codeDoc = new codebook.CodeDocument(
 				'/Users/tijoe/example.ts',
 				9,
 				15,
@@ -86,13 +86,13 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 
 			const text = document.lineAt(position.line).text;
-			const fileLoc = md.findCodeDocument(text);
+			const fileLoc = codebook.findCodeDocument(text);
 			if (!fileLoc) {
 				// no file link found in the line
 				return;
 			}
 
-			const doc = md.parseFileLoc(fileLoc, document.uri.fsPath);
+			const doc = codebook.parseFileLoc(fileLoc, document.uri.fsPath);
 			if (!fs.existsSync(doc.fileLoc)) {
 				console.error(`File not found: ${doc.fileLoc}`);
 				return;
@@ -139,7 +139,7 @@ class MarkdownProvider implements NotebookSerializer {
 		const content = Buffer.from(data)
 			.toString('utf8');
 
-		const cellRawData = md.parseMarkdown(content);
+		const cellRawData = codebook.parseMarkdown(content);
 		const cells = cellRawData.map(rawToNotebookCellData);
 
 		return {
@@ -148,12 +148,12 @@ class MarkdownProvider implements NotebookSerializer {
 	}
 
 	serializeNotebook(data: NotebookData, _token: CancellationToken): Uint8Array | Thenable<Uint8Array> {
-		const stringOutput = md.writeCellsToMarkdown(data.cells);
+		const stringOutput = codebook.writeCellsToMarkdown(data.cells);
 		return Buffer.from(stringOutput);
 	}
 }
 
-export function rawToNotebookCellData(data: md.RawNotebookCell): NotebookCellData {
+export function rawToNotebookCellData(data: codebook.RawNotebookCell): NotebookCellData {
 	return <NotebookCellData>{
 		kind: data.kind,
 		languageId: data.language,

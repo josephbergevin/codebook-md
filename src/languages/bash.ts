@@ -2,41 +2,24 @@ import { ChildProcessWithoutNullStreams } from "child_process";
 import { mkdirSync, writeFileSync } from "fs";
 import * as path from "path";
 import * as config from "../config";
-import * as md from "../md";
+import * as codebook from "../codebook";
 import * as vscode from "vscode";
 import { workspace } from "vscode";
 import * as exec from "../exec";
 
-export let executeCell = (cell: md.Cell): ChildProcessWithoutNullStreams => {
-    const bashCell = new Cell(cell, workspace.getConfiguration('codebook-md.bash'));
-    return bashCell.execute();
-};
-
-export class Cell {
+export class Cell implements codebook.Cell {
     innerScope: string;
     executableCode: string;
     config: Config;
 
-    constructor(cell: md.Cell, bashConfig: vscode.WorkspaceConfiguration | undefined) {
-        this.config = new Config(bashConfig);
-
-        let lines = cell.contents.split("\n");
+    constructor(notebookCell: vscode.NotebookCell) {
+        // get the configuration for the bash language
+        this.config = new Config(workspace.getConfiguration('codebook-md.bash'));
+        
         // form the innerScope with lines that don't start with # or set -e
-        this.innerScope = "";
-        for (let line of lines) {
-            if (line.startsWith("#")) {
-                continue;
-            } else if (line.startsWith("set -e")) {
-                continue;
-                // or if the line is empty
-            } else if (line.trim() === "") {
-                continue;
-            }
+        this.innerScope = codebook.notebookCellToInnerScope(notebookCell, "#", "set -e");
 
-            // otherwise, add the line to the innerScope
-            this.innerScope += line + "\n";
-        }
-
+        // form the executable code
         this.executableCode = "#!/bin/bash\n\n";
         this.executableCode += "set -e\n\n";
         this.executableCode += this.innerScope;
