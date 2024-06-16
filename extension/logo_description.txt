@@ -1,3 +1,0 @@
-I need a logo for my vs code extension - it's called "Codebook MD" and it makes it so the user can execute code blocks in a markdown file. Use a non-human character of some sort who looks friendly, subtly cool hair, and a black t-shirt. I'd like it to be fun and inviting. The title "Codebook MD" should be at the top and "[code-block] >> [execute!]" should be on the black t-shirt
-
-I need a logo. It should feature a simple hacker-woman character, brunette, bangs, dark-green eyes, glasses, determined, confident, excited, black ball cap blank, black hoodie, arms raised slightly in triumph. Leave room on the hat and the hoodie for text, but don't add any.

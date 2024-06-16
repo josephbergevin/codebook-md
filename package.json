@@ -1,7 +1,7 @@
 {
   "name": "codebook-md",
   "displayName": "Codebook MD",
-  "description": "Bring your markdown to life with this VS Code extension! Execute code blocks and navigate to internal permalinks all in your local environment. Inspired by Jupyter notebooks, and a furious ongoing battle against boring documentation and markdown files.",
+  "description": "Execute notebook code-blocks directly in markdown docs! Supports Go, JavaScript, TypeScript, Shell - and more to come!",
   "icon": "extension/src/img/logo_2-1_128x128.png",
   "publisher": "josephbergevin",
   "repository": {

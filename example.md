@@ -28,7 +28,7 @@ echo "Hello, World!"
 echo "Hello, World!"
 ```
 
-```shellscript
+```shell
 echo "Hello, World!"
 ```
 
