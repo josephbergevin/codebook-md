@@ -93,12 +93,14 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 
 			const markdownContent = new vscode.MarkdownString();
+			const fileLocPos = doc.relativeFileLocPos();
+			console.log(`\tfileLocPos (to click): ${fileLocPos}`);
 			// provide double-click to open the file
-			markdownContent.appendMarkdown(`\n[Open file](${doc.fullFileLocPos()})`);
+			markdownContent.appendMarkdown(`[open file](${fileLocPos})`);
 			markdownContent.appendCodeblock(fileContent, doc.language);
 			// if the file view is big enough to have a scroll bar, provide a link to open the file
 			if (lineCount > 12) {
-				markdownContent.appendMarkdown(`\n[Open file](${doc.fullFileLocPos()})`);
+				markdownContent.appendMarkdown(`\n[open file](${fileLocPos})`);
 			}
 
 			return new vscode.Hover(markdownContent);
