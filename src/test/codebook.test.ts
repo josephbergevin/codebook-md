@@ -14,11 +14,12 @@ suite('md.ts Test Suite', () => {
         // test the object
         assert.deepEqual(codeDoc, new codebook.CodeDocument(
             '/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/src/extension.ts',
+            '/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/example.md',
             9,
             15,
             'ts',
         ));
-        // test the method toFullFileLoc
+        // test the method fullFileLocPos
         assert.deepEqual(codeDoc.fullFileLocPos(), '/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/src/extension.ts:9');
     });
 

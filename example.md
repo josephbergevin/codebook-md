@@ -1,5 +1,10 @@
 ```go
+// ./src/codebook.ts:5-15
 fmt.Println("Hello, World!")
+```
+
+```text
+Hello, World!
 ```
 
 ### Bash
@@ -28,7 +33,7 @@ echo "Hello, World!"
 echo "Hello, World!"
 ```
 
-```shell
+```shellscript
 echo "Hello, World!"
 ```
 

@@ -266,6 +266,7 @@ export function permalinkToCodeDocument(permalink: string, permalinkPrefix: stri
     const lineNumbers = permalinkParts[1].split('L').join('').split('-');
     return new CodeDocument(
         `${workspaceRoot}/${filePath}`,
+        `${workspaceRoot}/${filePath}`,
         parseInt(lineNumbers[0]),
         parseInt(lineNumbers[1]),
         language,
@@ -275,26 +276,41 @@ export function permalinkToCodeDocument(permalink: string, permalinkPrefix: stri
 // CodeDoc is a class containing the data for a document in vscode: file loc, preview line begin, preview line end, language
 export class CodeDocument {
     fileLoc: string;
+    resolvePath: string;
     lineBegin: number;
     lineEnd: number;
     language: string;
 
-    constructor(fileLoc: string, lineBegin: number, lineEnd: number, language: string) {
+    constructor(fileLoc: string, resolvePath: string, lineBegin: number, lineEnd: number, language: string) {
         if (lineEnd < lineBegin) {
             lineEnd = lineBegin;
         }
         this.fileLoc = fileLoc;
+        this.resolvePath = resolvePath;
         this.lineBegin = lineBegin;
         this.lineEnd = lineEnd;
         this.language = language;
     }
 
-    // returns the fileLoc - also includes the lineBegin if > 0
+    // fullFileLocPos returns the full resolved fileLoc - also includes the lineBegin if > 0
     fullFileLocPos(): string {
         if (this.lineBegin > 0) {
             return `${this.fileLoc}:${this.lineBegin}`;
         }
         return this.fileLoc;
+    }
+
+    // relativeFileLocPos returns the fileLoc relative to the current open file - also includes the lineBegin if > 0
+    // always begins with a ./ or ../
+    relativeFileLocPos(): string {
+        let relPath = path.relative(path.dirname(this.resolvePath), this.fileLoc);
+        if (!relPath.startsWith('.')) {
+            relPath = './' + relPath;
+        }
+        if (this.lineBegin > 0) {
+            return `${relPath}:${this.lineBegin}`;
+        }
+        return relPath;
     }
 
     // showTextDocument returns the promise of showing the text document in vscode
@@ -340,7 +356,7 @@ export function parseFileLoc(fileLoc: string, resolvePath: string): CodeDocument
         language = ext.substring(1);
     }
 
-    return new CodeDocument(fullPath, lineBegin, lineEnd, language);
+    return new CodeDocument(fullPath, resolvePath, lineBegin, lineEnd, language);
 }
 
 // notebookCellToInnerScope returns the innerScope of a notebook cell, removing 

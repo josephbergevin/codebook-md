@@ -8,7 +8,7 @@
     "type": "git",
     "url": "https://github.com/josephbergevin/codebook-md.git"
   },
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.89.0"
   },
@@ -170,8 +170,13 @@
         "id": "shell",
         "aliases": [
           "Shell",
+          "shell",
           "Bash",
-          "sh"
+          "bash",
+          "sh",
+          "zsh",
+          "shellscript",
+          "shell-script"
         ],
         "extensions": [
           "sh"
