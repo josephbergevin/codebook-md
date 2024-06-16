@@ -2,7 +2,7 @@
   "name": "codebook-md",
   "displayName": "Codebook MD",
   "description": "Bring your markdown to life with this VS Code extension! Execute code blocks and navigate to internal permalinks all in your local environment. Inspired by Jupyter notebooks, and a furious ongoing battle against boring documentation and markdown files.",
-  "icon": "extension/src/img/logo_128x128.jpeg",
+  "icon": "extension/src/img/logo_2-1_128x128.png",
   "publisher": "josephbergevin",
   "repository": {
     "type": "git",
@@ -114,13 +114,80 @@
         }
       }
     },
-    "commands": [
-      {
-        "command": "codebook-md.showPreview",
-        "title": "Show Code Preview"
-      }
-    ],
+    "commands": [],
     "languages": [
+      {
+        "id": "go",
+        "aliases": [
+          "Go"
+        ],
+        "extensions": [
+          "go"
+        ],
+        "firstLine": "^package\\s.*"
+      },
+      {
+        "id": "javascript",
+        "aliases": [
+          "JavaScript"
+        ],
+        "extensions": [
+          "js"
+        ],
+        "firstLine": "^\\s*(import|export|const|let|var)\\s.*"
+      },
+      {
+        "id": "typescript",
+        "aliases": [
+          "TypeScript"
+        ],
+        "extensions": [
+          "ts"
+        ],
+        "firstLine": "^\\s*(import|export|const|let|var)\\s.*"
+      },
+      {
+        "id": "rust",
+        "aliases": [
+          "Rust"
+        ],
+        "extensions": [
+          "rs"
+        ],
+        "firstLine": "^\\s*(use|mod|pub|fn|struct|enum|impl|trait|type|const|let|static)\\s.*"
+      },
+      {
+        "id": "python",
+        "aliases": [
+          "Python"
+        ],
+        "extensions": [
+          "py"
+        ],
+        "firstLine": "^\\s*(import|from)\\s.*"
+      },
+      {
+        "id": "shell",
+        "aliases": [
+          "Shell",
+          "Bash",
+          "sh"
+        ],
+        "extensions": [
+          "sh"
+        ],
+        "firstLine": "^#!.*\\b(bash|sh)\\b"
+      },
+      {
+        "id": "http",
+        "aliases": [
+          "HTTP"
+        ],
+        "extensions": [
+          "http"
+        ],
+        "firstLine": "(^|\\s)(GET|POST|PUT|DELETE)\\s.*"
+      },
       {
         "id": "sql",
         "aliases": [

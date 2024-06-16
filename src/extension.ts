@@ -46,46 +46,28 @@ export function activate(context: vscode.ExtensionContext) {
 		transientCellMetadata: {
 			inputCollapsed: true,
 			outputCollapsed: true,
-		}
+		},
+		// Hypothetical additional settings
+		autoSave: false, // Automatically save notebook changes
+		autoRunCells: false, // Automatically run all cells upon opening a notebook
+		cellExecutionTimeout: 10000, // Maximum execution time for a cell in milliseconds
+		showLineNumbers: true, // Show line numbers in notebook cells
+		// theme: 'light', // Default theme for the notebook ('light' or 'dark')
+		enableCellFolding: true, // Allow folding of code within cells
+		// defaultKernel: 'Python 3', // Default kernel to use for new notebooks
+		maxOutputSize: 1024, // Maximum size in KB for cell output before truncation
+		enableMarkdownPreview: false, // Enable or disable Markdown preview in markdown cells
 	};
 
 	context.subscriptions.push(workspace.registerNotebookSerializer('codebook-md', new MarkdownProvider(), notebookSettings));
 
-	context.subscriptions.push(
-		vscode.commands.registerCommand('codebook-md.showPreview', async () => {
-			const panel = vscode.window.createWebviewPanel(
-				'filePreview',
-				'File Preview',
-				vscode.ViewColumn.One,
-				{}
-			);
-
-			const codeDoc = new codebook.CodeDocument(
-				'/Users/tijoe/example.ts',
-				9,
-				15,
-				'ts',
-			);
-
-			const filePath = vscode.Uri.file(codeDoc.fileLoc);
-			const fileContent = await vscode.workspace.fs.readFile(filePath);
-			const fileText = Buffer.from(fileContent).toString('utf8');
-
-			const previewContent = fileText.split('\n').slice(codeDoc.lineBegin, codeDoc.lineEnd + 1).join('\n');
-
-			panel.webview.html = getWebviewContent(previewContent);
-		})
-	);
-
 	// hoverProvider will fire-off for any language, but will automatically return if the document.fileName 
 	// is not a markdown file
-	const hoverProvider = vscode.languages.registerHoverProvider(['*'], {
+	const hoverProvider = vscode.languages.registerHoverProvider({ scheme: 'vscode-notebook-cell' }, {
 		provideHover(document, position, token) {
-			if (!document.fileName.endsWith('.md')) {
-				return;
-			}
-
 			const text = document.lineAt(position.line).text;
+			// console.log(`provideHover: ${document.uri.fsPath}\n\tposition: ${position.line}\n\ttext: ${text}`);
+
 			const fileLoc = codebook.findCodeDocument(text);
 			if (!fileLoc) {
 				// no file link found in the line
@@ -94,21 +76,30 @@ export function activate(context: vscode.ExtensionContext) {
 
 			const doc = codebook.parseFileLoc(fileLoc, document.uri.fsPath);
 			if (!fs.existsSync(doc.fileLoc)) {
-				console.error(`File not found: ${doc.fileLoc}`);
+				console.error(`\tfile not found: ${doc.fileLoc}`);
 				return;
 			}
 
-			console.log(`Reading file: ${doc.fileLoc}`);
+			// console.log(`\treading file: ${doc.fileLoc}`);
+			// console.log(`\tfullFileLocPos: ${doc.fullFileLocPos()}`);
 			let fileContent = fs.readFileSync(doc.fileLoc, 'utf-8');
 
 			// use doc.lineBegin to start from a specific line
+			let lineCount = fileContent.split('\n').length;
 			if (doc.lineBegin > 0) {
 				const lines = fileContent.split('\n');
 				fileContent = lines.slice(doc.lineBegin - 1, doc.lineEnd).join('\n');
+				lineCount = doc.lineEnd - doc.lineBegin + 1;
 			}
 
 			const markdownContent = new vscode.MarkdownString();
+			// provide double-click to open the file
+			markdownContent.appendMarkdown(`\n[Open file](${doc.fullFileLocPos()})`);
 			markdownContent.appendCodeblock(fileContent, doc.language);
+			// if the file view is big enough to have a scroll bar, provide a link to open the file
+			if (lineCount > 12) {
+				markdownContent.appendMarkdown(`\n[Open file](${doc.fullFileLocPos()})`);
+			}
 
 			return new vscode.Hover(markdownContent);
 		}
