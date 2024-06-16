@@ -6,6 +6,7 @@ import * as go from "./languages/go";
 import * as javascript from "./languages/javascript";
 import * as typescript from "./languages/typescript";
 import * as bash from "./languages/bash";
+import * as unsupported from "./languages/unsupported";
 import * as util from "./exec";
 
 // Kernel in this case matches Jupyter definition i.e. this is responsible for taking the frontend notebook
@@ -19,6 +20,12 @@ export class Kernel {
     }
 
     async executeCell(doc: NotebookDocument, cells: NotebookCell[], ctrl: NotebookController): Promise<void> {
+        // console.log(`kernel.executeCell: found ${doc.getCells().length} cells`);
+        // doc.getCells().forEach(notebookCell => {
+        //     // log the language of the cell and the first line
+        //     console.log(`logLanguage: '${notebookCell.document.languageId}'\n\t${notebookCell.document.getText().split('\n')[0]}`);
+        // });
+
         switch (cells.length) {
             case 0:
                 return;
@@ -68,7 +75,6 @@ export class Kernel {
                 }
 
                 codebookCell = new go.Cell(notebookCell);
-                output = codebookCell.execute();
                 break;
 
             case "javascript":
@@ -78,7 +84,6 @@ export class Kernel {
                     return;
                 }
                 codebookCell = new javascript.Cell(notebookCell);
-                output = codebookCell.execute();
                 break;
 
             case "typescript":
@@ -88,7 +93,6 @@ export class Kernel {
                     return;
                 }
                 codebookCell = new typescript.Cell(notebookCell);
-                output = codebookCell.execute();
                 break;
 
             case "shell":
@@ -102,14 +106,17 @@ export class Kernel {
                     return;
                 }
                 codebookCell = new bash.Cell(notebookCell);
-                output = codebookCell.execute();
                 break;
 
             default:
+                // set the output to an error message: "Language '??' not supported"
+                codebookCell = new unsupported.Cell(notebookCell);
+
                 exec.end(true, (new Date).getTime());
                 return;
         }
 
+        output = codebookCell.execute();
         let errorText = "";
 
         output.stderr.on("data", async (data: Uint8Array) => {

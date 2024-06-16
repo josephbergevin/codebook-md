@@ -1,4 +1,4 @@
-![Codebook MD Logo](extension/src/img/logo.jpeg)
+![Codebook MD Logo](extension/src/img/logo_2-1_orig.png)
 
 # Codebook MD
 

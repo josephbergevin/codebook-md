@@ -290,7 +290,7 @@ export class CodeDocument {
     }
 
     // returns the fileLoc - also includes the lineBegin if > 0
-    toFullFileLocPos(): string {
+    fullFileLocPos(): string {
         if (this.lineBegin > 0) {
             return `${this.fileLoc}:${this.lineBegin}`;
         }
@@ -322,7 +322,6 @@ export function parseFileLoc(fileLoc: string, resolvePath: string): CodeDocument
     if (!path.isAbsolute(fileLoc) && resolvePath) {
         fullPath = path.resolve(path.dirname(resolvePath), fileLoc);
     }
-    console.log(`Full path: ${fullPath}`);
 
     let lineBegin = 0;
     let lineEnd = 0;

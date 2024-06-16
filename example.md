@@ -2,19 +2,29 @@
 fmt.Println("Hello, World!")
 ```
 
-```shellscript
+### Bash
+- look into ./src/codebook.ts:5-15
+- file: [open](./src/codebook.ts)
+- file and line: [open](./src/codebook.ts:5)
+- file and line range: [open](./src/codebook.ts:5-8)
+
+```go
+
+```
+
+```shell
 echo "Hello, World!"
 ```
 
-```shellscript
+```shell
 echo "Hello, World!"
 ```
 
-```shellscript
+```shell
 echo "Hello, World!"
 ```
 
-```shellscript
+```shell
 echo "Hello, World!"
 ```
 
@@ -37,3 +47,15 @@ SELECT * FROM workspaces LIMIT 10;
 ```http
 GET https://example.com
 ```
+
+```markdown
+- list item 1
+    - sub-list item 1
+    - sub-list item 2
+- list item 2
+```
+
+- list item 1
+    - sub-list item 1
+    - sub-list item 2
+- list item 2
