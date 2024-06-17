@@ -23,15 +23,20 @@ const kernel = new Kernel();
 export function activate(context: vscode.ExtensionContext) {
 	const controller = notebooks.createNotebookController('codebook-md', 'codebook-md', 'codebook-md');
 	controller.supportedLanguages = [
+		'bash',
 		'go',
 		'javascript',
-		'typescript',
-		'shellscript',
-		'bash',
-		'zsh',
 		'json',
 		'plaintext',
-		'sql'
+		'python',
+		'rust',
+		'sh',
+		'shell',
+		'shell-script',
+		'shellscript',
+		'sql',
+		'typescript',
+		'zsh',
 	];
 	controller.executeHandler = (cells, doc, ctrl) => {
 		if (cells.length > 1) {

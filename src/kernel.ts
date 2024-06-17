@@ -6,6 +6,7 @@ import * as go from "./languages/go";
 import * as javascript from "./languages/javascript";
 import * as typescript from "./languages/typescript";
 import * as bash from "./languages/bash";
+import * as python from "./languages/python";
 import * as unsupported from "./languages/unsupported";
 import * as util from "./exec";
 
@@ -28,6 +29,7 @@ export class Kernel {
 
         switch (cells.length) {
             case 0:
+                console.warn("executeCell called with 0 cells - nothing to do.");
                 return;
 
             case 1:
@@ -40,6 +42,7 @@ export class Kernel {
         }
 
         const notebookCell = cells[0];
+        console.log(`kernel.executeCell: ${notebookCell.document.languageId} cell`);
         let decoder = new TextDecoder;
         let exec = ctrl.createNotebookCellExecution(notebookCell);
 
@@ -108,6 +111,15 @@ export class Kernel {
                 codebookCell = new bash.Cell(notebookCell);
                 break;
 
+            case "python":
+            case "py":
+                // if (util.commandNotOnPath("python", "https://www.python.org/")) {
+                //     exec.end(false, (new Date).getTime());
+                //     return;
+                // }
+                codebookCell = new python.Cell(notebookCell);
+                break;
+
             default:
                 // set the output to an error message: "Language '??' not supported"
                 codebookCell = new unsupported.Cell(notebookCell);
@@ -168,10 +180,10 @@ export class Kernel {
             }
 
             // Clear all outputs for the entire document
-            console.log(`Clearing all outputs for ${doc.cellCount} cells...`);
-            doc.getCells().forEach(notebookCell => {
-                exec.clearOutput(notebookCell);
-            });
+            // console.log(`Clearing all outputs for ${doc.cellCount} cells...`);
+            // doc.getCells().forEach(notebookCell => {
+            //     exec.clearOutput(notebookCell);
+            // });
         });
     }
 }
