@@ -13,23 +13,27 @@ Hello, World!
 - file and line: [open](./src/codebook.ts:5)
 - file and line range: [open](./src/codebook.ts:5-8)
 
-```go
-
+```python
+print("hello world")
 ```
 
-```shell
+```text
+hello world
+```
+
+```shellscript
 echo "Hello, World!"
 ```
 
-```shell
+```shellscript
 echo "Hello, World!"
 ```
 
-```shell
+```shellscript
 echo "Hello, World!"
 ```
 
-```shell
+```shellscript
 echo "Hello, World!"
 ```
 

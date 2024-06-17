@@ -5,7 +5,7 @@ import { ChildProcessWithoutNullStreams } from "child_process";
 import * as vscode from 'vscode';
 import * as config from './config';
 import * as path from 'path';
-
+import * as fs from 'fs';
 
 const permalinkPrefix = config.readConfig().permalinkPrefix;
 
@@ -271,6 +271,52 @@ export function permalinkToCodeDocument(permalink: string, permalinkPrefix: stri
         parseInt(lineNumbers[1]),
         language,
     );
+}
+
+// HoverProvider class implements the HoverProvider interface
+export class HoverProvider implements vscode.HoverProvider {
+    // provideHover returns a hover object for a given position in a document
+    provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Hover> {
+        const text = document.lineAt(position.line).text;
+        // console.log(`provideHover: ${document.uri.fsPath}\n\tposition: ${position.line}\n\ttext: ${text}`);
+
+        const fileLoc = findCodeDocument(text);
+        if (!fileLoc) {
+            // no file link found in the line
+            return;
+        }
+
+        const doc = parseFileLoc(fileLoc, document.uri.fsPath);
+        if (!fs.existsSync(doc.fileLoc)) {
+            console.error(`\tfile not found: ${doc.fileLoc}`);
+            return;
+        }
+
+        // console.log(`\treading file: ${doc.fileLoc}`);
+        // console.log(`\tfullFileLocPos: ${doc.fullFileLocPos()}`);
+        let fileContent = fs.readFileSync(doc.fileLoc, 'utf-8');
+
+        // use doc.lineBegin to start from a specific line
+        let lineCount = fileContent.split('\n').length;
+        if (doc.lineBegin > 0) {
+            const lines = fileContent.split('\n');
+            fileContent = lines.slice(doc.lineBegin - 1, doc.lineEnd).join('\n');
+            lineCount = doc.lineEnd - doc.lineBegin + 1;
+        }
+
+        const markdownContent = new vscode.MarkdownString();
+        const fileLocPos = doc.relativeFileLocPos();
+        console.log(`\tfileLocPos (to click): ${fileLocPos}`);
+        // provide double-click to open the file
+        markdownContent.appendMarkdown(`[open file](${fileLocPos})`);
+        markdownContent.appendCodeblock(fileContent, doc.language);
+        // if the file view is big enough to have a scroll bar, provide a link to open the file
+        if (lineCount > 12) {
+            markdownContent.appendMarkdown(`\n[open file](${fileLocPos})`);
+        }
+
+        return new vscode.Hover(markdownContent);
+    }
 }
 
 // CodeDoc is a class containing the data for a document in vscode: file loc, preview line begin, preview line end, language
