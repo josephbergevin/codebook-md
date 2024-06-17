@@ -8,6 +8,26 @@
     "type": "git",
     "url": "https://github.com/josephbergevin/codebook-md.git"
   },
+  "license": "MIT",
+  "keywords": [
+    "notebook",
+    "code-blocks",
+    "code",
+    "codebook",
+    "markdown",
+    "go",
+    "golang",
+    "javascript",
+    "typescript",
+    "shell",
+    "shellscript",
+    "shell-script",
+    "bash",
+    "python",
+    "http",
+    "sql",
+    "rust"
+  ],
   "version": "0.0.3",
   "engines": {
     "vscode": "^1.89.0"
@@ -88,27 +108,42 @@
             "execFilename": {
               "type": "string",
               "default": "codebook_md_exec.sh",
-              "description": "Filename to use for 'run' execution type."
+              "description": "Filename to use for code-block execution."
             }
           }
         },
-        "codebook-md.js": {
+        "codebook-md.javascript": {
           "type": "object",
           "properties": {
             "execFilename": {
               "type": "string",
               "default": "codebook_md_exec.js",
-              "description": "Filename to use for 'run' execution type."
+              "description": "Filename to use for code-block execution."
             }
           }
         },
-        "codebook-md.ts": {
+        "codebook-md.typescript": {
           "type": "object",
           "properties": {
             "execFilename": {
               "type": "string",
               "default": "codebook_md_exec.ts",
-              "description": "Filename to use for 'run' execution type."
+              "description": "Filename to use for code-block execution."
+            }
+          }
+        },
+        "codebook-md.python": {
+          "type": "object",
+          "properties": {
+            "execFilename": {
+              "type": "string",
+              "default": "codebook_md_exec.py",
+              "description": "Filename to use for code-block execution."
+            },
+            "pythonCmd": {
+              "type": "string",
+              "default": "python3",
+              "description": "Command to use for running Python code-blocks."
             }
           }
         }
@@ -117,116 +152,10 @@
     "commands": [],
     "languages": [
       {
-        "id": "go",
-        "aliases": [
-          "Go"
-        ],
-        "extensions": [
-          "go"
-        ],
-        "firstLine": "^package\\s.*"
-      },
-      {
-        "id": "javascript",
-        "aliases": [
-          "JavaScript"
-        ],
-        "extensions": [
-          "js"
-        ],
-        "firstLine": "^\\s*(import|export|const|let|var)\\s.*"
-      },
-      {
-        "id": "typescript",
-        "aliases": [
-          "TypeScript"
-        ],
-        "extensions": [
-          "ts"
-        ],
-        "firstLine": "^\\s*(import|export|const|let|var)\\s.*"
-      },
-      {
-        "id": "rust",
-        "aliases": [
-          "Rust"
-        ],
-        "extensions": [
-          "rs"
-        ],
-        "firstLine": "^\\s*(use|mod|pub|fn|struct|enum|impl|trait|type|const|let|static)\\s.*"
-      },
-      {
-        "id": "python",
-        "aliases": [
-          "Python"
-        ],
-        "extensions": [
-          "py"
-        ],
-        "firstLine": "^\\s*(import|from)\\s.*"
-      },
-      {
-        "id": "shell",
-        "aliases": [
-          "Shell",
-          "shell",
-          "Bash",
-          "bash",
-          "sh",
-          "zsh",
-          "shellscript",
-          "shell-script"
-        ],
-        "extensions": [
-          "sh"
-        ],
-        "firstLine": "^#!.*\\b(bash|sh)\\b"
-      },
-      {
-        "id": "http",
-        "aliases": [
-          "HTTP"
-        ],
-        "extensions": [
-          "http"
-        ],
-        "firstLine": "(^|\\s)(GET|POST|PUT|DELETE)\\s.*"
-      },
-      {
-        "id": "sql",
-        "aliases": [
-          "SQL"
-        ],
-        "extensions": [
-          "sql"
-        ],
-        "firstLine": "(^|\\s)(SELECT|UPDATE)\\s.*"
-      },
-      {
-        "id": "sh",
-        "aliases": [
-          "Shell"
-        ],
-        "extensions": [
-          "sh"
-        ],
-        "firstLine": "^#!.*\\b(bash|sh)\\b"
-      },
-      {
-        "id": "http",
-        "aliases": [
-          "HTTP"
-        ],
-        "extensions": [
-          "http"
-        ],
-        "firstLine": "(^|\\s)(GET|POST|PUT|DELETE)\\s.*"
-      },
-      {
         "id": "markdown",
         "extensions": [
-          ".md"
+          ".md",
+          ".markdown"
         ]
       }
     ],
