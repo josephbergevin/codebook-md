@@ -1,7 +1,7 @@
 {
   "name": "codebook-md",
-  "displayName": "Codebook MD",
-  "description": "Execute notebook code-blocks directly in markdown docs! Supports Go, JavaScript, TypeScript, Shell - and more to come!",
+  "displayName": "Codebook MD - Run Notebook Code-Blocks",
+  "description": "Execute notebook code-blocks directly in markdown docs! Supports Go, JavaScript, TypeScript, Bash, Python - and more to come!",
   "icon": "extension/src/img/logo_2-1_128x128.png",
   "publisher": "josephbergevin",
   "repository": {
