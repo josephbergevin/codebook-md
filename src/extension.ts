@@ -2,9 +2,6 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
-// import the functions from fmt.ts
-import * as fmt from './fmt';
-
 // import the functions from md.ts
 import * as codebook from './codebook';
 
