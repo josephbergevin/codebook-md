@@ -20,7 +20,7 @@ suite('md.ts Test Suite', () => {
             'ts',
         ));
         // test the method fullFileLocPos
-        assert.deepEqual(codeDoc.fullFileLocPos(), '/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/src/extension.ts:9');
+        assert.deepEqual(codeDoc.absoluteFileLocPos(), '/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/src/extension.ts:9');
     });
 
     test('CodeDocument - no file location', () => {
