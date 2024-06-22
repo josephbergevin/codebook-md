@@ -317,15 +317,13 @@ export class HoverProvider implements vscode.HoverProvider {
         );
 
         // open file link with command: codebook-md.openFileAtLine <fileLoc> <currentFileLoc>
-        mdContent.appendMarkdown(`[open file cmd](command:codebook-md.openFileAtLine?${encodedArgs})\n\n`);
+        mdContent.appendMarkdown(`[open file](command:codebook-md.openFileAtLine?${encodedArgs})\n\n`);
         mdContent.appendCodeblock(fileContent, doc.language);
 
         // if the file view is big enough to have a scroll bar, provide a link to open the file
         if (lineCount > 12) {
-            mdContent.appendMarkdown(`[open file abs](${doc.absoluteFileLoc()})\n\n`);
+            mdContent.appendMarkdown(`[open file](command:codebook-md.openFileAtLine?${encodedArgs})\n\n`);
         }
-
-        console.log(`mdContent: ${mdContent.value}`);
 
         return new vscode.Hover(mdContent);
     }
