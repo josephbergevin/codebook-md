@@ -14,6 +14,7 @@ import {
 	notebooks, workspace,
 	CancellationToken, NotebookSerializer, NotebookData, NotebookCellData
 } from 'vscode';
+import * as fs from 'fs';
 
 const kernel = new Kernel();
 
@@ -51,16 +52,6 @@ export function activate(context: vscode.ExtensionContext) {
 			inputCollapsed: true,
 			outputCollapsed: true,
 		},
-		// Hypothetical additional settings
-		autoSave: false, // Automatically save notebook changes
-		autoRunCells: false, // Automatically run all cells upon opening a notebook
-		cellExecutionTimeout: 10000, // Maximum execution time for a cell in milliseconds
-		showLineNumbers: true, // Show line numbers in notebook cells
-		// theme: 'light', // Default theme for the notebook ('light' or 'dark')
-		enableCellFolding: true, // Allow folding of code within cells
-		// defaultKernel: 'Python 3', // Default kernel to use for new notebooks
-		maxOutputSize: 1024, // Maximum size in KB for cell output before truncation
-		enableMarkdownPreview: false, // Enable or disable Markdown preview in markdown cells
 	};
 
 	context.subscriptions.push(workspace.registerNotebookSerializer('codebook-md', new MarkdownProvider(), notebookSettings));
@@ -68,6 +59,21 @@ export function activate(context: vscode.ExtensionContext) {
 	// hoverProvider will fire-off for any language, but will automatically return if the document.fileName 
 	// is not a markdown file
 	context.subscriptions.push(vscode.languages.registerHoverProvider({ scheme: 'vscode-notebook-cell' }, new codebook.HoverProvider()));
+
+	// add the codebook-md.openFileAtLine command
+	let disposable = vscode.commands.registerCommand('codebook-md.openFileAtLine', async (fileLoc: string, currentFileLoc: string) => {
+		console.log(`called codebook-md.openFileAtLine | fileLoc: ${fileLoc} | currentFileLoc: ${currentFileLoc}`);
+		const doc = codebook.parseFileLoc(fileLoc, currentFileLoc);
+		if (!fs.existsSync(doc.fileLoc)) {
+			console.error(`\tfile not found: ${doc.fileLoc}`);
+			return;
+		}
+
+		console.log(`Opening file ${doc.relativeFileLoc} at line ${doc.lineBegin}`);
+		doc.openAndNavigate();
+	});
+
+	context.subscriptions.push(disposable);
 }
 
 // This method is called when your extension is deactivated

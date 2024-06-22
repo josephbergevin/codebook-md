@@ -149,7 +149,12 @@
         }
       }
     },
-    "commands": [],
+    "commands": [
+      {
+        "command": "codebook-md.openFileAtLine",
+        "title": "Open File at Line"
+      }
+    ],
     "languages": [
       {
         "id": "markdown",

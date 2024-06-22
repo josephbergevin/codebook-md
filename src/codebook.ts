@@ -60,7 +60,6 @@ function parseCodeBlockStart(line: string): string | null {
         return match[2];
     }
     return null;
-
 }
 
 function isCodeBlockStart(line: string): boolean {
@@ -196,9 +195,8 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
 const stringDecoder = new TextDecoder();
 export function writeCellsToMarkdown(cells: ReadonlyArray<NotebookCellData>): string {
     let result = '';
-    for (let i = 0; i < cells.length; i++) {
+    cells.forEach(cell => {
         result += "\n\n";
-        const cell = cells[i];
         if (cell.kind === NotebookCellKind.Code) {
             let outputParsed = "";
             if (cell.outputs) {
@@ -224,8 +222,9 @@ export function writeCellsToMarkdown(cells: ReadonlyArray<NotebookCellData>): st
         } else {
             result += cell.value.trim();
         }
-    }
-    // Each cell adds a newline at the start to keep spacing between code blocks correct
+    });
+    // Each cell adds a newline at the start to keep spacing between code blocks correct,
+    // so we'll remove the first newline on the way out
     return result.substring(2);
 }
 
@@ -278,8 +277,8 @@ export class HoverProvider implements vscode.HoverProvider {
     // provideHover returns a hover object for a given position in a document
     provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Hover> {
         const text = document.lineAt(position.line).text;
-        // console.log(`provideHover: ${document.uri.fsPath}\n\tposition: ${position.line}\n\ttext: ${text}`);
 
+        // find the file location in the line
         const fileLoc = findCodeDocument(text);
         if (!fileLoc) {
             // no file link found in the line
@@ -292,8 +291,7 @@ export class HoverProvider implements vscode.HoverProvider {
             return;
         }
 
-        // console.log(`\treading file: ${doc.fileLoc}`);
-        // console.log(`\tfullFileLocPos: ${doc.fullFileLocPos()}`);
+        // read the file content
         let fileContent = fs.readFileSync(doc.fileLoc, 'utf-8');
 
         // use doc.lineBegin to start from a specific line
@@ -304,18 +302,32 @@ export class HoverProvider implements vscode.HoverProvider {
             lineCount = doc.lineEnd - doc.lineBegin + 1;
         }
 
-        const markdownContent = new vscode.MarkdownString();
-        const fileLocPos = doc.relativeFileLocPos();
-        console.log(`\tfileLocPos (to click): ${fileLocPos}`);
-        // provide double-click to open the file
-        markdownContent.appendMarkdown(`[open file](${fileLocPos})`);
-        markdownContent.appendCodeblock(fileContent, doc.language);
+        const mdContent = new vscode.MarkdownString();
+        mdContent.isTrusted = true;
+
+        // Construct the command URI
+        const currentFileLoc = document.uri.fsPath;
+
+        // encode the command arguments in a URI friendly way
+        const encodedArgs = encodeURIComponent(
+            JSON.stringify([
+                doc.absoluteFileLocRange(),
+                currentFileLoc,
+            ])
+        );
+
+        // open file link with command: codebook-md.openFileAtLine <fileLoc> <currentFileLoc>
+        mdContent.appendMarkdown(`[open file cmd](command:codebook-md.openFileAtLine?${encodedArgs})\n\n`);
+        mdContent.appendCodeblock(fileContent, doc.language);
+
         // if the file view is big enough to have a scroll bar, provide a link to open the file
         if (lineCount > 12) {
-            markdownContent.appendMarkdown(`\n[open file](${fileLocPos})`);
+            mdContent.appendMarkdown(`[open file abs](${doc.absoluteFileLoc()})\n\n`);
         }
 
-        return new vscode.Hover(markdownContent);
+        console.log(`mdContent: ${mdContent.value}`);
+
+        return new vscode.Hover(mdContent);
     }
 }
 
@@ -338,21 +350,41 @@ export class CodeDocument {
         this.language = language;
     }
 
-    // fullFileLocPos returns the full resolved fileLoc - also includes the lineBegin if > 0
-    fullFileLocPos(): string {
-        if (this.lineBegin > 0) {
-            return `${this.fileLoc}:${this.lineBegin}`;
+    // absoluteFileLoc returns the absolute file location
+    absoluteFileLoc(): string {
+        return path.resolve(this.fileLoc);
+    }
+
+    // absoluteFileLocPos returns the absolute file location with the line number
+    absoluteFileLocPos(): string {
+        if (this.lineBegin === 0) {
+            return this.absoluteFileLoc();
         }
-        return this.fileLoc;
+        return `${this.absoluteFileLoc()}:${this.lineBegin}`;
+    }
+
+    // absoluteFileLocRange returns the same as absoluteFileLocPos but with the line range if > 0
+    absoluteFileLocRange(): string {
+        if (this.lineEnd === 0) {
+            return this.absoluteFileLocPos();
+        }
+        return `${this.absoluteFileLoc()}:${this.lineBegin}-${this.lineEnd}`;
+    }
+
+    // relativeFileLoc returns the fileLoc relative to the current open file - also includes the lineBegin if > 0
+    // always begins with a ./ or ../
+    relativeFileLoc(): string {
+        let relPath = path.relative(path.dirname(this.resolvePath), this.fileLoc);
+        if (!relPath.startsWith('.')) {
+            relPath = './' + relPath;
+        }
+        return relPath;
     }
 
     // relativeFileLocPos returns the fileLoc relative to the current open file - also includes the lineBegin if > 0
     // always begins with a ./ or ../
     relativeFileLocPos(): string {
-        let relPath = path.relative(path.dirname(this.resolvePath), this.fileLoc);
-        if (!relPath.startsWith('.')) {
-            relPath = './' + relPath;
-        }
+        let relPath = this.relativeFileLoc();
         if (this.lineBegin > 0) {
             return `${relPath}:${this.lineBegin}`;
         }
@@ -365,6 +397,26 @@ export class CodeDocument {
             vscode.Uri.file(this.fileLoc),
             { selection: new vscode.Range(this.lineBegin, 0, this.lineEnd, 0) },
         );
+    }
+
+    // openAndNavigate opens the file in vscode and navigates to the line
+    async openAndNavigate(): Promise<void> {
+        console.log(`Opening file: ${this.absoluteFileLoc()} at lineBegin: ${this.lineBegin} and lineEnd: ${this.lineEnd}`);
+        const document = await vscode.workspace.openTextDocument(this.absoluteFileLoc()); // Use VS Code's API to open the file
+        await vscode.window.showTextDocument(document, {
+            preview: false,
+            selection: this.lineRange(),
+        });
+    }
+
+    // lineRange returns the range of the lineBegin and lineEnd
+    lineRange(): vscode.Range {
+        const positionBegin = new vscode.Position(this.lineBegin, 0);
+        let postitionEnd = new vscode.Position(this.lineBegin, 0);
+        if (this.lineEnd > this.lineBegin) {
+            postitionEnd = new vscode.Position(this.lineEnd, 0);
+        }
+        return new vscode.Range(positionBegin, postitionEnd);
     }
 }
 
