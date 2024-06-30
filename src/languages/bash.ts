@@ -5,7 +5,7 @@ import * as config from "../config";
 import * as codebook from "../codebook";
 import * as vscode from "vscode";
 import { workspace } from "vscode";
-import * as exec from "../exec";
+import * as exec from "../io";
 
 export class Cell implements codebook.Cell {
     innerScope: string;
@@ -15,7 +15,7 @@ export class Cell implements codebook.Cell {
     constructor(notebookCell: vscode.NotebookCell) {
         // get the configuration for the bash language
         this.config = new Config(workspace.getConfiguration('codebook-md.bash'));
-        
+
         // form the innerScope with lines that don't start with # or set -e
         this.innerScope = codebook.notebookCellToInnerScope(notebookCell, "#", "set -e");
 

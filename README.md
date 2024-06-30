@@ -47,3 +47,17 @@ Output from executed code blocks can be configured in the following ways:
 - In the output panel at the bottom of the editor (coming soon)
 - In a new tab (coming soon)
 - In a file location specified in the settings (coming soon)
+
+## Collaboration
+
+This project is open to collaboration! If you have an idea for a feature, or would like to contribute to the project, please feel free to reach out to me via an [issue](https://github.com/josephbergevin/codebook-md/issues).
+
+## Inspiration
+
+This extension was inspired by the Jupyter notebook, which allows for the execution of code blocks in a notebook environment. The goal of this extension is to bring that functionality to markdown files in VS Code. While some inspiration was also drawn from existing markdown extensions in the VS Code marketplace, I wanted to have the ability to move quicker with adding new features and languages. More specifically, I wanted to implement a way to interact with local files from within the markdown file itself.
+- Extensions of Note:
+  - [md-notebook](https://marketplace.visualstudio.com/items?itemName=jackos.md-notebook)
+  - [Go Notebook](https://marketplace.visualstudio.com/items?itemName=gobookdev.gobook)
+    - Last updated in 2022, no public repository
+  - [Codebook](https://marketplace.visualstudio.com/items?itemName=gobookdev.gobook)
+    - Last updated in 2022, no public repository

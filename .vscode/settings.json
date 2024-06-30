@@ -13,4 +13,5 @@
 	"editor.formatOnSave": true,
 	"files.insertFinalNewline": true,
 	"files.trimFinalNewlines": true,
+	"CodeGPT.apiKey": "OpenAI",
 }

@@ -1,12 +1,12 @@
 import { ChildProcessWithoutNullStreams } from "child_process";
 import { mkdirSync, readFile, writeFileSync } from "fs";
 import * as path from "path";
-import * as config from "../config";
-import * as codebook from "../codebook";
+import { join } from "path";
 import * as vscode from "vscode";
 import { workspace } from "vscode";
-import { join } from "path";
-import * as exec from "../exec";
+import * as codebook from "../codebook";
+import * as config from "../config";
+import * as exec from "../io";
 
 // Cell is a class that contains the configuration settings for executing go code from Cells
 export class Cell implements codebook.Cell {
@@ -72,7 +72,7 @@ export class Cell implements codebook.Cell {
             } else if (line.startsWith("import")) {
                 this.importNumber++;
                 this.imports.push(line);
-            } else if (line.startsWith("// exec_from:")) {
+            } else if (line.startsWith("// [>]exec_from:")) {
                 // set the execFrom value to the line so we can use it later
                 this.config.execFrom = line;
                 continue;
@@ -169,6 +169,31 @@ export class Cell implements codebook.Cell {
         }
         return exec.spawnCommand('go', [this.config.execCmd, ...this.config.execArgs, this.config.execFile], { cwd: this.config.execDir });
     }
+
+    // parseImports parses the imports for the go code in the cell, returning the imports as a sclie of strings
+    parseImports(): string[] {
+        let imports: string[] = [];
+        let lines = this.executableCode.split("\n");
+        for (let line of lines) {
+            if (line.startsWith("import (")) {
+                this.parsingImports = true;
+            } else if (this.parsingImports) {
+                if (line === ")") {
+                    this.parsingImports = false;
+                } else if (line === "") {
+                    continue;
+                } else {
+                    imports.push(line);
+                }
+            } else if (line.startsWith(`import "`)) {
+                imports.push(line);
+            }
+        }
+        return imports;
+    }
+
+    // resolveImports resolves the imports for the go code in the cell by running goimports on the file
+
 }
 
 
@@ -193,7 +218,7 @@ export class Config {
         this.execTypeRun = execType === 'run';
         this.execTypeRunFilename = goConfig?.get<string>('execTypeRunFilename') ?? 'main.go'; // defalut value is in package.json
         this.execTypeTest = execType === 'test';
-        this.execTypeTestFilename = goConfig?.get<string>('execTypeTestFilename') ?? 'md_notebook_exec_test.go'; // defalut value is in package.json
+        this.execTypeTestFilename = goConfig?.get<string>('execTypeTestFilename') ?? 'codebook_md_exec_test.go'; // defalut value is in package.json
         this.execTypeTestBuildTag = goConfig?.get<string>('execTypeTestBuildTag') ?? 'playground'; // defalut value is in package.json
         this.execDir = "";
         this.execFile = "";
@@ -224,11 +249,11 @@ export class Config {
 }
 
 // getDirAndMainFile takes the string to search (main string) and returns the directory and main file path for the go code using the 
-// '// exec_from:[/dir/to/main.go]' keyword in a comment in the given string using one of 2 formats:
+// '// [>]exec_from:[/dir/to/main.go]' keyword in a comment in the given string using one of 2 formats:
 // 1. absolute path to the directory and main.go file (/path/to/dir/main.go)
 // 2. relative path to the directory and main.go file (./dir/main.go)
 export let getDirAndExecFile = (execFrom: string): [string, string] => {
-    // exec_from:./apiplayground/main_temp.go
+    // [>]exec_from:./apiplayground/main_temp.go
     // split on the colon
     let parts = execFrom.split(':');
     console.log(`getDirAndExecFile parts: ${parts} | execFrom: ${execFrom}`);

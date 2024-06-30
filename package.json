@@ -36,7 +36,9 @@
     "Notebooks"
   ],
   "activationEvents": [
-    "onLanguage:markdown"
+    "onLanguage:markdown",
+    "onLanguage:markdown",
+    "onCommand:codebook-md.openMarkdownPreview"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -155,6 +157,23 @@
         "title": "Open File at Line"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "codebook-md-activitybar",
+          "title": "Codebook MD",
+          "icon": "extension/src/img/icon_3.svg"
+        }
+      ]
+    },
+    "views": {
+      "codebook-md-activitybar": [
+        {
+          "id": "codebook-md-view",
+          "name": "Codebook MD"
+        }
+      ]
+    },
     "languages": [
       {
         "id": "markdown",
