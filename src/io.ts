@@ -10,6 +10,7 @@ export const spawnCommand = (command: string, args: string[], options: any): Chi
     vscode.window.showErrorMessage(`Error running ${command}: ${error}`);
     throw error;
   }
+
 };
 
 // spawnCommandSync is a helper function to child_process.spawnSync, with error handling

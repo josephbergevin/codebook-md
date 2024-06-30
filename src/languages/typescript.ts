@@ -5,7 +5,7 @@ import * as config from "../config";
 import * as codebook from "../codebook";
 import * as vscode from "vscode";
 import { workspace } from "vscode";
-import * as exec from "../exec";
+import * as exec from "../io";
 
 export class Cell implements codebook.Cell {
     innerScope: string; executableCode: string; config: Config;

@@ -32,8 +32,8 @@ export function readConfig(): CodebookMdConfig {
         go: {
             execType: config.get('go.execType', 'run'),
             execTypeRunFilename: config.get('go.execTypeRunFilename', 'main.go'),
-            execTypeTestFilename: config.get('go.execTypeTestFilename', 'md_notebook_exec_test.go'),
-            execTypeTestBuildTag: config.get('go.execTypeTestBuildTag', 'md_notebook_exec'),
+            execTypeTestFilename: config.get('go.execTypeTestFilename', 'codebook_md_exec_test.go'),
+            execTypeTestBuildTag: config.get('go.execTypeTestBuildTag', 'codebook_md_exec'),
             goimportsCmd: config.get('go.goimportsCmd', 'gopls imports'),
         },
     };

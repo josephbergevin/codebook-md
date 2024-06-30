@@ -6,6 +6,13 @@ import * as vscode from 'vscode';
 import * as config from './config';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as go from "./languages/go";
+import * as javascript from "./languages/javascript";
+import * as typescript from "./languages/typescript";
+import * as bash from "./languages/bash";
+import * as python from "./languages/python";
+import * as unsupported from "./languages/unsupported";
+import * as io from './io';
 
 const permalinkPrefix = config.readConfig().permalinkPrefix;
 
@@ -21,6 +28,59 @@ export interface RawNotebookCell {
 
 export interface Cell {
     execute(): ChildProcessWithoutNullStreams;
+    // parseImports(): string[];
+    // resolveImports(): Promise<void>;
+}
+
+// NewCell returns a new Cell object based on the language of the notebook cell - if the language
+// is not supported, it returns an unsupported cell
+export function NewCell(notebookCell: NotebookCell): Cell {
+    const lang = notebookCell.document.languageId;
+    switch (lang) {
+        case "go":
+            if (io.commandNotOnPath("go", "https://go.dev/doc/install")) {
+                return new unsupported.Cell(notebookCell);
+            }
+            return new go.Cell(notebookCell);
+
+        case "javascript":
+        case "js":
+            if (io.commandNotOnPath("node", "https://nodejs.org/")) {
+                return new unsupported.Cell(notebookCell);
+            }
+            return new javascript.Cell(notebookCell);
+
+        case "typescript":
+        case "ts":
+            if (io.commandNotOnPath("ts-node", "https://www.npmjs.com/package/ts-node")) {
+                return new unsupported.Cell(notebookCell);
+            }
+            return new typescript.Cell(notebookCell);
+
+        case "shell":
+        case "zsh":
+        case "sh":
+        case "shellscript":
+        case "shell-script":
+        case "bash":
+            if (io.commandNotOnPath("bash", "https://www.gnu.org/software/bash/")) {
+                return new unsupported.Cell(notebookCell);
+            }
+            return new bash.Cell(notebookCell);
+
+        case "python":
+        case "py":
+            const pythonCell = new python.Cell(notebookCell);
+            if (io.commandNotOnPath(pythonCell.config.execCmd, "https://www.python.org/")) {
+                return new unsupported.Cell(notebookCell);
+            }
+            return pythonCell;
+
+        default:
+            // set the output to an error message: "Language '??' not supported"
+            // exec.end(true, (new Date).getTime());
+            return new unsupported.Cell(notebookCell);
+    }
 }
 
 export enum CommentDecorator {
@@ -280,11 +340,25 @@ export class HoverProvider implements vscode.HoverProvider {
 
         // find the file location in the line
         const fileLoc = findCodeDocument(text);
-        if (!fileLoc) {
-            // no file link found in the line
-            return;
+        if (fileLoc) {
+            return this.provideHoverForFileLoc(fileLoc, document);
         }
 
+        // get the cell content that the current line is in
+        // const cell = document.getText(document.lineAt(position).range);
+
+        const mdContent = new vscode.MarkdownString();
+        mdContent.isTrusted = true;
+
+        // add 3 buttons to the hover: format, clear output, resolve imports
+        mdContent.appendMarkdown(`- [format](command:codebook-md.formatCell)\n`);
+        mdContent.appendMarkdown(`- [clear output](command:codebook-md.clearOutput)\n`);
+        mdContent.appendMarkdown(`- [resolve imports](command:codebook-md.resolveImports)\n`);
+
+        return new vscode.Hover(mdContent);
+    }
+
+    provideHoverForFileLoc(fileLoc: string, document: vscode.TextDocument): vscode.ProviderResult<vscode.Hover> {
         const doc = parseFileLoc(fileLoc, document.uri.fsPath);
         if (!fs.existsSync(doc.fileLoc)) {
             console.error(`\tfile not found: ${doc.fileLoc}`);
@@ -420,7 +494,7 @@ export class CodeDocument {
 
 // findCodeDocument returns the CodeDocument object for a given line in a markdown file
 export function findCodeDocument(text: string): string | null {
-    const regex = /((\.\/|\.\.\/|\/|~\/)[\w/-]+(\.ts|\.sql|\.go)(:\d+(-\d+)?)?)/g;
+    const regex = /((\.\/|\.\.\/|\/|~\/)[\w/-]+(\.ts|\.sql|\.go|\.json|\.js)(:\d+(-\d+)?)?)/g;
     const match = text.match(regex);
     if (!match) {
         return null;
