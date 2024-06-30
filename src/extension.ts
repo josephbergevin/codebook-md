@@ -22,6 +22,7 @@ export function activate(context: vscode.ExtensionContext) {
 	controller.supportedLanguages = [
 		'bash',
 		'go',
+		'http',
 		'javascript',
 		'json',
 		'plaintext',

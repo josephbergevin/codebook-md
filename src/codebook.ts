@@ -43,6 +43,9 @@ export function NewCell(notebookCell: NotebookCell): Cell {
             }
             return new go.Cell(notebookCell);
 
+        case "http":
+            return new unsupported.Cell(notebookCell);
+
         case "javascript":
         case "js":
             if (io.commandNotOnPath("node", "https://nodejs.org/")) {
@@ -107,7 +110,8 @@ const LANGUAGE_IDS = new Map([
     ['shellscript', 'bash'],
     ['fish', 'fish'],
     ['zsh', 'zsh'],
-    ['openai', 'openai'],
+    ['py', 'python'],
+    ['http', 'http'],
 ]);
 
 const LANGUAGE_ABBREVS = new Map(
