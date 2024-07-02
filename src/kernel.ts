@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { NotebookDocument, NotebookCell, NotebookController, NotebookCellOutput, NotebookCellOutputItem, NotebookRange, NotebookEdit, WorkspaceEdit, workspace } from 'vscode';
-import { ChildProcessWithoutNullStreams, spawnSync } from 'child_process';
+import { NotebookDocument, NotebookCell, NotebookController, NotebookCellOutput, NotebookCellOutputItem } from 'vscode';
+import { ChildProcessWithoutNullStreams } from 'child_process';
 import * as codebook from "./codebook";
 
 // Kernel in this case matches Jupyter definition i.e. this is responsible for taking the frontend notebook

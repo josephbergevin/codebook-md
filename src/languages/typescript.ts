@@ -3,14 +3,14 @@ import { mkdirSync, writeFileSync } from "fs";
 import * as path from "path";
 import * as config from "../config";
 import * as codebook from "../codebook";
-import * as vscode from "vscode";
+import { NotebookCell, WorkspaceConfiguration } from "vscode";
 import { workspace } from "vscode";
 import * as exec from "../io";
 
 export class Cell implements codebook.Cell {
     innerScope: string; executableCode: string; config: Config;
 
-    constructor(notebookCell: vscode.NotebookCell) {
+    constructor(notebookCell: NotebookCell) {
         // get the configuration for the bash language
         this.config = new Config(workspace.getConfiguration('codebook-md.typescript'));
 
@@ -32,7 +32,7 @@ export class Cell implements codebook.Cell {
 export class Config {
     execDir: string; execFile: string;
 
-    constructor(typescriptConfig: vscode.WorkspaceConfiguration | undefined) {
+    constructor(typescriptConfig: WorkspaceConfiguration | undefined) {
         this.execDir = config.getTempPath();
         this.execFile = path.join(this.execDir, typescriptConfig?.get('execFilename') || 'codebook_md_exec.ts');
     }

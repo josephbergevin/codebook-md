@@ -1,23 +1,22 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
+import {
+	languages, commands, window, notebooks, workspace,
+	ExtensionContext, StatusBarAlignment, ProviderResult, Command,
+	NotebookSerializer, NotebookData, NotebookCellData, CancellationToken,
+	TreeDataProvider, TreeItem, TreeItemCollapsibleState
+} from 'vscode';
 
-// import the functions from md.ts
 import * as codebook from './codebook';
 
 // import { parseMarkdown, writeCellsToMarkdown, RawNotebookCell } from './markdownParser';
 import { Kernel } from './kernel';
-import {
-	notebooks, workspace,
-	CancellationToken, NotebookSerializer, NotebookData, NotebookCellData
-} from 'vscode';
+
 import * as fs from 'fs';
 
 const kernel = new Kernel();
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: ExtensionContext) {
 	const controller = notebooks.createNotebookController('codebook-md', 'codebook-md', 'codebook-md');
 	controller.supportedLanguages = [
 		'bash',
@@ -49,9 +48,6 @@ export function activate(context: vscode.ExtensionContext) {
 		transientCellMetadata: {
 			inputCollapsed: true,
 			outputCollapsed: true,
-		},
-		transientDocumentMetadata: {
-
 		}
 	};
 
@@ -59,10 +55,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// hoverProvider will fire-off for any language, but will automatically return if the document.fileName 
 	// is not a markdown file
-	context.subscriptions.push(vscode.languages.registerHoverProvider({ scheme: 'vscode-notebook-cell' }, new codebook.HoverProvider()));
+	context.subscriptions.push(languages.registerHoverProvider({ scheme: 'vscode-notebook-cell' }, new codebook.CellHover()));
 
 	// add the codebook-md.openFileAtLine command
-	let disposable = vscode.commands.registerCommand('codebook-md.openFileAtLine', async (fileLoc: string, currentFileLoc: string) => {
+	let disposable = commands.registerCommand('codebook-md.openFileAtLine', async (fileLoc: string, currentFileLoc: string) => {
 		console.log(`called codebook-md.openFileAtLine | fileLoc: ${fileLoc} | currentFileLoc: ${currentFileLoc}`);
 		const doc = codebook.parseFileLoc(fileLoc, currentFileLoc);
 		if (!fs.existsSync(doc.fileLoc)) {
@@ -77,7 +73,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(disposable);
 
 	// add "CodebookMD" to the status bar that opens the settings for the extension
-	const statusBarIcon = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+	const statusBarIcon = window.createStatusBarItem(StatusBarAlignment.Right, 100);
 	statusBarIcon.text = 'CodebookMD';
 	statusBarIcon.command = 'codebook-md.openSettings';
 	statusBarIcon.show();
@@ -85,32 +81,32 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(statusBarIcon);
 
 	// add the codebook-md.openSettings command
-	disposable = vscode.commands.registerCommand('codebook-md.openSettings', async () => {
+	disposable = commands.registerCommand('codebook-md.openSettings', async () => {
 		console.log('called codebook-md.openSettings');
-		vscode.commands.executeCommand('workbench.action.openSettings', '@ext:josephbergevin.codebook-md');
+		commands.executeCommand('workbench.action.openSettings', '@ext:josephbergevin.codebook-md');
 	});
 
 	context.subscriptions.push(disposable);
 
 	// Register the TreeDataProvider for your view
 	const treeDataProvider = new MyTreeDataProvider();
-	vscode.window.createTreeView('codebook-md-view', { treeDataProvider });
+	window.createTreeView('codebook-md-view', { treeDataProvider });
 
 	// Register the command to open the tree view
-	vscode.commands.registerCommand('codebook-md.openTreeView', () => {
-		vscode.commands.executeCommand('workbench.view.extension.codebook-md-activitybar');
+	commands.registerCommand('codebook-md.openTreeView', () => {
+		commands.executeCommand('workbench.view.extension.codebook-md-activitybar');
 	});
 }
 
-// MyTreeDataProvider implements vscode.TreeDataProvider and provides the data for the tree view
+// MyTreeDataProvider implements TreeDataProvider and provides the data for the tree view
 // For now, we'll just return a simple tree with a few hard-coded elements
-class MyTreeDataProvider implements vscode.TreeDataProvider<MyTreeItem> {
+class MyTreeDataProvider implements TreeDataProvider<MyTreeItem> {
 	// Implement the TreeDataProvider methods like getTreeItem and getChildren
-	getTreeItem(element: MyTreeItem): vscode.TreeItem | Thenable<vscode.TreeItem> {
+	getTreeItem(element: MyTreeItem): TreeItem | Thenable<TreeItem> {
 		return element;
 	}
 
-	getChildren(element?: MyTreeItem): vscode.ProviderResult<MyTreeItem[]> {
+	getChildren(element?: MyTreeItem): ProviderResult<MyTreeItem[]> {
 		if (element) {
 			// Return children of the given element
 			return [];
@@ -118,26 +114,26 @@ class MyTreeDataProvider implements vscode.TreeDataProvider<MyTreeItem> {
 			// Return root level elements, each 
 			// 1. collapsible
 			// 2. with a child element that is not collapsible, but is a link
-			const openSettingsCommand: vscode.Command = {
+			const openSettingsCommand: Command = {
 				command: 'workbench.action.openSettings',
 				title: 'Open Settings',
 				arguments: ['@ext:josephbergevin.codebook-md']
 			};
 
 			return [
-				new MyTreeItem('Welcome to Codebook MD!', vscode.TreeItemCollapsibleState.Collapsed),
-				new MyTreeItem('Open CodebookMD Settings', vscode.TreeItemCollapsibleState.None, openSettingsCommand),
+				new MyTreeItem('Welcome to Codebook MD!', TreeItemCollapsibleState.Collapsed),
+				new MyTreeItem('Open CodebookMD Settings', TreeItemCollapsibleState.None, openSettingsCommand),
 			];
 		}
 	}
 }
 
-// MyTreeItem implements vscode.TreeItem and provides the data for each element in the tree view
-class MyTreeItem extends vscode.TreeItem {
+// MyTreeItem implements TreeItem and provides the data for each element in the tree view
+class MyTreeItem extends TreeItem {
 	constructor(
 		public readonly label: string,
-		public readonly collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.None,
-		public readonly command?: vscode.Command // Add this line
+		public readonly collapsibleState: TreeItemCollapsibleState = TreeItemCollapsibleState.None,
+		public readonly command?: Command // Add this line
 	) {
 		super(label, collapsibleState);
 		this.command = command; // And this line
