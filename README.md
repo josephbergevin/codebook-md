@@ -23,8 +23,8 @@ Execute code blocks in markdown files by pressing the corresponding Play button 
     - Executed from a .ts file.
 
 - Languages to be supported with an accompanying extension:
-  - MySQL
-    - Executed using the MySQL extension.
+  - SQL
+    - Executed using a SQL extension.
   - HTTP
     - Executed using the REST Client extension.
 

@@ -2,8 +2,7 @@ import { ChildProcessWithoutNullStreams } from "child_process";
 import { mkdirSync, readFile, writeFileSync } from "fs";
 import * as path from "path";
 import { join } from "path";
-import * as vscode from "vscode";
-import { workspace } from "vscode";
+import { workspace, window, WorkspaceConfiguration, NotebookCell } from "vscode";
 import * as codebook from "../codebook";
 import * as config from "../config";
 import * as exec from "../io";
@@ -22,7 +21,7 @@ export class Cell implements codebook.Cell {
     executableCode: string;
     config: Config;
 
-    constructor(notebookCell: vscode.NotebookCell) {
+    constructor(notebookCell: NotebookCell) {
         this.imports = [];
         this.importNumber = 0;
         this.outerScope = "";
@@ -72,7 +71,7 @@ export class Cell implements codebook.Cell {
             } else if (line.startsWith("import")) {
                 this.importNumber++;
                 this.imports.push(line);
-            } else if (line.startsWith("// [>]exec_from:")) {
+            } else if (line.startsWith("// [>].exec_from:")) {
                 // set the execFrom value to the line so we can use it later
                 this.config.execFrom = line;
                 continue;
@@ -134,7 +133,7 @@ export class Cell implements codebook.Cell {
             // notify in vscode with the execFrom val
             [this.config.execDir, this.config.execFile] = getDirAndExecFile(this.config.execFrom);
             // log out a message in vscode to indicate we're using go setting
-            vscode.window.showInformationMessage('found execFrom: ' + this.config.execFrom, 'executing from: ' + this.config.execFile);
+            window.showInformationMessage('found execFrom: ' + this.config.execFrom, 'executing from: ' + this.config.execFile);
         }
 
         console.log("execFile", this.config.execFile);
@@ -212,7 +211,7 @@ export class Config {
     execCmd: string;
     execArgs: string[];
 
-    constructor(goConfig: vscode.WorkspaceConfiguration | undefined) {
+    constructor(goConfig: WorkspaceConfiguration | undefined) {
         const execType = goConfig?.get<string>('execType') ?? 'run';
         this.execFrom = '';
         this.execTypeRun = execType === 'run';
@@ -231,7 +230,7 @@ export class Config {
         if (this.execTypeTest) {
             // if goConfig.execType is set and the value is 'test`, then create the file in the current package
             // set the execDir to the current directory
-            const currentFile = vscode.window.activeTextEditor?.document.fileName;
+            const currentFile = window.activeTextEditor?.document.fileName;
             const currentPath = path.dirname(currentFile ?? '');
             this.execPkg = path.basename(currentPath);
             this.execDir = currentPath;
@@ -264,7 +263,7 @@ export let getDirAndExecFile = (execFrom: string): [string, string] => {
 
     // if the first part is a '.', then it is a relative path
     if (execFile.startsWith('.')) {
-        const currentFile = vscode.window.activeTextEditor?.document.fileName;
+        const currentFile = window.activeTextEditor?.document.fileName;
         const currentPath = path.dirname(currentFile ?? '');
         execFile = join(currentPath, execFile.slice(2));
     }

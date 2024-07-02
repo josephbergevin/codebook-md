@@ -1,5 +1,5 @@
 import { ChildProcessWithoutNullStreams, spawn, spawnSync, execSync } from "child_process";
-import vscode from "vscode";
+import { window, env, Uri } from "vscode";
 
 // spawnCommand is a helper function to child_process.spawn, with error handling
 export const spawnCommand = (command: string, args: string[], options: any): ChildProcessWithoutNullStreams => {
@@ -7,7 +7,7 @@ export const spawnCommand = (command: string, args: string[], options: any): Chi
   try {
     return spawn(command, args, options);
   } catch (error) {
-    vscode.window.showErrorMessage(`Error running ${command}: ${error}`);
+    window.showErrorMessage(`Error running ${command}: ${error}`);
     throw error;
   }
 
@@ -22,7 +22,7 @@ export const spawnCommandSync = (command: string, args: string[], options: any):
     }
     return result.stdout.toString();
   } catch (error) {
-    vscode.window.showErrorMessage(`Error running ${command}: ${error}`);
+    window.showErrorMessage(`Error running ${command}: ${error}`);
     throw error;
   }
 };
@@ -32,7 +32,7 @@ export const execCommand = (command: string): string => {
   try {
     return execSync(command).toString();
   } catch (error) {
-    vscode.window.showErrorMessage(`Error running ${command}: ${error}`);
+    window.showErrorMessage(`Error running ${command}: ${error}`);
     throw error;
   }
 };
@@ -42,7 +42,7 @@ export const execCommandSync = (command: string): string => {
   try {
     return execSync(command).toString();
   } catch (error) {
-    vscode.window.showErrorMessage(`Error running ${command}: ${error}`);
+    window.showErrorMessage(`Error running ${command}: ${error}`);
     throw error;
   }
 };
@@ -56,8 +56,8 @@ export const commandNotOnPath = (command: string, link: string): boolean => {
     return false;
   } catch (error) {
     if (link) {
-      vscode.window.showErrorMessage(`command: ${command} not on path. Add to path or follow link to install`, ...[`Install ${command}`]).then((_) => {
-        vscode.env.openExternal(vscode.Uri.parse(link));
+      window.showErrorMessage(`command: ${command} not on path. Add to path or follow link to install`, ...[`Install ${command}`]).then((_) => {
+        env.openExternal(Uri.parse(link));
       });
     }
     return true;

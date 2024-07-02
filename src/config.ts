@@ -1,9 +1,7 @@
-// config.ts contains the configuration for the codebook-md extension.
-//
-import * as vscode from 'vscode';
+import { window, workspace } from 'vscode';
 import * as path from 'path';
 
-const config = vscode.workspace.getConfiguration('codebook-md');
+const config = workspace.getConfiguration('codebook-md');
 
 // basePath is the workspace root path
 const rootPath = config.get('rootPath', '');
@@ -23,7 +21,7 @@ export interface CodebookMdConfig {
 
 export function readConfig(): CodebookMdConfig {
     const tempPath = config.get('tempPath', '');
-    const currentFile = vscode.window.activeTextEditor?.document.fileName ?? '';
+    const currentFile = window.activeTextEditor?.document.fileName ?? '';
 
     return {
         rootPath: rootPath,

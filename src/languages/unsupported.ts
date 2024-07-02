@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from "fs";
 import * as path from "path";
 import * as config from "../config";
 import * as codebook from "../codebook";
-import * as vscode from "vscode";
+import { NotebookCell } from "vscode";
 import { workspace } from "vscode";
 import * as exec from "../io";
 
@@ -13,7 +13,7 @@ export class Cell implements codebook.Cell {
     executableCode: string;
     language: string;
 
-    constructor(notebookCell: vscode.NotebookCell) {
+    constructor(notebookCell: NotebookCell) {
         // form the innerScope with lines that don't start with # or set -e
         this.innerScope = codebook.notebookCellToInnerScope(notebookCell, "#", "//");
 

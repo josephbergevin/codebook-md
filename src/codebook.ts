@@ -1,8 +1,14 @@
-// md provides the functions to parse the markdown files and extract the code snippets.
+import {
+    window, workspace,
+    Hover, HoverProvider,
+    CancellationToken,
+    MarkdownString,
+    NotebookCell, NotebookCellData, NotebookCellKind,
+    ProviderResult, Position, Range,
+    TextDocument, TextEditor, Uri
+} from 'vscode';
 import { TextDecoder, TextEncoder } from 'util';
-import { NotebookCellKind, NotebookCellData, NotebookCell } from 'vscode';
 import { ChildProcessWithoutNullStreams } from "child_process";
-import * as vscode from 'vscode';
 import * as config from './config';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -28,6 +34,7 @@ export interface RawNotebookCell {
 
 export interface Cell {
     execute(): ChildProcessWithoutNullStreams;
+    // commentPrefix(): string;
     // parseImports(): string[];
     // resolveImports(): Promise<void>;
 }
@@ -241,9 +248,9 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
             //         leadingWhitespace: leadingWhitespace,
             //         trailingWhitespace: ""
             //     });
-            //     vscode.window.showTextDocument(
-            //         vscode.Uri.file(codeDoc.fileLoc),
-            //         { selection: new vscode.Range(codeDoc.lineBegin, 0, codeDoc.lineEnd, 0) },
+            //     window.showTextDocument(
+            //         Uri.file(codeDoc.fileLoc),
+            //         { selection: new Range(codeDoc.lineBegin, 0, codeDoc.lineEnd, 0) },
             //     );
             //     i++;
             //     return;
@@ -337,9 +344,9 @@ export function permalinkToCodeDocument(permalink: string, permalinkPrefix: stri
 }
 
 // HoverProvider class implements the HoverProvider interface
-export class HoverProvider implements vscode.HoverProvider {
+export class CellHover implements HoverProvider {
     // provideHover returns a hover object for a given position in a document
-    provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.Hover> {
+    provideHover(document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Hover> {
         const text = document.lineAt(position.line).text;
 
         // find the file location in the line
@@ -351,7 +358,7 @@ export class HoverProvider implements vscode.HoverProvider {
         // get the cell content that the current line is in
         // const cell = document.getText(document.lineAt(position).range);
 
-        const mdContent = new vscode.MarkdownString();
+        const mdContent = new MarkdownString();
         mdContent.isTrusted = true;
 
         // add 3 buttons to the hover: format, clear output, resolve imports
@@ -359,10 +366,10 @@ export class HoverProvider implements vscode.HoverProvider {
         mdContent.appendMarkdown(`- [clear output](command:codebook-md.clearOutput)\n`);
         mdContent.appendMarkdown(`- [resolve imports](command:codebook-md.resolveImports)\n`);
 
-        return new vscode.Hover(mdContent);
+        return new Hover(mdContent);
     }
 
-    provideHoverForFileLoc(fileLoc: string, document: vscode.TextDocument): vscode.ProviderResult<vscode.Hover> {
+    provideHoverForFileLoc(fileLoc: string, document: TextDocument): ProviderResult<Hover> {
         const doc = parseFileLoc(fileLoc, document.uri.fsPath);
         if (!fs.existsSync(doc.fileLoc)) {
             console.error(`\tfile not found: ${doc.fileLoc}`);
@@ -380,7 +387,7 @@ export class HoverProvider implements vscode.HoverProvider {
             lineCount = doc.lineEnd - doc.lineBegin + 1;
         }
 
-        const mdContent = new vscode.MarkdownString();
+        const mdContent = new MarkdownString();
         mdContent.isTrusted = true;
 
         // Construct the command URI
@@ -403,7 +410,7 @@ export class HoverProvider implements vscode.HoverProvider {
             mdContent.appendMarkdown(`[open file](command:codebook-md.openFileAtLine?${encodedArgs})\n\n`);
         }
 
-        return new vscode.Hover(mdContent);
+        return new Hover(mdContent);
     }
 }
 
@@ -468,31 +475,31 @@ export class CodeDocument {
     }
 
     // showTextDocument returns the promise of showing the text document in vscode
-    showTextDocument(): Thenable<vscode.TextEditor> {
-        return vscode.window.showTextDocument(
-            vscode.Uri.file(this.fileLoc),
-            { selection: new vscode.Range(this.lineBegin, 0, this.lineEnd, 0) },
+    showTextDocument(): Thenable<TextEditor> {
+        return window.showTextDocument(
+            Uri.file(this.fileLoc),
+            { selection: new Range(this.lineBegin, 0, this.lineEnd, 0) },
         );
     }
 
     // openAndNavigate opens the file in vscode and navigates to the line
     async openAndNavigate(): Promise<void> {
         console.log(`Opening file: ${this.absoluteFileLoc()} at lineBegin: ${this.lineBegin} and lineEnd: ${this.lineEnd}`);
-        const document = await vscode.workspace.openTextDocument(this.absoluteFileLoc()); // Use VS Code's API to open the file
-        await vscode.window.showTextDocument(document, {
+        const document = await workspace.openTextDocument(this.absoluteFileLoc()); // Use VS Code's API to open the file
+        await window.showTextDocument(document, {
             preview: false,
             selection: this.lineRange(),
         });
     }
 
     // lineRange returns the range of the lineBegin and lineEnd
-    lineRange(): vscode.Range {
-        const positionBegin = new vscode.Position(this.lineBegin, 0);
-        let postitionEnd = new vscode.Position(this.lineBegin, 0);
+    lineRange(): Range {
+        const positionBegin = new Position(this.lineBegin, 0);
+        let postitionEnd = new Position(this.lineBegin, 0);
         if (this.lineEnd > this.lineBegin) {
-            postitionEnd = new vscode.Position(this.lineEnd, 0);
+            postitionEnd = new Position(this.lineEnd, 0);
         }
-        return new vscode.Range(positionBegin, postitionEnd);
+        return new Range(positionBegin, postitionEnd);
     }
 }
 
@@ -536,7 +543,7 @@ export function parseFileLoc(fileLoc: string, resolvePath: string): CodeDocument
 // notebookCellToInnerScope returns the innerScope of a notebook cell, removing 
 // 1. any lines that start with the given prefixes
 // 2. any lines that are empty
-export function notebookCellToInnerScope(cell: vscode.NotebookCell, ...prefixes: string[]): string {
+export function notebookCellToInnerScope(cell: NotebookCell, ...prefixes: string[]): string {
     let lines = cell.document.getText().split("\n");
     let innerScope = "";
     for (let line of lines) {

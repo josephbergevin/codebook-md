@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from "fs";
 import * as path from "path";
 import * as config from "../config";
 import * as codebook from "../codebook";
-import * as vscode from "vscode";
+import { NotebookCell, WorkspaceConfiguration } from "vscode";
 import { workspace } from "vscode";
 import * as exec from "../io";
 
@@ -12,7 +12,7 @@ export class Cell implements codebook.Cell {
     executableCode: string;
     config: Config;
 
-    constructor(notebookCell: vscode.NotebookCell) {
+    constructor(notebookCell: NotebookCell) {
         // get the configuration for the bash language
         this.config = new Config(workspace.getConfiguration('codebook-md.python'));
 
@@ -36,7 +36,7 @@ export class Config {
     execFile: string;
     execCmd: string;
 
-    constructor(pythonConfig: vscode.WorkspaceConfiguration | undefined) {
+    constructor(pythonConfig: WorkspaceConfiguration | undefined) {
         this.execDir = config.getTempPath();
         this.execFile = path.join(this.execDir, pythonConfig?.get('execFilename') || 'codebook_md_exec.py');
         this.execCmd = pythonConfig?.get('execCmd') || 'python3';
