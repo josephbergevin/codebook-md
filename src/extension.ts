@@ -151,7 +151,11 @@ class MyTreeItem extends TreeItem {
 export function deactivate() { }
 
 class MarkdownProvider implements NotebookSerializer {
-	deserializeNotebook(data: Uint8Array, _token: CancellationToken): NotebookData | Thenable<NotebookData> {
+	deserializeNotebook(data: Uint8Array, token: CancellationToken): NotebookData | Thenable<NotebookData> {
+		// use the token to cancel long running operations
+		if (token.isCancellationRequested) {
+			return Promise.resolve({ cells: [] });
+		}
 		const content = Buffer.from(data).toString('utf8');
 		const cellRawData = codebook.parseMarkdown(content);
 		const cells = cellRawData.map(rawToNotebookCellData);
@@ -160,9 +164,12 @@ class MarkdownProvider implements NotebookSerializer {
 		};
 	}
 
-	serializeNotebook(data: NotebookData, _token: CancellationToken): Uint8Array | Thenable<Uint8Array> {
-		const stringOutput = codebook.writeCellsToMarkdown(data.cells);
-		return Buffer.from(stringOutput);
+	serializeNotebook(data: NotebookData, token: CancellationToken): Uint8Array | Thenable<Uint8Array> {
+		// use the token to cancel long running operations
+		if (token.isCancellationRequested) {
+			return Promise.resolve(new Uint8Array());
+		}
+		return Buffer.from(codebook.writeCellsToMarkdown(data.cells));
 	}
 }
 

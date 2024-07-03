@@ -1,10 +1,7 @@
 import { ChildProcessWithoutNullStreams } from "child_process";
-import { mkdirSync, writeFileSync } from "fs";
-import * as path from "path";
 import * as config from "../config";
 import * as codebook from "../codebook";
 import { NotebookCell } from "vscode";
-import { workspace } from "vscode";
 import * as exec from "../io";
 
 // Cell implements the codebook.Cell interface for all unsupported languages
@@ -15,7 +12,7 @@ export class Cell implements codebook.Cell {
 
     constructor(notebookCell: NotebookCell) {
         // form the innerScope with lines that don't start with # or set -e
-        this.innerScope = codebook.notebookCellToInnerScope(notebookCell, "#", "//");
+        this.innerScope = codebook.NotebookCellToInnerScope(notebookCell, "#", "//");
 
         // form the executable code
         this.executableCode = this.innerScope;

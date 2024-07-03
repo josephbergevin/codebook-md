@@ -17,7 +17,7 @@ export class Cell implements codebook.Cell {
         this.config = new Config(workspace.getConfiguration('codebook-md.javascript'));
 
         // form the innerScope with lines that don't start with # or set -e
-        this.innerScope = codebook.notebookCellToInnerScope(notebookCell, "#");
+        this.innerScope = codebook.NotebookCellToInnerScope(notebookCell, "#");
 
         // form the executable code
         this.executableCode = this.innerScope;

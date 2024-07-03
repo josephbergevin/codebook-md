@@ -9,7 +9,6 @@ import {
 } from 'vscode';
 import { TextDecoder, TextEncoder } from 'util';
 import { ChildProcessWithoutNullStreams } from "child_process";
-import * as config from './config';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as go from "./languages/go";
@@ -20,8 +19,6 @@ import * as python from "./languages/python";
 import * as unsupported from "./languages/unsupported";
 import * as io from './io';
 
-const permalinkPrefix = config.readConfig().permalinkPrefix;
-
 export interface RawNotebookCell {
     indentation?: string;
     leadingWhitespace: string;
@@ -29,7 +26,7 @@ export interface RawNotebookCell {
     language: string;
     content: string;
     kind: NotebookCellKind;
-    outputs?: [any];
+    outputs?: [unknown];
 }
 
 export interface Cell {
@@ -80,11 +77,13 @@ export function NewCell(notebookCell: NotebookCell): Cell {
 
         case "python":
         case "py":
-            const pythonCell = new python.Cell(notebookCell);
-            if (io.commandNotOnPath(pythonCell.config.execCmd, "https://www.python.org/")) {
-                return new unsupported.Cell(notebookCell);
+            {
+                const pythonCell = new python.Cell(notebookCell);
+                if (io.commandNotOnPath(pythonCell.config.execCmd, "https://www.python.org/")) {
+                    return new unsupported.Cell(notebookCell);
+                }
+                return pythonCell;
             }
-            return pythonCell;
 
         default:
             // set the output to an error message: "Language '??' not supported"
@@ -126,7 +125,7 @@ const LANGUAGE_ABBREVS = new Map(
 );
 
 function parseCodeBlockStart(line: string): string | null {
-    const match = line.match(/(    |\t)?```(\S*)/);
+    const match = line.match(/( {4}|\t)?```(\S*)/);
     if (match) {
         return match[2];
     }
@@ -143,7 +142,7 @@ function isCodeBlockEndLine(line: string): boolean {
 
 export function parseMarkdown(content: string): RawNotebookCell[] {
     const lines = content.split(/\r?\n/g);
-    let cells: RawNotebookCell[] = [];
+    const cells: RawNotebookCell[] = [];
 
     if (lines.length < 2) {
         return cells;
@@ -163,7 +162,7 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
 
 
     function parseWhitespaceLines(isFirst: boolean): string {
-        let start = i;
+        const start = i;
         const nextNonWhitespaceLineOffset = lines.slice(start).findIndex(l => l !== '');
         let end: number; // will be next line or overflow
         let isLast = false;
@@ -212,7 +211,7 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
         const startSourceIdx = i;
         while (true) {
             if (i >= lines.length) {
-                let content = lines.slice(startSourceIdx, i).join('\n').trim();
+                const content = lines.slice(startSourceIdx, i).join('\n').trim();
                 cells.push({
                     language: 'markdown',
                     content,
@@ -225,7 +224,7 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
 
             const currLine = lines[i];
             if (isCodeBlockStart(currLine)) {
-                let content = lines.slice(startSourceIdx, i).join('\n').trim();
+                const content = lines.slice(startSourceIdx, i).join('\n').trim();
                 cells.push({
                     language: 'markdown',
                     content,
@@ -299,22 +298,6 @@ export function writeCellsToMarkdown(cells: ReadonlyArray<NotebookCellData>): st
     return result.substring(2);
 }
 
-function isGitHubPermalink(line: string): boolean {
-    const workspaceRoot = config.readConfig().rootPath;
-    // return true if the line starts with or contains the permalink prefix
-    console.log(`Checking for permalink:`);
-    console.log(`\tworkspaceRoot: ${workspaceRoot}`);
-    console.log(`\tline: ${line}`);
-    if (line.startsWith(permalinkPrefix)) {
-        return true;
-    } else if (line.includes(permalinkPrefix)) {
-        return true;
-    } else {
-        console.log(`\t\tNo permalink found: ${line}`);
-        return false;
-    }
-}
-
 // permalinkToVSCodeScheme returns the permalink converted to a CodeDocument object
 // permalinkToVSCodeScheme takes a link to a GitHub permalink and converts it to a workspace link by:
 // 1. replacing the prefix with the workspace root
@@ -347,8 +330,12 @@ export function permalinkToCodeDocument(permalink: string, permalinkPrefix: stri
 export class CellHover implements HoverProvider {
     // provideHover returns a hover object for a given position in a document
     provideHover(document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Hover> {
-        const text = document.lineAt(position.line).text;
+        // use the token to cancel the hover request
+        if (token.isCancellationRequested) {
+            return;
+        }
 
+        const text = document.lineAt(position.line).text;
         // find the file location in the line
         const fileLoc = findCodeDocument(text);
         if (fileLoc) {
@@ -467,7 +454,7 @@ export class CodeDocument {
     // relativeFileLocPos returns the fileLoc relative to the current open file - also includes the lineBegin if > 0
     // always begins with a ./ or ../
     relativeFileLocPos(): string {
-        let relPath = this.relativeFileLoc();
+        const relPath = this.relativeFileLoc();
         if (this.lineBegin > 0) {
             return `${relPath}:${this.lineBegin}`;
         }
@@ -543,10 +530,10 @@ export function parseFileLoc(fileLoc: string, resolvePath: string): CodeDocument
 // notebookCellToInnerScope returns the innerScope of a notebook cell, removing 
 // 1. any lines that start with the given prefixes
 // 2. any lines that are empty
-export function notebookCellToInnerScope(cell: NotebookCell, ...prefixes: string[]): string {
-    let lines = cell.document.getText().split("\n");
+export function NotebookCellToInnerScope(cell: NotebookCell, ...prefixes: string[]): string {
+    const lines = cell.document.getText().split("\n");
     let innerScope = "";
-    for (let line of lines) {
+    for (const line of lines) {
         if (prefixes.some(prefix => line.startsWith(prefix))) {
             continue;
         } else if (line.trim() === "") {
