@@ -345,15 +345,16 @@ export class CellHover implements HoverProvider {
         // get the cell content that the current line is in
         // const cell = document.getText(document.lineAt(position).range);
 
-        const mdContent = new MarkdownString();
-        mdContent.isTrusted = true;
+        // const mdContent = new MarkdownString();
+        // mdContent.isTrusted = true;
 
-        // add 3 buttons to the hover: format, clear output, resolve imports
-        mdContent.appendMarkdown(`- [format](command:codebook-md.formatCell)\n`);
-        mdContent.appendMarkdown(`- [clear output](command:codebook-md.clearOutput)\n`);
-        mdContent.appendMarkdown(`- [resolve imports](command:codebook-md.resolveImports)\n`);
+        // // add 3 buttons to the hover: format, clear output, resolve imports
+        // mdContent.appendMarkdown(`- [format](command:codebook-md.formatCell)\n`);
+        // mdContent.appendMarkdown(`- [clear output](command:codebook-md.clearOutput)\n`);
+        // mdContent.appendMarkdown(`- [resolve imports](command:codebook-md.resolveImports)\n`);
 
-        return new Hover(mdContent);
+        // return new Hover(mdContent);
+        return null;
     }
 
     provideHoverForFileLoc(fileLoc: string, document: TextDocument): ProviderResult<Hover> {
