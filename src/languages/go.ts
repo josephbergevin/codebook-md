@@ -36,11 +36,11 @@ export class Cell implements codebook.Cell {
 
         let parsingIter = 0;
         this.innerScope += `\nfmt.Println("${codebook.StartOutput}")\n`;
-        let lines = notebookCell.document.getText().split("\n");
+        const lines = notebookCell.document.getText().split("\n");
         for (let line of lines) {
             line = line.trim();
-            let funcResult = line.match(this.funcRegex);
-            let funcRecResult = line.match(this.funcRecRegex);
+            const funcResult = line.match(this.funcRegex);
+            const funcRecResult = line.match(this.funcRecRegex);
             if (funcResult) {
                 if (funcResult[1] === "main") {
                     this.containsMain = true;
@@ -171,9 +171,9 @@ export class Cell implements codebook.Cell {
 
     // parseImports parses the imports for the go code in the cell, returning the imports as a sclie of strings
     parseImports(): string[] {
-        let imports: string[] = [];
-        let lines = this.executableCode.split("\n");
-        for (let line of lines) {
+        const imports: string[] = [];
+        const lines = this.executableCode.split("\n");
+        for (const line of lines) {
             if (line.startsWith("import (")) {
                 this.parsingImports = true;
             } else if (this.parsingImports) {
@@ -251,10 +251,10 @@ export class Config {
 // '// [>]exec_from:[/dir/to/main.go]' keyword in a comment in the given string using one of 2 formats:
 // 1. absolute path to the directory and main.go file (/path/to/dir/main.go)
 // 2. relative path to the directory and main.go file (./dir/main.go)
-export let getDirAndExecFile = (execFrom: string): [string, string] => {
+export const getDirAndExecFile = (execFrom: string): [string, string] => {
     // [>]exec_from:./apiplayground/main_temp.go
     // split on the colon
-    let parts = execFrom.split(':');
+    const parts = execFrom.split(':');
     console.log(`getDirAndExecFile parts: ${parts} | execFrom: ${execFrom}`);
     let execFile = execFrom;
     if (parts.length > 1) {
@@ -269,7 +269,7 @@ export let getDirAndExecFile = (execFrom: string): [string, string] => {
     }
 
     // get the directory path
-    let dir = path.dirname(execFile);
+    const dir = path.dirname(execFile);
 
     // get the main file path
     return [dir, execFile];

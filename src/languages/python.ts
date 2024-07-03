@@ -17,7 +17,7 @@ export class Cell implements codebook.Cell {
         this.config = new Config(workspace.getConfiguration('codebook-md.python'));
 
         // form the innerScope, skipping lines that start with the python comment character #
-        this.innerScope = codebook.notebookCellToInnerScope(notebookCell, "#");
+        this.innerScope = codebook.NotebookCellToInnerScope(notebookCell, "#");
 
         // form the executable code
         this.executableCode = this.innerScope;

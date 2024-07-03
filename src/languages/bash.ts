@@ -17,7 +17,7 @@ export class Cell implements codebook.Cell {
         this.config = new Config(workspace.getConfiguration('codebook-md.bash'));
 
         // form the innerScope with lines that don't start with # or set -e
-        this.innerScope = codebook.notebookCellToInnerScope(notebookCell, "#", "set -e");
+        this.innerScope = codebook.NotebookCellToInnerScope(notebookCell, "#", "set -e");
 
         // form the executable code
         this.executableCode = "#!/bin/bash\n\n";
