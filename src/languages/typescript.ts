@@ -27,13 +27,22 @@ export class Cell implements codebook.Cell {
         writeFileSync(this.config.execFile, this.executableCode);
         return exec.spawnCommand('ts-node', [this.config.execFile], { cwd: this.config.execDir });
     }
+
+    afterExecution(): void {
+        // remove the executable file
+        // unlinkSync(this.config.execFile);
+        // run the afterExecution functions
+        this.config.afterExecutionFuncs.forEach(func => func());
+    }
 }
 
 export class Config {
     execDir: string; execFile: string;
+    afterExecutionFuncs: (() => void)[];
 
     constructor(typescriptConfig: WorkspaceConfiguration | undefined) {
         this.execDir = config.getTempPath();
         this.execFile = path.join(this.execDir, typescriptConfig?.get('execFilename') || 'codebook_md_exec.ts');
+        this.afterExecutionFuncs = [];
     }
 }

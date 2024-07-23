@@ -169,6 +169,13 @@ export class Cell implements codebook.Cell {
         return exec.spawnCommand('go', [this.config.execCmd, ...this.config.execArgs, this.config.execFile], { cwd: this.config.execDir });
     }
 
+    afterExecution(): void {
+        // remove the executable file
+        // unlinkSync(this.config.execFile);
+        // run the afterExecution functions
+        this.config.afterExecutionFuncs.forEach(func => func());
+    }
+
     // parseImports parses the imports for the go code in the cell, returning the imports as a sclie of strings
     parseImports(): string[] {
         const imports: string[] = [];
@@ -195,7 +202,7 @@ export class Cell implements codebook.Cell {
 
 }
 
-
+// Config is a class that contains the configuration settings for executing go code from Cells
 export class Config {
     execFrom: string;
     execTypeRun: boolean;
@@ -210,6 +217,7 @@ export class Config {
     useGoimports: boolean;
     execCmd: string;
     execArgs: string[];
+    afterExecutionFuncs: (() => void)[];
 
     constructor(goConfig: WorkspaceConfiguration | undefined) {
         const execType = goConfig?.get<string>('execType') ?? 'run';
@@ -244,7 +252,11 @@ export class Config {
             this.execFile = path.join(this.execDir, this.execFilename);
             this.execCmd = 'run';
         }
+
+        // initialize the afterExecutionFuncs array
+        this.afterExecutionFuncs = [];
     }
+
 }
 
 // getDirAndMainFile takes the string to search (main string) and returns the directory and main file path for the go code using the 

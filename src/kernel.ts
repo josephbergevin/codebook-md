@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { NotebookDocument, NotebookCell, NotebookController, NotebookCellOutput, NotebookCellOutputItem } from 'vscode';
-import { ChildProcessWithoutNullStreams } from 'child_process';
 import * as codebook from "./codebook";
 
 // Kernel in this case matches Jupyter definition i.e. this is responsible for taking the frontend notebook
@@ -15,10 +14,10 @@ export class Kernel {
 
     async executeCell(doc: NotebookDocument, notebookCell: NotebookCell, ctrl: NotebookController): Promise<void> {
         console.log(`kernel.executeCell: ${notebookCell.document.languageId} cell`);
-        let exec = ctrl.createNotebookCellExecution(notebookCell);
+        const exec = ctrl.createNotebookCellExecution(notebookCell);
 
         // Allow for the ability to cancel execution
-        let token = exec.token;
+        const token = exec.token;
         token.onCancellationRequested(() => {
             exec.end(false, (new Date).getTime());
         });
@@ -30,19 +29,18 @@ export class Kernel {
         // TODO: add a configuration option to disable this - global or by language
         exec.clearOutput(notebookCell);
 
-        // Run the code
-        let output: ChildProcessWithoutNullStreams;
+        // Get a Cell for the language that was used to run this cell
+        const codebookCell = codebook.NewCell(notebookCell);
+
+        // Run the code and directly assign output
+        const output = codebookCell.execute();
 
         // Now there's an output stream, kill that as well on cancel request
         token.onCancellationRequested(() => {
             output.kill();
-            exec.end(false, (new Date).getTime());
+            exec.end(false, Date.now()); // Simplified timestamp retrieval
         });
 
-        // Get a Cell for the language that was used to run this cell
-        const codebookCell = codebook.NewCell(notebookCell);
-
-        output = codebookCell.execute();
         let errorText = "";
 
         output.stderr.on("data", async (data: Uint8Array) => {
@@ -57,23 +55,23 @@ export class Kernel {
 
         let buf = Buffer.from([]);
 
-        let decoder = new TextDecoder;
+        const decoder = new TextDecoder;
         output.stdout.on('data', (data: Uint8Array) => {
             console.log(`stdout: ${data}`);
-            let arr = [buf, data];
+            const arr = [buf, data];
             buf = Buffer.concat(arr);
             // get the entire output of the cell
             const fullOutput = decoder.decode(buf);
             let displayOutput = fullOutput;
 
             // if the displayOutput contains the start cell marker, remove everything before it
-            let startIndex = displayOutput.indexOf(codebook.StartOutput);
+            const startIndex = displayOutput.indexOf(codebook.StartOutput);
             if (startIndex !== -1) {
                 displayOutput = displayOutput.slice(startIndex + codebook.StartOutput.length + 1);
             }
 
             // if the displayOutput contains the end cell marker, remove everything after it
-            let endIndex = displayOutput.indexOf(codebook.EndOutput);
+            const endIndex = displayOutput.indexOf(codebook.EndOutput);
             if (endIndex !== -1) {
                 displayOutput = displayOutput.slice(0, endIndex);
             }
@@ -86,7 +84,7 @@ export class Kernel {
             exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput)])]);
         });
 
-        output.on('close', (_) => {
+        output.on('close', () => {
             // If stdout returned anything consider it a success
             if (buf.length === 0) {
                 exec.end(false, (new Date).getTime());
@@ -94,5 +92,8 @@ export class Kernel {
                 exec.end(true, (new Date).getTime());
             }
         });
+
+        // Run the afterExecution function
+        codebookCell.afterExecution();
     }
 }

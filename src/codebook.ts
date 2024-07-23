@@ -16,6 +16,7 @@ import * as javascript from "./languages/javascript";
 import * as typescript from "./languages/typescript";
 import * as bash from "./languages/bash";
 import * as python from "./languages/python";
+import * as sql from "./languages/sql";
 import * as unsupported from "./languages/unsupported";
 import * as io from './io';
 
@@ -31,6 +32,7 @@ export interface RawNotebookCell {
 
 export interface Cell {
     execute(): ChildProcessWithoutNullStreams;
+    afterExecution(): void;
     // commentPrefix(): string;
     // parseImports(): string[];
     // resolveImports(): Promise<void>;
@@ -84,6 +86,9 @@ export function NewCell(notebookCell: NotebookCell): Cell {
                 }
                 return pythonCell;
             }
+
+        case "sql":
+            return new sql.Cell(notebookCell);
 
         default:
             // set the output to an error message: "Language '??' not supported"
@@ -180,6 +185,7 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
     function parseCodeBlock(leadingWhitespace: string, lang: string): void {
         const language = LANGUAGE_IDS.get(lang) || lang;
         const startSourceIdx = ++i;
+        // eslint-disable-next-line no-constant-condition
         while (true) {
             const currLine = lines[i];
             if (i >= lines.length) {
@@ -209,6 +215,7 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
 
     function parseMarkdownParagraph(leadingWhitespace: string): void {
         const startSourceIdx = i;
+        // eslint-disable-next-line no-constant-condition
         while (true) {
             if (i >= lines.length) {
                 const content = lines.slice(startSourceIdx, i).join('\n').trim();
@@ -234,26 +241,6 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
                 });
                 return;
             }
-
-            // else if (isGitHubPermalink(currLine)) {
-            //     // turn the permalink into a workspace link using permalinkToVSCodeScheme
-            //     const workspaceRoot = config.readConfig().rootPath;
-            //     const codeDoc = permalinkToCodeDocument(currLine, permalinkPrefix, workspaceRoot);
-            //     let newLink = codeDoc.toFullFileLoc();
-            //     cells.push({
-            //         language: 'markdown',
-            //         content: `[Link to Repo](${newLink})`,
-            //         kind: NotebookCellKind.Markup,
-            //         leadingWhitespace: leadingWhitespace,
-            //         trailingWhitespace: ""
-            //     });
-            //     window.showTextDocument(
-            //         Uri.file(codeDoc.fileLoc),
-            //         { selection: new Range(codeDoc.lineBegin, 0, codeDoc.lineEnd, 0) },
-            //     );
-            //     i++;
-            //     return;
-            // }
 
             i++;
         }

@@ -25,4 +25,7 @@ export class Cell implements codebook.Cell {
         // return an error message: "Unsupported language" as ChildProcessWithoutNullStreams
         return exec.spawnCommand(`echo "Unsupported language '${this.language}'"`, [], { cwd: config.getTempPath() });
     }
+
+    // afterExecution is a no-op for unsupported languages
+    afterExecution(): void { };
 }

@@ -29,14 +29,23 @@ export class Cell implements codebook.Cell {
         writeFileSync(this.config.execFile, this.executableCode);
         return exec.spawnCommand('node', [this.config.execFile], { cwd: this.config.execDir });
     }
+
+    afterExecution(): void {
+        // remove the executable file
+        // unlinkSync(this.config.execFile);
+        // run the afterExecution functions
+        this.config.afterExecutionFuncs.forEach(func => func());
+    }
 }
 
 export class Config {
     execDir: string;
     execFile: string;
+    afterExecutionFuncs: (() => void)[];
 
     constructor(javascriptConfig: WorkspaceConfiguration | undefined) {
         this.execDir = config.getTempPath();
         this.execFile = path.join(this.execDir, javascriptConfig?.get('execFilename') || 'codebook_md_exec.js');
+        this.afterExecutionFuncs = [];
     }
 }
