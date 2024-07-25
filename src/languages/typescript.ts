@@ -12,13 +12,17 @@ export class Cell implements codebook.Cell {
 
     constructor(notebookCell: NotebookCell) {
         // get the configuration for the bash language
-        this.config = new Config(workspace.getConfiguration('codebook-md.typescript'));
+        this.config = new Config(workspace.getConfiguration('codebook-md.typescript'), notebookCell);
 
         // form the innerScope with lines that don't start with # or set -e
-        this.innerScope = codebook.NotebookCellToInnerScope(notebookCell, "#");
+        this.innerScope = codebook.ProcessNotebookCell(notebookCell, "#");
 
         // form the executable code
         this.executableCode = this.innerScope;
+    }
+
+    contentCellConfig(): codebook.CellContentConfig {
+        return this.config.contentConfig;
     }
 
     execute(): ChildProcessWithoutNullStreams {
@@ -38,11 +42,13 @@ export class Cell implements codebook.Cell {
 
 export class Config {
     execDir: string; execFile: string;
+    contentConfig: codebook.CellContentConfig;
     afterExecutionFuncs: (() => void)[];
 
-    constructor(typescriptConfig: WorkspaceConfiguration | undefined) {
+    constructor(typescriptConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
         this.execDir = config.getTempPath();
         this.execFile = path.join(this.execDir, typescriptConfig?.get('execFilename') || 'codebook_md_exec.ts');
+        this.contentConfig = new codebook.CellContentConfig(notebookCell, "//");
         this.afterExecutionFuncs = [];
     }
 }

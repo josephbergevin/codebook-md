@@ -32,7 +32,7 @@ export class Cell implements codebook.Cell {
         this.funcRegex = /func\s+(\w+)\s*\(/;
         this.funcRecRegex = /func\s+\((\w+)\)\s*\w/;
         this.executableCode = "";
-        this.config = new Config(workspace.getConfiguration('codebook-md.go'));
+        this.config = new Config(workspace.getConfiguration('codebook-md.go'), notebookCell);
 
         let parsingIter = 0;
         this.innerScope += `\nfmt.Println("${codebook.StartOutput}")\n`;
@@ -127,6 +127,10 @@ export class Cell implements codebook.Cell {
         }
     }
 
+    contentCellConfig(): codebook.CellContentConfig {
+        return this.config.contentConfig;
+    }
+
     execute(): ChildProcessWithoutNullStreams {
         // define dir and mainFile as empty strings
         if (this.config.execFrom !== "") {
@@ -204,6 +208,7 @@ export class Cell implements codebook.Cell {
 
 // Config is a class that contains the configuration settings for executing go code from Cells
 export class Config {
+    contentConfig: codebook.CellContentConfig;
     execFrom: string;
     execTypeRun: boolean;
     execTypeRunFilename: string;
@@ -219,7 +224,8 @@ export class Config {
     execArgs: string[];
     afterExecutionFuncs: (() => void)[];
 
-    constructor(goConfig: WorkspaceConfiguration | undefined) {
+    constructor(goConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
+        this.contentConfig = new codebook.CellContentConfig(notebookCell, "//");
         const execType = goConfig?.get<string>('execType') ?? 'run';
         this.execFrom = '';
         this.execTypeRun = execType === 'run';

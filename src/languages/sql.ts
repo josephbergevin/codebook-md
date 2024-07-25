@@ -13,22 +13,34 @@ export class Cell implements codebook.Cell {
 
     constructor(notebookCell: NotebookCell) {
         // get the configuration for the bash language
-        this.config = new Config(workspace.getConfiguration('codebook-md.sql'));
+        this.config = new Config(workspace.getConfiguration('codebook-md.sql'), notebookCell);
 
         // form the innerScope, skipping lines that start with the sql comment character #
-        this.innerScope = codebook.NotebookCellToInnerScope(notebookCell, "--");
+        console.log("cellConfig: ", this.config.contentConfig.jsonStringify());
+        this.innerScope = this.config.contentConfig.innerScope.trim();
 
         // form the executable code
-        this.config.execOptions.push("-e " + '"' + this.innerScope.trim() + '"');
+        this.config.execOptions.push("-e " + '"' + this.innerScope + '"');
         this.executableCode = this.config.execCmd + " " + this.config.execOptions.join(" ");
+    }
+
+    contentCellConfig(): codebook.CellContentConfig {
+        return this.config.contentConfig;
     }
 
     execute(): ChildProcessWithoutNullStreams {
         // call the executable cli command using bash.Cell.execute
         // create a new bash cell with a null notebook cell, then add the executable code to it
         const cell = new bash.Cell(undefined);
-        console.log("executing (from bash): " + this.executableCode);
+        console.log("executing (from bash): " + this.innerScope);
         cell.executableCode += this.executableCode;
+
+        // if the exececutable code is to be printed, then add an output cell with the executable code
+        if (this.config.contentConfig.output.prependExecutableCode) {
+            console.log("adding executable code to output:", this.innerScope);
+            this.config.contentConfig.output.prependOutputStrings.push(this.innerScope);
+        }
+
         return cell.execute();
     }
 
@@ -41,43 +53,21 @@ export class Cell implements codebook.Cell {
 }
 
 export class Config {
+    contentConfig: codebook.CellContentConfig;
     execDir: string;
     execFile: string;
     execFilename: string;
     execCmd: string;
     execOptions: string[];
-    database: string;
-    host: string;
-    port: string;
-    user: string;
-    password: string;
     afterExecutionFuncs: (() => void)[];
 
-    constructor(sqlConfig: WorkspaceConfiguration | undefined) {
+    constructor(sqlConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
+        this.contentConfig = new codebook.CellContentConfig(notebookCell, "--");
         this.execDir = config.getTempPath();
         this.execFilename = sqlConfig?.get('execFilename') || 'codebook_md_exec.sql';
         this.execFile = path.join(this.execDir, this.execFilename);
         this.execCmd = sqlConfig?.get('execCmd') || '';
         this.execOptions = sqlConfig?.get('execOptions') || [];
-        this.host = sqlConfig?.get('host') || '';
-        this.port = sqlConfig?.get('port') || '';
-        this.user = sqlConfig?.get('user') || '';
-        this.password = sqlConfig?.get('password') || '';
-        this.database = sqlConfig?.get('database') || '';
-
-        // add the host, port, user, and password to the execCmdOptions
-        if (this.database !== '') {
-            this.execOptions.push(this.database);
-        }
-        if (this.host !== '') {
-            this.execOptions.push("--host=" + this.host);
-        }
-        if (this.port !== '') {
-            this.execOptions.push("-P " + this.port);
-        }
-        if (this.user !== '') {
-            this.execOptions.push("-u " + this.user);
-        }
 
         // add the afterExecution functions
         this.afterExecutionFuncs = [];

@@ -5,7 +5,7 @@ import {
     MarkdownString,
     NotebookCell, NotebookCellData, NotebookCellKind,
     ProviderResult, Position, Range,
-    TextDocument, TextEditor, Uri
+    TextDocument, TextEditor, Uri,
 } from 'vscode';
 import { TextDecoder, TextEncoder } from 'util';
 import { ChildProcessWithoutNullStreams } from "child_process";
@@ -33,6 +33,7 @@ export interface RawNotebookCell {
 export interface Cell {
     execute(): ChildProcessWithoutNullStreams;
     afterExecution(): void;
+    contentCellConfig(): CellContentConfig;
     // commentPrefix(): string;
     // parseImports(): string[];
     // resolveImports(): Promise<void>;
@@ -518,7 +519,7 @@ export function parseFileLoc(fileLoc: string, resolvePath: string): CodeDocument
 // notebookCellToInnerScope returns the innerScope of a notebook cell, removing 
 // 1. any lines that start with the given prefixes
 // 2. any lines that are empty
-export function NotebookCellToInnerScope(cell: NotebookCell, ...prefixes: string[]): string {
+export function ProcessNotebookCell(cell: NotebookCell, ...prefixes: string[]): string {
     const lines = cell.document.getText().split("\n");
     let innerScope = "";
     for (const line of lines) {
@@ -530,4 +531,79 @@ export function NotebookCellToInnerScope(cell: NotebookCell, ...prefixes: string
         innerScope += line + "\n";
     }
     return innerScope;
+}
+
+// CellContentConfig is a class that contains the configuration for the content of a cell
+export class CellContentConfig {
+    notebookCell: NotebookCell | undefined; // the notebook cell
+
+    commands: string[]; // lines from the cell that are commands - prefixed with a commentPrefix followed by [>]
+    comments: string[]; // lines from the cell that are comments - prefixed with a commentPrefix
+    innerScope: string; // the rest of the cell content
+
+    execFrom: string; // the file location where the cell executable code should be executed from
+    output: OutputConfig; // the output configuration for the cell
+
+    constructor(notebookCell: NotebookCell | undefined, ...commentPrefixes: string[]) {
+        if (!notebookCell) {
+            this.notebookCell = undefined;
+            this.commands = [];
+            this.comments = [];
+            this.innerScope = "";
+            this.execFrom = "";
+            this.output = new OutputConfig([]);
+            return;
+        }
+        this.notebookCell = notebookCell;
+        const lines = notebookCell.document.getText().split("\n");
+        const commandPrefixes = commentPrefixes.map(prefix => prefix.trim() + " [>]");
+        this.commands = [];
+        this.comments = [];
+        this.innerScope = "";
+        for (const line of lines) {
+            if (commandPrefixes.some(commandPrefix => line.startsWith(commandPrefix))) {
+                // remove the comment prefix and [>] by splitting on [>] and taking the second part
+                this.commands.push(line.split("[>]").pop() || "");
+            } else if (commentPrefixes.some(prefix => line.startsWith(prefix))) {
+                this.comments.push(line);
+            } else {
+                this.innerScope += line + "\n";
+            }
+        }
+
+        this.execFrom = this.commands.find(command => command.startsWith(".execFrom"))?.split(" ").pop() || "";
+        this.output = new OutputConfig(this.commands);
+    }
+
+    // jsonStringify returns the JSON string representation of the CellContentConfig object, excluding the notebookCell
+    jsonStringify(): string {
+        return JSON.stringify({
+            commands: this.commands,
+            comments: this.comments,
+            innerScope: this.innerScope,
+            execFrom: this.execFrom,
+            output: {
+                prependExecutableCode: this.output.prependExecutableCode,
+                executeWithoutOutput: this.output.executeWithoutOutput,
+                prependOutputStrings: this.output.prependOutputStrings,
+                appendOutputStrings: this.output.appendOutputStrings,
+            }
+        });
+    }
+}
+
+// OutputConfig is a class that contains the configuration for the output of a cell
+export class OutputConfig {
+    prependExecutableCode: boolean; // whether to print the executable code
+    executeWithoutOutput: boolean; // whether to execute the code without output
+    prependOutputStrings: string[]; // the strings to prepend to the output
+    appendOutputStrings: string[]; // the strings to append to the output
+
+    constructor(commands: string[]) {
+        // if the command has an output prefix (.output), then set the output configuration
+        this.prependExecutableCode = commands.includes(".output.prependExecutableCode");
+        this.executeWithoutOutput = commands.includes(".output.executeWithoutOutput");
+        this.prependOutputStrings = [];
+        this.appendOutputStrings = [];
+    }
 }

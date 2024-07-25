@@ -14,12 +14,13 @@ export class Cell implements codebook.Cell {
 
     constructor(notebookCell: NotebookCell | undefined) {
         // get the configuration for the bash language
-        this.config = new Config(workspace.getConfiguration('codebook-md.bash'));
 
         // form the innerScope with lines that don't start with # or set -e
         if (notebookCell) {
-            this.innerScope = codebook.NotebookCellToInnerScope(notebookCell, "#", "set -e");
+            this.config = new Config(workspace.getConfiguration('codebook-md.bash'), notebookCell);
+            this.innerScope = codebook.ProcessNotebookCell(notebookCell, "#", "set -e");
         } else {
+            this.config = new Config(undefined, undefined);
             this.innerScope = '';
         }
 
@@ -27,6 +28,14 @@ export class Cell implements codebook.Cell {
         this.executableCode = "#!/bin/bash\n\n";
         this.executableCode += "set -e\n\n";
         this.executableCode += this.innerScope;
+    }
+
+    contentCellConfig(): codebook.CellContentConfig {
+        if (this.config.contentConfig) {
+            return this.config.contentConfig;
+        } else {
+            return new codebook.CellContentConfig(undefined, "#");
+        }
     }
 
     execute(): ChildProcessWithoutNullStreams {
@@ -45,11 +54,13 @@ export class Cell implements codebook.Cell {
 }
 
 export class Config {
+    contentConfig: codebook.CellContentConfig;
     execDir: string;
     execFile: string;
     afterExecutionFuncs: (() => void)[];
 
-    constructor(bashConfig: WorkspaceConfiguration | undefined) {
+    constructor(bashConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell | undefined) {
+        this.contentConfig = new codebook.CellContentConfig(notebookCell, "#");
         this.execDir = config.getTempPath();
         this.execFile = path.join(this.execDir, bashConfig?.get('execFilename') || 'codebook_md_exec.sh');
         this.afterExecutionFuncs = [];

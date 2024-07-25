@@ -57,7 +57,11 @@ export class Kernel {
 
         const decoder = new TextDecoder;
         output.stdout.on('data', (data: Uint8Array) => {
-            console.log(`stdout: ${data}`);
+            // console.log(`stdout: ${data}`);
+            // prepend the data value with the strings in codebookCell.contentCellConfig().output.prependOutputStrings
+            codebookCell.contentCellConfig().output.prependOutputStrings.forEach((prependString) => {
+                buf = Buffer.concat([Buffer.from(prependString + "\n")]);
+            });
             const arr = [buf, data];
             buf = Buffer.concat(arr);
             // get the entire output of the cell
