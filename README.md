@@ -21,8 +21,10 @@ Execute code blocks in markdown files by pressing the corresponding Play button 
     - Executed from a .js file.
   - TypeScript
     - Executed from a .ts file.
+  - SQL
+    - Executed using a specified cli client.    
 
-- Languages to be supported with an accompanying extension:
+- Languages supported with an accompanying extension:
   - SQL
     - Executed using a SQL extension.
   - HTTP
@@ -56,8 +58,8 @@ This project is open to collaboration! If you have an idea for a feature, or wou
 
 This extension was inspired by the Jupyter notebook, which allows for the execution of code blocks in a notebook environment. The goal of this extension is to bring that functionality to markdown files in VS Code. While some inspiration was also drawn from existing markdown extensions in the VS Code marketplace, I wanted to have the ability to move quicker with adding new features and languages. More specifically, I wanted to implement a way to interact with local files from within the markdown file itself.
 - Extensions of Note:
-  - [md-notebook](https://marketplace.visualstudio.com/items?itemName=jackos.md-notebook)
   - [Go Notebook](https://marketplace.visualstudio.com/items?itemName=gobookdev.gobook)
     - Last updated in 2022, no public repository
   - [Codebook](https://marketplace.visualstudio.com/items?itemName=gobookdev.gobook)
     - Last updated in 2022, no public repository
+  - [md-notebook](https://marketplace.visualstudio.com/items?itemName=jackos.md-notebook)

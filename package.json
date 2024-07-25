@@ -141,26 +141,6 @@
             "execOptions": {
               "type": "array",
               "description": "Options to use for SQL connections."
-            },
-            "database": {
-              "type": "string",
-              "default": "default",
-              "description": "Database to use for SQL connections."
-            },
-            "host": {
-              "type": "string",
-              "default": "localhost",
-              "description": "Host to use for SQL connections."
-            },
-            "port": {
-              "type": "number",
-              "default": 5432,
-              "description": "Port to use for SQL connections."
-            },
-            "user": {
-              "type": "string",
-              "default": "user",
-              "description": "User to use for SQL connections."
             }
           }
         },
