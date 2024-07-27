@@ -28,7 +28,7 @@
     "sql",
     "rust"
   ],
-  "version": "0.3.1",
+  "version": "0.4.0",
   "categories": [
     "Notebooks"
   ],
@@ -127,6 +127,20 @@
               "type": "string",
               "default": "codebook_md_exec.ts",
               "description": "Filename to use for code-block execution."
+            }
+          }
+        },
+        "codebook-md.sql": {
+          "type": "object",
+          "properties": {
+            "execCmd": {
+              "type": "string",
+              "default": "mysql",
+              "description": "Command to use for SQL connections."
+            },
+            "execOptions": {
+              "type": "array",
+              "description": "Options to use for SQL connections."
             }
           }
         },

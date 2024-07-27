@@ -5,7 +5,7 @@ import {
     MarkdownString,
     NotebookCell, NotebookCellData, NotebookCellKind,
     ProviderResult, Position, Range,
-    TextDocument, TextEditor, Uri
+    TextDocument, TextEditor, Uri,
 } from 'vscode';
 import { TextDecoder, TextEncoder } from 'util';
 import { ChildProcessWithoutNullStreams } from "child_process";
@@ -16,6 +16,7 @@ import * as javascript from "./languages/javascript";
 import * as typescript from "./languages/typescript";
 import * as bash from "./languages/bash";
 import * as python from "./languages/python";
+import * as sql from "./languages/sql";
 import * as unsupported from "./languages/unsupported";
 import * as io from './io';
 
@@ -31,6 +32,8 @@ export interface RawNotebookCell {
 
 export interface Cell {
     execute(): ChildProcessWithoutNullStreams;
+    afterExecution(): void;
+    contentCellConfig(): CellContentConfig;
     // commentPrefix(): string;
     // parseImports(): string[];
     // resolveImports(): Promise<void>;
@@ -84,6 +87,9 @@ export function NewCell(notebookCell: NotebookCell): Cell {
                 }
                 return pythonCell;
             }
+
+        case "sql":
+            return new sql.Cell(notebookCell);
 
         default:
             // set the output to an error message: "Language '??' not supported"
@@ -180,6 +186,7 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
     function parseCodeBlock(leadingWhitespace: string, lang: string): void {
         const language = LANGUAGE_IDS.get(lang) || lang;
         const startSourceIdx = ++i;
+        // eslint-disable-next-line no-constant-condition
         while (true) {
             const currLine = lines[i];
             if (i >= lines.length) {
@@ -209,6 +216,7 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
 
     function parseMarkdownParagraph(leadingWhitespace: string): void {
         const startSourceIdx = i;
+        // eslint-disable-next-line no-constant-condition
         while (true) {
             if (i >= lines.length) {
                 const content = lines.slice(startSourceIdx, i).join('\n').trim();
@@ -234,26 +242,6 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
                 });
                 return;
             }
-
-            // else if (isGitHubPermalink(currLine)) {
-            //     // turn the permalink into a workspace link using permalinkToVSCodeScheme
-            //     const workspaceRoot = config.readConfig().rootPath;
-            //     const codeDoc = permalinkToCodeDocument(currLine, permalinkPrefix, workspaceRoot);
-            //     let newLink = codeDoc.toFullFileLoc();
-            //     cells.push({
-            //         language: 'markdown',
-            //         content: `[Link to Repo](${newLink})`,
-            //         kind: NotebookCellKind.Markup,
-            //         leadingWhitespace: leadingWhitespace,
-            //         trailingWhitespace: ""
-            //     });
-            //     window.showTextDocument(
-            //         Uri.file(codeDoc.fileLoc),
-            //         { selection: new Range(codeDoc.lineBegin, 0, codeDoc.lineEnd, 0) },
-            //     );
-            //     i++;
-            //     return;
-            // }
 
             i++;
         }
@@ -531,7 +519,7 @@ export function parseFileLoc(fileLoc: string, resolvePath: string): CodeDocument
 // notebookCellToInnerScope returns the innerScope of a notebook cell, removing 
 // 1. any lines that start with the given prefixes
 // 2. any lines that are empty
-export function NotebookCellToInnerScope(cell: NotebookCell, ...prefixes: string[]): string {
+export function ProcessNotebookCell(cell: NotebookCell, ...prefixes: string[]): string {
     const lines = cell.document.getText().split("\n");
     let innerScope = "";
     for (const line of lines) {
@@ -543,4 +531,79 @@ export function NotebookCellToInnerScope(cell: NotebookCell, ...prefixes: string
         innerScope += line + "\n";
     }
     return innerScope;
+}
+
+// CellContentConfig is a class that contains the configuration for the content of a cell
+export class CellContentConfig {
+    notebookCell: NotebookCell | undefined; // the notebook cell
+
+    commands: string[]; // lines from the cell that are commands - prefixed with a commentPrefix followed by [>]
+    comments: string[]; // lines from the cell that are comments - prefixed with a commentPrefix
+    innerScope: string; // the rest of the cell content
+
+    execFrom: string; // the file location where the cell executable code should be executed from
+    output: OutputConfig; // the output configuration for the cell
+
+    constructor(notebookCell: NotebookCell | undefined, ...commentPrefixes: string[]) {
+        if (!notebookCell) {
+            this.notebookCell = undefined;
+            this.commands = [];
+            this.comments = [];
+            this.innerScope = "";
+            this.execFrom = "";
+            this.output = new OutputConfig([]);
+            return;
+        }
+        this.notebookCell = notebookCell;
+        const lines = notebookCell.document.getText().split("\n");
+        const commandPrefixes = commentPrefixes.map(prefix => prefix.trim() + " [>]");
+        this.commands = [];
+        this.comments = [];
+        this.innerScope = "";
+        for (const line of lines) {
+            if (commandPrefixes.some(commandPrefix => line.startsWith(commandPrefix))) {
+                // remove the comment prefix and [>] by splitting on [>] and taking the second part
+                this.commands.push(line.split("[>]").pop() || "");
+            } else if (commentPrefixes.some(prefix => line.startsWith(prefix))) {
+                this.comments.push(line);
+            } else {
+                this.innerScope += line + "\n";
+            }
+        }
+
+        this.execFrom = this.commands.find(command => command.startsWith(".execFrom"))?.split(" ").pop() || "";
+        this.output = new OutputConfig(this.commands);
+    }
+
+    // jsonStringify returns the JSON string representation of the CellContentConfig object, excluding the notebookCell
+    jsonStringify(): string {
+        return JSON.stringify({
+            commands: this.commands,
+            comments: this.comments,
+            innerScope: this.innerScope,
+            execFrom: this.execFrom,
+            output: {
+                prependExecutableCode: this.output.prependExecutableCode,
+                executeWithoutOutput: this.output.executeWithoutOutput,
+                prependOutputStrings: this.output.prependOutputStrings,
+                appendOutputStrings: this.output.appendOutputStrings,
+            }
+        });
+    }
+}
+
+// OutputConfig is a class that contains the configuration for the output of a cell
+export class OutputConfig {
+    prependExecutableCode: boolean; // whether to print the executable code
+    executeWithoutOutput: boolean; // whether to execute the code without output
+    prependOutputStrings: string[]; // the strings to prepend to the output
+    appendOutputStrings: string[]; // the strings to append to the output
+
+    constructor(commands: string[]) {
+        // if the command has an output prefix (.output), then set the output configuration
+        this.prependExecutableCode = commands.includes(".output.prependExecutableCode");
+        this.executeWithoutOutput = commands.includes(".output.executeWithoutOutput");
+        this.prependOutputStrings = [];
+        this.appendOutputStrings = [];
+    }
 }
