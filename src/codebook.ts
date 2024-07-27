@@ -537,7 +537,7 @@ export function ProcessNotebookCell(cell: NotebookCell, ...prefixes: string[]): 
 export class CellContentConfig {
     notebookCell: NotebookCell | undefined; // the notebook cell
 
-    commands: string[]; // lines from the cell that are commands - prefixed with a commentPrefix followed by [>]
+    codebookCommands: string[]; // lines from the cell that are commands - prefixed with a commentPrefix followed by [>]
     comments: string[]; // lines from the cell that are comments - prefixed with a commentPrefix
     innerScope: string; // the rest of the cell content
 
@@ -547,7 +547,7 @@ export class CellContentConfig {
     constructor(notebookCell: NotebookCell | undefined, ...commentPrefixes: string[]) {
         if (!notebookCell) {
             this.notebookCell = undefined;
-            this.commands = [];
+            this.codebookCommands = [];
             this.comments = [];
             this.innerScope = "";
             this.execFrom = "";
@@ -557,13 +557,13 @@ export class CellContentConfig {
         this.notebookCell = notebookCell;
         const lines = notebookCell.document.getText().split("\n");
         const commandPrefixes = commentPrefixes.map(prefix => prefix.trim() + " [>]");
-        this.commands = [];
+        this.codebookCommands = [];
         this.comments = [];
         this.innerScope = "";
         for (const line of lines) {
             if (commandPrefixes.some(commandPrefix => line.startsWith(commandPrefix))) {
                 // remove the comment prefix and [>] by splitting on [>] and taking the second part
-                this.commands.push(line.split("[>]").pop() || "");
+                this.codebookCommands.push(line.split("[>]").pop() || "");
             } else if (commentPrefixes.some(prefix => line.startsWith(prefix))) {
                 this.comments.push(line);
             } else {
@@ -571,14 +571,16 @@ export class CellContentConfig {
             }
         }
 
-        this.execFrom = this.commands.find(command => command.startsWith(".execFrom"))?.split(" ").pop() || "";
-        this.output = new OutputConfig(this.commands);
+        this.innerScope = this.innerScope.trim();
+
+        this.execFrom = this.codebookCommands.find(command => command.startsWith(".execFrom"))?.split(" ").pop() || "";
+        this.output = new OutputConfig(this.codebookCommands);
     }
 
     // jsonStringify returns the JSON string representation of the CellContentConfig object, excluding the notebookCell
     jsonStringify(): string {
         return JSON.stringify({
-            commands: this.commands,
+            commands: this.codebookCommands,
             comments: this.comments,
             innerScope: this.innerScope,
             execFrom: this.execFrom,
