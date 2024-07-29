@@ -5,7 +5,7 @@ import * as config from "../config";
 import * as codebook from "../codebook";
 import { NotebookCell, WorkspaceConfiguration } from "vscode";
 import { workspace } from "vscode";
-import * as exec from "../io";
+import * as io from "../io";
 
 export class Cell implements codebook.Cell {
     innerScope: string;
@@ -31,7 +31,7 @@ export class Cell implements codebook.Cell {
         // create the directory and main file
         mkdirSync(this.config.execDir, { recursive: true });
         writeFileSync(this.config.execFile, this.executableCode);
-        return exec.spawnCommand(this.config.execCmd, [this.config.execFile], { cwd: this.config.execDir });
+        return io.spawnCommand(this.config.execCmd, [this.config.execFile], { cwd: this.config.execDir });
     }
 
     afterExecution(): void {

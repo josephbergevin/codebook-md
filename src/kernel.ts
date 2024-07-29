@@ -25,12 +25,13 @@ export class Kernel {
         // start the cell timer counter
         exec.start((new Date).getTime());
 
-        // clear the output of the cell
-        // TODO: add a configuration option to disable this - global or by language
-        exec.clearOutput(notebookCell);
-
         // Get a Cell for the language that was used to run this cell
         const codebookCell = codebook.NewCell(notebookCell);
+        const outputConfig = codebookCell.contentCellConfig().output;
+        if (outputConfig.cellPlacement === codebook.CellPlacementReplace) {
+            // clear the output of the cell
+            exec.clearOutput(notebookCell);
+        }
 
         // Run the code and directly assign output
         const output = codebookCell.execute();
@@ -57,11 +58,20 @@ export class Kernel {
 
         const decoder = new TextDecoder;
         output.stdout.on('data', (data: Uint8Array) => {
-            // console.log(`stdout: ${data}`);
-            // prepend the data value with the strings in codebookCell.contentCellConfig().output.prependOutputStrings
-            codebookCell.contentCellConfig().output.prependOutputStrings.forEach((prependString) => {
+            // prepend the output with a timestamp
+            if (outputConfig.prependTimestamp) {
+                // create the timestamp using the outputConfig.timestampTimezone
+                const timestamp = new Date().toLocaleString('en-US', { timeZone: outputConfig.timestampTimezone });
+                buf = Buffer.concat([Buffer.from(timestamp + "\n")]);
+            }
+            const timestamp = new Date().toISOString();
+            buf = Buffer.concat([Buffer.from(timestamp + "\n")]);
+
+            // prepend the data value with the strings in outputConfig.prependOutputStrings
+            outputConfig.prependOutputStrings.forEach((prependString) => {
                 buf = Buffer.concat([Buffer.from(prependString + "\n")]);
             });
+
             const arr = [buf, data];
             buf = Buffer.concat(arr);
             // get the entire output of the cell
@@ -85,7 +95,11 @@ export class Kernel {
                 console.log(`displayOutput: ${displayOutput} | fullOutput: ${fullOutput}`);
             }
 
-            exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput)])]);
+            if (outputConfig.cellPlacement === codebook.CellPlacementAppend) {
+                exec.appendOutput(new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput)]));
+            } else {
+                exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput)])]);
+            }
         });
 
         output.on('close', () => {

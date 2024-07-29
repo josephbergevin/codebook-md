@@ -63,3 +63,12 @@ export const commandNotOnPath = (command: string, link: string): boolean => {
     return true;
   }
 };
+
+// parseCommandAndArgs takes a string and returns the command and arguments
+// sections wrapped in quotes are considered a single argument
+export function parseCommandAndArgs(fullCmd: string): { cmd: string, args: string[]; } {
+  const parts = fullCmd.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+  const command = parts[0] || '';
+  const args = parts.slice(1).map((arg: string) => arg.replace(/"/g, ''));
+  return { cmd: command, args: args };
+}

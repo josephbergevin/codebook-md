@@ -5,7 +5,7 @@ import * as config from "../config";
 import * as codebook from "../codebook";
 import { NotebookCell, WorkspaceConfiguration, window } from "vscode";
 import { workspace } from "vscode";
-import * as exec from "../io";
+import * as io from "../io";
 
 export class Cell implements codebook.Cell {
     innerScope: string;
@@ -31,12 +31,13 @@ export class Cell implements codebook.Cell {
         // if the innerScope is a single line, and execSingleLineAsCommand is true, execute it as a command with args
         if (this.config.execSingleLineAsCommand && this.innerScope.split('\n').length === 1) {
             this.executableCode = "";
-            const parts = this.innerScope.split(' ');
-            this.execCmd = parts[0];
-            // remove the first part and join the rest back together to use as a single arg
-            this.execArgs = [parts.slice(1).join(' ')];
+            // use io.parseCommandAndArgs to get the command and arguments
+            const parsed = io.parseCommandAndArgs(this.innerScope);
+            this.execCmd = parsed.cmd;
+            this.execArgs = parsed.args;
+
             // post a notification that the command is being executed
-            window.showInformationMessage(`Executing command: ${this.execCmd} ${this.execArgs[0]}`);
+            window.showInformationMessage(`Executing command: ${this.execCmd} ${this.execArgs.join(' ')}`);
         } else {
             // form the executable code as a bash script to execute from a file
             this.executableCode = "#!/bin/bash\n\n";
@@ -61,7 +62,7 @@ export class Cell implements codebook.Cell {
     }
 
     execute(): ChildProcessWithoutNullStreams {
-        return exec.spawnCommand(this.execCmd, this.execArgs, { cwd: this.config.execDir });
+        return io.spawnCommand(this.execCmd, this.execArgs, { cwd: this.config.execDir });
     }
 
     afterExecution(): void {
