@@ -600,6 +600,9 @@ export class OutputConfig {
     executeWithoutOutput: boolean; // whether to execute the code without output
     prependOutputStrings: string[]; // the strings to prepend to the output
     appendOutputStrings: string[]; // the strings to append to the output
+    cellPlacement: string; // the placement of the cell output
+    prependTimestamp: boolean; // whether to prepend the output with a timestamp
+    timestampTimezone: string; // the timezone to use for the timestamp
 
     constructor(commands: string[]) {
         // if the command has an output prefix (.output), then set the output configuration
@@ -607,5 +610,24 @@ export class OutputConfig {
         this.executeWithoutOutput = commands.includes(".output.executeWithoutOutput");
         this.prependOutputStrings = [];
         this.appendOutputStrings = [];
+
+        // get the output config for cell placement (default is replace)
+        // .output.cellPlacement.append | prepend | replace
+        this.cellPlacement = CellPlacementReplace;
+        if (commands.includes(".output.cellPlacement.append")) {
+            this.cellPlacement = CellPlacementAppend;
+        }
+
+        // the output config for timestamping the output
+        // prependTimestamp (boolean) - whether to prepend the output with a timestamp
+        // timestampTimezone (string) - the timezone to use for the timestamp
+        this.prependTimestamp = commands.includes(".output.prependTimestamp");
+        this.timestampTimezone = "UTC";
+        if (commands.includes(".output.timestampTimezone")) {
+            this.timestampTimezone = commands.find(command => command.startsWith(".output.timestampTimezone"))?.split(" ").pop() || "UTC";
+        }
     }
 }
+
+export const CellPlacementAppend = "append";
+export const CellPlacementReplace = "replace";

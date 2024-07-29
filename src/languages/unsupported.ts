@@ -2,7 +2,7 @@ import { ChildProcessWithoutNullStreams } from "child_process";
 import * as config from "../config";
 import * as codebook from "../codebook";
 import { NotebookCell } from "vscode";
-import * as exec from "../io";
+import * as io from "../io";
 
 // Cell implements the codebook.Cell interface for all unsupported languages
 export class Cell implements codebook.Cell {
@@ -30,7 +30,7 @@ export class Cell implements codebook.Cell {
 
     execute(): ChildProcessWithoutNullStreams {
         // return an error message: "Unsupported language" as ChildProcessWithoutNullStreams
-        return exec.spawnCommand(`echo "Unsupported language '${this.language}'"`, [], { cwd: config.getTempPath() });
+        return io.spawnCommand(`echo "Unsupported language '${this.language}'"`, [], { cwd: config.getTempPath() });
     }
 
     // afterExecution is a no-op for unsupported languages

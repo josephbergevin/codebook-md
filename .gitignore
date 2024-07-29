@@ -4,5 +4,6 @@ node_modules
 .vscode-test/
 *.vsix
 apiplayground/
+tooling/
 codebook_md_exec*
 .DS_Store

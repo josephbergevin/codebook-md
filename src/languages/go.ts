@@ -5,7 +5,7 @@ import { join } from "path";
 import { workspace, window, WorkspaceConfiguration, NotebookCell } from "vscode";
 import * as codebook from "../codebook";
 import * as config from "../config";
-import * as exec from "../io";
+import * as io from "../io";
 
 // Cell is a class that contains the configuration settings for executing go code from Cells
 export class Cell implements codebook.Cell {
@@ -149,9 +149,9 @@ export class Cell implements codebook.Cell {
 
         // run goimports on the file
         if (this.config.useGoimports) {
-            exec.spawnCommandSync('goimports', ['-w', this.config.execFile], { cwd: this.config.execDir });
+            io.spawnCommandSync('goimports', ['-w', this.config.execFile], { cwd: this.config.execDir });
         } else {
-            exec.spawnCommandSync('gopls', ['imports', '-w', this.config.execFile], { cwd: this.config.execDir });
+            io.spawnCommandSync('gopls', ['imports', '-w', this.config.execFile], { cwd: this.config.execDir });
         }
 
         if (this.config.execTypeTest) {
@@ -168,9 +168,9 @@ export class Cell implements codebook.Cell {
             });
 
             // if we're executing with a test, then we won't use the execFile in the command
-            return exec.spawnCommand('go', [this.config.execCmd, ...this.config.execArgs], { cwd: this.config.execDir });
+            return io.spawnCommand('go', [this.config.execCmd, ...this.config.execArgs], { cwd: this.config.execDir });
         }
-        return exec.spawnCommand('go', [this.config.execCmd, ...this.config.execArgs, this.config.execFile], { cwd: this.config.execDir });
+        return io.spawnCommand('go', [this.config.execCmd, ...this.config.execArgs, this.config.execFile], { cwd: this.config.execDir });
     }
 
     afterExecution(): void {
