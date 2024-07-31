@@ -44,5 +44,13 @@
 			"args": ["pull", "origin", "main", "--autostash"],
 			"problemMatcher": []
 		},
+		{
+			"label": "npm update",
+			"detail": "Calls npm update",
+			"type": "shell",
+			"command": "npm",
+			"args": ["update"],
+			"problemMatcher": []
+		},
 	]
 }

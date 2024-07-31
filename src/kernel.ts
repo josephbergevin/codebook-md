@@ -28,7 +28,7 @@ export class Kernel {
         // Get a Cell for the language that was used to run this cell
         const codebookCell = codebook.NewCell(notebookCell);
         const outputConfig = codebookCell.contentCellConfig().output;
-        if (outputConfig.cellPlacement === codebook.CellPlacementReplace) {
+        if (outputConfig.replaceOutputCell) {
             // clear the output of the cell
             exec.clearOutput(notebookCell);
         }
@@ -59,7 +59,7 @@ export class Kernel {
         const decoder = new TextDecoder;
         output.stdout.on('data', (data: Uint8Array) => {
             // prepend the output with a timestamp
-            if (outputConfig.prependTimestamp) {
+            if (outputConfig.showTimestamp) {
                 // create the timestamp using the outputConfig.timestampTimezone
                 const timestamp = new Date().toLocaleString('en-US', { timeZone: outputConfig.timestampTimezone });
                 buf = Buffer.concat([Buffer.from(timestamp + "\n")]);
@@ -68,7 +68,7 @@ export class Kernel {
             buf = Buffer.concat([Buffer.from(timestamp + "\n")]);
 
             // prepend the data value with the strings in outputConfig.prependOutputStrings
-            outputConfig.prependOutputStrings.forEach((prependString) => {
+            outputConfig.prependToOutputStrings.forEach((prependString) => {
                 buf = Buffer.concat([Buffer.from(prependString + "\n")]);
             });
 
@@ -95,10 +95,10 @@ export class Kernel {
                 console.log(`displayOutput: ${displayOutput} | fullOutput: ${fullOutput}`);
             }
 
-            if (outputConfig.cellPlacement === codebook.CellPlacementAppend) {
-                exec.appendOutput(new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput)]));
-            } else {
+            if (outputConfig.replaceOutputCell) {
                 exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput)])]);
+            } else {
+                exec.appendOutput(new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput)]));
             }
         });
 
