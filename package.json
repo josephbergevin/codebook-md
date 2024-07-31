@@ -62,6 +62,36 @@
           "type": "boolean",
           "default": true
         },
+        "codebook-md.output": {
+          "type": "object",
+          "properties": {
+            "showExecutableCodeInOutput": {
+              "type": "boolean",
+              "default": true,
+              "description": "Show the executable code at the top of the output (default: false)."
+            },
+            "showOutputOnRun": {
+              "type": "boolean",
+              "default": true,
+              "description": "Show the output cell on run (default: true)."
+            },
+            "replaceOutputCell": {
+              "type": "boolean",
+              "default": true,
+              "description": "Prepend the executable code to the output (default: true)."
+            },
+            "showTimestamp": {
+              "type": "boolean",
+              "default": true,
+              "description": "Show the timestamp at the top of the output (default: true)."
+            },
+            "timestampTimezone": {
+              "type": "string",
+              "default": true,
+              "description": "Timezone to use for the timestamp."
+            }
+          }
+        },
         "codebook-md.go": {
           "type": "object",
           "properties": {
