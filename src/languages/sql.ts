@@ -1,14 +1,18 @@
 import { ChildProcessWithoutNullStreams } from "child_process";
+import { mkdirSync, writeFileSync } from "fs";
 import * as path from "path";
-import * as bash from "./bash";
 import * as config from "../config";
 import * as codebook from "../codebook";
+import * as io from "../io";
 import { NotebookCell, WorkspaceConfiguration } from "vscode";
 import { workspace } from "vscode";
 
 export class Cell implements codebook.Cell {
     innerScope: string;
     executableCode: string;
+
+    execCmd: string;
+    execArgs: string[];
     config: Config;
 
     constructor(notebookCell: NotebookCell) {
@@ -17,11 +21,21 @@ export class Cell implements codebook.Cell {
 
         // form the innerScope, skipping lines that start with the sql comment character #
         console.log("cellConfig: ", this.config.contentConfig.jsonStringify());
+        // the innerScope should only contain the sql command
         this.innerScope = this.config.contentConfig.innerScope.trim();
 
-        // form the executable code
+        // add the query to the execOptions along with the -e flag - commonly used as the execute flag in sql cli commands
         this.config.execOptions.push("-e " + '"' + this.innerScope + '"');
-        this.executableCode = this.config.execCmd + " " + this.config.execOptions.join(" ");
+
+
+        // form the executable code as a bash script that will execute the sql code from a file
+        this.executableCode = "#!/bin/bash\n\n";
+        this.executableCode += "set -e\n\n";
+        this.executableCode += this.config.execCmd + " " + this.config.execOptions.join(" ");
+
+        // set the execCmd and execArgs to execute the bash script
+        this.execCmd = 'bash';
+        this.execArgs = [this.config.execFile];
     }
 
     contentCellConfig(): codebook.CellContentConfig {
@@ -29,19 +43,17 @@ export class Cell implements codebook.Cell {
     }
 
     execute(): ChildProcessWithoutNullStreams {
-        // call the executable cli command using bash.Cell.execute
-        // create a new bash cell with a null notebook cell, then add the executable code to it
-        const cell = new bash.Cell(undefined);
-        console.log("executing (from bash): " + this.innerScope);
-        cell.executableCode += this.executableCode;
+        // create the directory and main file
+        mkdirSync(this.config.execDir, { recursive: true });
+        writeFileSync(this.config.execFile, this.executableCode);
 
         // if the exececutable code is to be printed, then add an output cell with the executable code
-        if (this.config.contentConfig.output.prependExecutableCode) {
+        if (this.config.contentConfig.output.showExecutableCodeInOutput) {
             console.log("adding executable code to output:", this.innerScope);
-            this.config.contentConfig.output.prependOutputStrings.push(this.innerScope);
+            this.config.contentConfig.output.prependToOutputStrings.push(this.innerScope);
         }
 
-        return cell.execute();
+        return io.spawnCommand(this.execCmd, this.execArgs, { cwd: this.config.execDir });
     }
 
     afterExecution(): void {

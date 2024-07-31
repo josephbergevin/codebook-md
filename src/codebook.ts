@@ -585,10 +585,13 @@ export class CellContentConfig {
             innerScope: this.innerScope,
             execFrom: this.execFrom,
             output: {
-                prependExecutableCode: this.output.prependExecutableCode,
-                executeWithoutOutput: this.output.executeWithoutOutput,
-                prependOutputStrings: this.output.prependOutputStrings,
-                appendOutputStrings: this.output.appendOutputStrings,
+                showExecutableCodeInOutput: this.output.showExecutableCodeInOutput,
+                showOutputOnRun: this.output.showOutputOnRun,
+                prependToOutputStrings: this.output.prependToOutputStrings,
+                appendToOutputStrings: this.output.appendToOutputStrings,
+                replaceOutputCell: this.output.replaceOutputCell,
+                showTimestamp: this.output.showTimestamp,
+                timestampTimezone: this.output.timestampTimezone,
             }
         });
     }
@@ -596,38 +599,65 @@ export class CellContentConfig {
 
 // OutputConfig is a class that contains the configuration for the output of a cell
 export class OutputConfig {
-    prependExecutableCode: boolean; // whether to print the executable code
-    executeWithoutOutput: boolean; // whether to execute the code without output
-    prependOutputStrings: string[]; // the strings to prepend to the output
-    appendOutputStrings: string[]; // the strings to append to the output
-    cellPlacement: string; // the placement of the cell output
-    prependTimestamp: boolean; // whether to prepend the output with a timestamp
+    showExecutableCodeInOutput: boolean; // whether to print the executable code at the top of the output cell
+    showOutputOnRun: boolean; // whether to show the output on run
+    replaceOutputCell: boolean; // whether to replace the output of the cell - if false, append the output
+    showTimestamp: boolean; // whether to prepend the output with a timestamp
     timestampTimezone: string; // the timezone to use for the timestamp
 
+    // these values are only configurable in the code cell config commands
+    prependToOutputStrings: string[]; // the strings to prepend to the output
+    appendToOutputStrings: string[]; // the strings to append to the output
+
     constructor(commands: string[]) {
-        // if the command has an output prefix (.output), then set the output configuration
-        this.prependExecutableCode = commands.includes(".output.prependExecutableCode");
-        this.executeWithoutOutput = commands.includes(".output.executeWithoutOutput");
-        this.prependOutputStrings = [];
-        this.appendOutputStrings = [];
+        const outputConfig = workspace.getConfiguration('codebook-md.output');
+        // initialize the output configuration with the default values
+        this.showExecutableCodeInOutput = outputConfig.get('showExecutableCodeInOutput') || false;
+        this.showOutputOnRun = outputConfig.get('showOutputOnRun') || false;
+        this.replaceOutputCell = outputConfig.get('replaceOutputCell') || true;
+        this.showTimestamp = outputConfig.get('showTimestamp') || false;
+        this.timestampTimezone = outputConfig.get('timestampTimezone') || "UTC";
+        this.prependToOutputStrings = [];
+        this.appendToOutputStrings = [];
 
-        // get the output config for cell placement (default is replace)
-        // .output.cellPlacement.append | prepend | replace
-        this.cellPlacement = CellPlacementReplace;
-        if (commands.includes(".output.cellPlacement.append")) {
-            this.cellPlacement = CellPlacementAppend;
+        // filter out the output commands from the cell commands
+        const outputCommands = commands.filter(command => command.startsWith(".output."));
+
+        // if the commands don't include any in-line output config, return the default output config
+        if (outputCommands.length === 0) {
+            return;
         }
 
-        // the output config for timestamping the output
-        // prependTimestamp (boolean) - whether to prepend the output with a timestamp
-        // timestampTimezone (string) - the timezone to use for the timestamp
-        this.prependTimestamp = commands.includes(".output.prependTimestamp");
-        this.timestampTimezone = "UTC";
-        if (commands.includes(".output.timestampTimezone")) {
-            this.timestampTimezone = commands.find(command => command.startsWith(".output.timestampTimezone"))?.split(" ").pop() || "UTC";
-        }
+        outputCommands.forEach(command => {
+            switch (command) {
+                case ".output.showExecutableCodeInOutput(true)":
+                    this.showExecutableCodeInOutput = true;
+                    break;
+                case ".output.showExecutableCodeInOutput(false)":
+                    this.showExecutableCodeInOutput = false;
+                    break;
+                case ".output.showOutputOnRun(true)":
+                    this.showOutputOnRun = true;
+                    break;
+                case ".output.showOutputOnRun(false)":
+                    this.showOutputOnRun = false;
+                    break;
+                case ".output.replaceOutputCell(true)":
+                    this.replaceOutputCell = true;
+                    break;
+                case ".output.replaceOutputCell(false)":
+                    this.replaceOutputCell = false;
+                    break;
+                case ".output.showTimestamp(true)":
+                    this.showTimestamp = true;
+                    break;
+                case ".output.showTimestamp(false)":
+                    this.showTimestamp = false;
+                    break;
+                default:
+                    // if the command is not recognized, send a warning notification
+                    window.showWarningMessage(`output command unknown: ${command}`);
+            }
+        });
     }
 }
-
-export const CellPlacementAppend = "append";
-export const CellPlacementReplace = "replace";
