@@ -56,11 +56,8 @@ export class Cell implements codebook.Cell {
         return io.spawnCommand(this.execCmd, this.execArgs, { cwd: this.config.execDir });
     }
 
-    afterExecution(): void {
-        // remove the executable file
-        // unlinkSync(this.config.execFile);
-        // run the afterExecution functions
-        this.config.afterExecutionFuncs.forEach(func => func());
+    afterExecuteFuncs(): codebook.AfterExecuteFunc[] {
+        return this.config.afterExecFuncs;
     }
 }
 
@@ -71,7 +68,7 @@ export class Config {
     execFilename: string;
     execCmd: string;
     execOptions: string[];
-    afterExecutionFuncs: (() => void)[];
+    afterExecFuncs: codebook.AfterExecuteFunc[];
 
     constructor(sqlConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
         this.contentConfig = new codebook.CellContentConfig(notebookCell, "--");
@@ -82,6 +79,6 @@ export class Config {
         this.execOptions = sqlConfig?.get('execOptions') || [];
 
         // add the afterExecution functions
-        this.afterExecutionFuncs = [];
+        this.afterExecFuncs = [];
     }
 }

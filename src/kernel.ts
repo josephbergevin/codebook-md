@@ -112,6 +112,6 @@ export class Kernel {
         });
 
         // Run the afterExecution function
-        codebookCell.afterExecution();
+        codebookCell.afterExecuteFuncs();
     }
 }
