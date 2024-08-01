@@ -173,11 +173,8 @@ export class Cell implements codebook.Cell {
         return io.spawnCommand('go', [this.config.execCmd, ...this.config.execArgs, this.config.execFile], { cwd: this.config.execDir });
     }
 
-    afterExecution(): void {
-        // remove the executable file
-        // unlinkSync(this.config.execFile);
-        // run the afterExecution functions
-        this.config.afterExecutionFuncs.forEach(func => func());
+    afterExecuteFuncs(): codebook.AfterExecuteFunc[] {
+        return this.config.afterExecFuncs;
     }
 
     // parseImports parses the imports for the go code in the cell, returning the imports as a sclie of strings
@@ -222,7 +219,7 @@ export class Config {
     useGoimports: boolean;
     execCmd: string;
     execArgs: string[];
-    afterExecutionFuncs: (() => void)[];
+    afterExecFuncs: codebook.AfterExecuteFunc[];
 
     constructor(goConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
         this.contentConfig = new codebook.CellContentConfig(notebookCell, "//");
@@ -259,8 +256,8 @@ export class Config {
             this.execCmd = 'run';
         }
 
-        // initialize the afterExecutionFuncs array
-        this.afterExecutionFuncs = [];
+        // initialize the afterExecFuncs array
+        this.afterExecFuncs = [];
     }
 
 }

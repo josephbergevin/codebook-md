@@ -32,23 +32,20 @@ export class Cell implements codebook.Cell {
         return io.spawnCommand('ts-node', [this.config.execFile], { cwd: this.config.execDir });
     }
 
-    afterExecution(): void {
-        // remove the executable file
-        // unlinkSync(this.config.execFile);
-        // run the afterExecution functions
-        this.config.afterExecutionFuncs.forEach(func => func());
+    afterExecuteFuncs(): codebook.AfterExecuteFunc[] {
+        return this.config.afterExecFuncs;
     }
 }
 
 export class Config {
     execDir: string; execFile: string;
     contentConfig: codebook.CellContentConfig;
-    afterExecutionFuncs: (() => void)[];
+    afterExecFuncs: codebook.AfterExecuteFunc[];
 
     constructor(typescriptConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
         this.execDir = config.getTempPath();
         this.execFile = path.join(this.execDir, typescriptConfig?.get('execFilename') || 'codebook_md_exec.ts');
         this.contentConfig = new codebook.CellContentConfig(notebookCell, "//");
-        this.afterExecutionFuncs = [];
+        this.afterExecFuncs = [];
     }
 }

@@ -34,14 +34,22 @@ export class Cell implements codebook.Cell {
     }
 
     // afterExecution is a no-op for unsupported languages
-    afterExecution(): void { };
+    afterExecuteFuncs(): codebook.AfterExecuteFunc[] {
+        return this.config.afterExecFuncs;
+    }
 }
 
 // Config implements the configuration for unsupported languages
 export class Config {
     contentConfig: codebook.CellContentConfig;
+    afterExecFuncs: codebook.AfterExecuteFunc[];
 
     constructor(notebookCell: NotebookCell) {
+        // set the contentConfig to the CellContentConfig for the notebookCell - using all common comment characters since we 
+        // don't know the language comment character(s) for unsupported languages
         this.contentConfig = new codebook.CellContentConfig(notebookCell, "#", "//", "#!/bin/bash", "--");
+
+        // initialize the afterExecFuncs array
+        this.afterExecFuncs = [];
     }
 }

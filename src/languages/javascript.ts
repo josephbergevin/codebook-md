@@ -34,11 +34,8 @@ export class Cell implements codebook.Cell {
         return io.spawnCommand('node', [this.config.execFile], { cwd: this.config.execDir });
     }
 
-    afterExecution(): void {
-        // remove the executable file
-        // unlinkSync(this.config.execFile);
-        // run the afterExecution functions
-        this.config.afterExecutionFuncs.forEach(func => func());
+    afterExecuteFuncs(): codebook.AfterExecuteFunc[] {
+        return this.config.afterExecFuncs;
     }
 }
 
@@ -46,12 +43,12 @@ export class Config {
     contentConfig: codebook.CellContentConfig;
     execDir: string;
     execFile: string;
-    afterExecutionFuncs: (() => void)[];
+    afterExecFuncs: codebook.AfterExecuteFunc[];
 
     constructor(javascriptConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
         this.execDir = config.getTempPath();
         this.execFile = path.join(this.execDir, javascriptConfig?.get('execFilename') || 'codebook_md_exec.js');
         this.contentConfig = new codebook.CellContentConfig(notebookCell, "//");
-        this.afterExecutionFuncs = [];
+        this.afterExecFuncs = [];
     }
 }

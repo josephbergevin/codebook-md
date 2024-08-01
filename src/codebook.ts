@@ -30,14 +30,18 @@ export interface RawNotebookCell {
     outputs?: [unknown];
 }
 
+// Cell is an interface that defines the methods that a cell must implement
 export interface Cell {
     execute(): ChildProcessWithoutNullStreams;
-    afterExecution(): void;
+    afterExecuteFuncs(): AfterExecuteFunc[];
     contentCellConfig(): CellContentConfig;
-    // commentPrefix(): string;
+    // commentPrefixes(): string[];
     // parseImports(): string[];
     // resolveImports(): Promise<void>;
 }
+
+// AfterExecuteFunc is a function that is run after the cell is executed
+export type AfterExecuteFunc = () => void;
 
 // NewCell returns a new Cell object based on the language of the notebook cell - if the language
 // is not supported, it returns an unsupported cell
