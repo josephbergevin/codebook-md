@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ChildProcessWithoutNullStreams, spawn, spawnSync, execSync } from "child_process";
 import { window, env, Uri } from "vscode";
 
@@ -56,19 +57,10 @@ export const commandNotOnPath = (command: string, link: string): boolean => {
     return false;
   } catch (error) {
     if (link) {
-      window.showErrorMessage(`command: ${command} not on path. Add to path or follow link to install`, ...[`Install ${command}`]).then((_) => {
+      window.showErrorMessage(`command: ${command} not on path. Add to path or follow link to install`, ...[`Install ${command}`]).then(() => {
         env.openExternal(Uri.parse(link));
       });
     }
     return true;
   }
 };
-
-// parseCommandAndArgs takes a string and returns the command and arguments
-// sections wrapped in quotes are considered a single argument
-export function parseCommandAndArgs(fullCmd: string): { cmd: string, args: string[]; } {
-  const parts = fullCmd.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
-  const command = parts[0] || '';
-  const args = parts.slice(1).map((arg: string) => arg.replace(/"/g, ''));
-  return { cmd: command, args: args };
-}

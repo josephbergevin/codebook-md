@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
     window, workspace,
     Hover, HoverProvider,
@@ -11,11 +12,12 @@ import { TextDecoder, TextEncoder } from 'util';
 import { ChildProcessWithoutNullStreams } from "child_process";
 import * as path from 'path';
 import * as fs from 'fs';
+import * as bash from "./languages/bash";
 import * as go from "./languages/go";
 import * as javascript from "./languages/javascript";
 import * as typescript from "./languages/typescript";
-import * as bash from "./languages/bash";
 import * as python from "./languages/python";
+import * as shell from "./languages/shell";
 import * as sql from "./languages/sql";
 import * as unsupported from "./languages/unsupported";
 import * as io from './io';
@@ -31,21 +33,74 @@ export interface RawNotebookCell {
 }
 
 // Cell is an interface that defines the methods that a cell must implement
-export interface Cell {
+export interface ExecutableCell {
     execute(): ChildProcessWithoutNullStreams;
-    afterExecuteFuncs(): AfterExecuteFunc[];
+    postExecutables(): Executable[];
     contentCellConfig(): CellContentConfig;
     // commentPrefixes(): string[];
     // parseImports(): string[];
     // resolveImports(): Promise<void>;
 }
 
-// AfterExecuteFunc is a function that is run after the cell is executed
-export type AfterExecuteFunc = () => void;
+// Executable is an interface that defines the methods that an executable object must implement
+export interface Executable {
+    execute(): ChildProcessWithoutNullStreams;
+    toString(): string;
+    jsonStringify(): string;
+}
+
+// Command is class for a command and its arguments
+export class Command implements Executable {
+    command: string;
+    args: string[];
+    cwd: string;
+
+    constructor(command: string, args: string[], cwd: string) {
+        this.command = command;
+        this.args = args;
+        this.cwd = cwd;
+    }
+
+    // execute fulfills the codebook.Executable interface
+    execute(): ChildProcessWithoutNullStreams {
+        console.log(`executing command: ${this.command} ${this.args.join(' ')}`);
+        return io.spawnCommand(this.command, this.args, { cwd: this.cwd });
+    }
+
+    // jsonStringify returns the JSON string representation of the Command object
+    jsonStringify(): string {
+        return JSON.stringify({
+            command: this.command,
+            args: this.args,
+            cwd: this.cwd,
+        });
+    }
+
+    // toString returns the string representation of the Command object
+    toString(): string {
+        return `${this.command} ${this.args.join(' ')}`;
+    }
+}
+
+// parseCommands takes a string and returns an array of Command objects
+export const parseCommands = (fullCmd: string, cwd: string): Command[] => {
+    const commands = fullCmd.split('\n');
+    return commands.map((cmd: string) => parseCommandAndArgs(cmd, cwd));
+};
+
+// parseCommandAndArgs takes a string and returns the command and arguments
+// sections wrapped in quotes are considered a single argument
+export function parseCommandAndArgs(fullCmd: string, cwd: string): Command {
+    const parts = fullCmd.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+    const command = parts[0] || '';
+    const args = parts.slice(1).map((arg: string) => arg.replace(/"/g, ''));
+    return new Command(command, args, cwd);
+}
+
 
 // NewCell returns a new Cell object based on the language of the notebook cell - if the language
 // is not supported, it returns an unsupported cell
-export function NewCell(notebookCell: NotebookCell): Cell {
+export function NewExecutableCell(notebookCell: NotebookCell): ExecutableCell {
     const lang = notebookCell.document.languageId;
     switch (lang) {
         case "go":
@@ -72,8 +127,10 @@ export function NewCell(notebookCell: NotebookCell): Cell {
             return new typescript.Cell(notebookCell);
 
         case "shell":
-        case "zsh":
         case "sh":
+        case "zsh":
+            return new shell.Cell(notebookCell);
+
         case "shellscript":
         case "shell-script":
         case "bash":
@@ -113,26 +170,43 @@ export const StartOutput = `!!output-start-cell`;
 // EndOutput is a string that indicates the end of an output block
 export const EndOutput = `!!output-end-cell`;
 
-const LANGUAGE_IDS = new Map([
-    ['js', 'javascript'],
-    ['ts', 'typescript'],
-    ['rust', 'rust'],
-    ['go', 'go'],
-    ['nu', 'nushell'],
-    ['shell-script', 'bash'],
-    ['bash', 'bash'],
-    ['sh', 'bash'],
-    ['shell', 'bash'],
-    ['shellscript', 'bash'],
-    ['fish', 'fish'],
-    ['zsh', 'zsh'],
-    ['py', 'python'],
-    ['http', 'http'],
-]);
+export class Language {
+    name: string;
+    aliases: string[];
+    isExecutable: boolean;
 
-const LANGUAGE_ABBREVS = new Map(
-    Array.from(LANGUAGE_IDS.keys()).map(k => [LANGUAGE_IDS.get(k), k])
-);
+    constructor(name: string, aliases: string[], isExecutable: boolean) {
+        this.name = name;
+        this.aliases = aliases;
+        this.isExecutable = isExecutable;
+    }
+}
+
+const languages = [
+    new Language("Bash", ["shell-script", "shellscript"], true),
+    new Language("Go", ["golang"], true),
+    new Language("JavaScript", ["js"], true),
+    new Language("Python", ["py"], true),
+    new Language("Shell", ["sh", "shell"], true),
+    new Language("SQL", ["mysql", "postgres"], true),
+    new Language("TypeScript", ["ts"], true),
+
+    // non-executable languages
+    new Language("Fish", [], false),
+    new Language("Http", [], false),
+    new Language("Nushell", ["nu"], false),
+    new Language("Rust", [], false),
+    new Language("Zsh", [], false),
+];
+
+// languagesByAbbrev is a map of language abbreviations to their corresponding Language object
+const languagesByAbbrev = new Map<string, Language>();
+languages.forEach(lang => {
+    languagesByAbbrev.set(lang.name.toLowerCase(), lang);
+    lang.aliases.forEach(alias => {
+        languagesByAbbrev.set(alias.toLowerCase(), lang);
+    });
+});
 
 function parseCodeBlockStart(line: string): string | null {
     const match = line.match(/( {4}|\t)?```(\S*)/);
@@ -162,9 +236,9 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
     // Each parse function starts with line i, leaves i on the line after the last line parsed
     while (i < lines.length) {
         const leadingWhitespace = i === 0 ? parseWhitespaceLines(true) : '';
-        const lang = parseCodeBlockStart(lines[i]);
-        if (lang) {
-            parseCodeBlock(leadingWhitespace, lang);
+        const languageSyntax = parseCodeBlockStart(lines[i]);
+        if (languageSyntax) {
+            parseCodeBlock(leadingWhitespace, languageSyntax);
         } else {
             parseMarkdownParagraph(leadingWhitespace);
         }
@@ -187,8 +261,8 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
         return '\n'.repeat(numWhitespaceLines);
     }
 
-    function parseCodeBlock(leadingWhitespace: string, lang: string): void {
-        const language = LANGUAGE_IDS.get(lang) || lang;
+    function parseCodeBlock(leadingWhitespace: string, languageSyntax: string): void {
+        const language = languagesByAbbrev.get(languageSyntax.toLowerCase())?.name.toLowerCase() ?? languageSyntax.toLowerCase();
         const startSourceIdx = ++i;
         // eslint-disable-next-line no-constant-condition
         while (true) {
@@ -205,7 +279,7 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
         const content = lines.slice(startSourceIdx, i - 1)
             .join('\n');
         const trailingWhitespace = parseWhitespaceLines(false);
-        if (lang === "text") {
+        if (languageSyntax === "text") {
             cells[cells.length - 1].outputs = [{ items: [{ data: textEncoder.encode(content), mime: "text/plain" }] }];
         } else {
             cells.push({
@@ -268,7 +342,10 @@ export function writeCellsToMarkdown(cells: ReadonlyArray<NotebookCellData>): st
                     }
                 }
             }
-            const languageAbbrev = LANGUAGE_ABBREVS.get(cell.languageId) ?? cell.languageId;
+            const languageAbbrev = languagesByAbbrev.get(cell.languageId)?.name ?? cell.languageId;
+            if (languageAbbrev === cell.languageId) {
+                console.log(`writeCellsToMarkdown language not found in map: ${languageAbbrev}`);
+            }
             const codePrefix = '```' + languageAbbrev + '\n';
             const contents = cell.value.split(/\r?\n/g)
                 .join('\n');
@@ -620,7 +697,7 @@ export class OutputConfig {
         this.showOutputOnRun = outputConfig.get('showOutputOnRun') || false;
         this.replaceOutputCell = outputConfig.get('replaceOutputCell') || true;
         this.showTimestamp = outputConfig.get('showTimestamp') || false;
-        this.timestampTimezone = outputConfig.get('timestampTimezone') || "UTC";
+        this.timestampTimezone = validTimezone(outputConfig.get('timestampTimezone') || "");
         this.prependToOutputStrings = [];
         this.appendToOutputStrings = [];
 
@@ -663,5 +740,53 @@ export class OutputConfig {
                     window.showWarningMessage(`output command unknown: ${command}`);
             }
         });
+    }
+}
+
+// validTimezone returns the timezone if it's valid, otherwise it returns 'UTC'
+export function validTimezone(timezone: string): string {
+    try {
+        Intl.DateTimeFormat(undefined, { timeZone: timezone }).format();
+        console.log(`valid timezone given: ${timezone}`);
+        return timezone;
+    } catch (error) {
+        let validTimezone = timezone;
+        switch (timezone.toUpperCase()) {
+            case "MDT":
+                validTimezone = 'America/Denver';
+                break;
+            case "MST":
+                validTimezone = 'America/Phoenix';
+                break;
+            case "PDT":
+                validTimezone = 'America/Los_Angeles';
+                break;
+            case "PST":
+                validTimezone = 'America/Los_Angeles';
+                break;
+            case "EDT":
+                validTimezone = 'America/New_York';
+                break;
+            case "EST":
+                validTimezone = 'America/New_York';
+                break;
+            case "CDT":
+                validTimezone = 'America/Chicago';
+                break;
+            case "CST":
+                validTimezone = 'America/Chicago';
+                break;
+            case "UTC":
+                validTimezone = 'UTC';
+                break;
+            case "":
+                validTimezone = 'UTC';
+                break;
+            default:
+                console.log(`invalid timezone: ${timezone}`);
+                return 'UTC';
+        };
+        console.log(`valid timezone found: ${timezone} >> ${validTimezone}`);
+        return validTimezone;
     }
 }

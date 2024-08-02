@@ -26,7 +26,7 @@ export class Kernel {
         exec.start((new Date).getTime());
 
         // Get a Cell for the language that was used to run this cell
-        const codebookCell = codebook.NewCell(notebookCell);
+        const codebookCell = codebook.NewExecutableCell(notebookCell);
         const outputConfig = codebookCell.contentCellConfig().output;
         if (outputConfig.replaceOutputCell) {
             // clear the output of the cell
@@ -55,23 +55,8 @@ export class Kernel {
         });
 
         let buf = Buffer.from([]);
-
         const decoder = new TextDecoder;
         output.stdout.on('data', (data: Uint8Array) => {
-            // prepend the output with a timestamp
-            if (outputConfig.showTimestamp) {
-                // create the timestamp using the outputConfig.timestampTimezone
-                const timestamp = new Date().toLocaleString('en-US', { timeZone: outputConfig.timestampTimezone });
-                buf = Buffer.concat([Buffer.from(timestamp + "\n")]);
-            }
-            const timestamp = new Date().toISOString();
-            buf = Buffer.concat([Buffer.from(timestamp + "\n")]);
-
-            // prepend the data value with the strings in outputConfig.prependOutputStrings
-            outputConfig.prependToOutputStrings.forEach((prependString) => {
-                buf = Buffer.concat([Buffer.from(prependString + "\n")]);
-            });
-
             const arr = [buf, data];
             buf = Buffer.concat(arr);
             // get the entire output of the cell
@@ -95,9 +80,30 @@ export class Kernel {
                 console.log(`displayOutput: ${displayOutput} | fullOutput: ${fullOutput}`);
             }
 
+            // prepend the output with the strings in outputConfig.prependOutputStrings
+            if (outputConfig.prependToOutputStrings.length > 0) {
+                console.log(`${outputConfig.prependToOutputStrings.length} prependOutputStrings found - prepending`);
+                outputConfig.prependToOutputStrings.forEach((prependString) => {
+                    displayOutput = prependString + "\n" + displayOutput;
+                });
+            }
+
+            // lastly, prepend the output with a timestamp, so it's at the top of the output
+            if (outputConfig.showTimestamp === true) {
+                const timestamp = new Date().toLocaleString('en-US', { timeZone: outputConfig.timestampTimezone });
+                displayOutput = timestamp + "\n" + displayOutput;
+                console.log(`showing timestamp: ${timestamp}`);
+            }
+
+            // call the postExecutables and append the output to the displayOutput
+            // const postOutput = executePostExecutables(codebookCell.postExecutables());
+            // displayOutput += await postOutput;
+
             if (outputConfig.replaceOutputCell) {
+                console.log("replacing output cell");
                 exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput)])]);
             } else {
+                console.log("appending output cell");
                 exec.appendOutput(new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput)]));
             }
         });
@@ -110,8 +116,52 @@ export class Kernel {
                 exec.end(true, (new Date).getTime());
             }
         });
-
-        // Run the afterExecution function
-        codebookCell.afterExecuteFuncs();
     }
+}
+
+// executePostExecutables will execute the postExecutables and return the output as a string
+export async function executePostExecutables(postExecutables: codebook.Executable[]): Promise<string> {
+    if (postExecutables.length === 0) {
+        return "";
+    }
+
+    let output = "";
+
+    for (const executable of postExecutables) {
+        await new Promise<void>((resolve, reject) => {
+            // start with the command and arguments
+            output += executable.toString() + "\n";
+
+            const exec = executable.execute();
+            exec.stdout.on('data', (data: Uint8Array) => {
+                output += dataToString(data);
+            });
+
+            exec.stderr.on('data', (data: Uint8Array) => {
+                output += dataToString(data);
+            });
+
+            exec.on('close', () => {
+                resolve();
+            });
+
+            exec.on('error', (err) => {
+                reject(err);
+            });
+        });
+    }
+
+    return output;
+}
+
+// dataToString will convert the Uint8Array data to a string
+export function dataToString(data: Uint8Array): string {
+    let buf = Buffer.from([]);
+    const decoder = new TextDecoder;
+    const arr = [buf, data];
+    buf = Buffer.concat(arr);
+    // get the entire output of the cell
+    const cmdOutput = decoder.decode(buf);
+    console.log(`cmdOutput: ${cmdOutput}`);
+    return cmdOutput;
 }

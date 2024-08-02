@@ -7,7 +7,7 @@ import { NotebookCell, WorkspaceConfiguration } from "vscode";
 import { workspace } from "vscode";
 import * as io from "../io";
 
-export class Cell implements codebook.Cell {
+export class Cell implements codebook.ExecutableCell {
     innerScope: string; executableCode: string; config: Config;
 
     constructor(notebookCell: NotebookCell) {
@@ -32,20 +32,20 @@ export class Cell implements codebook.Cell {
         return io.spawnCommand('ts-node', [this.config.execFile], { cwd: this.config.execDir });
     }
 
-    afterExecuteFuncs(): codebook.AfterExecuteFunc[] {
-        return this.config.afterExecFuncs;
+    postExecutables(): codebook.Executable[] {
+        return this.config.postExecutables;
     }
 }
 
 export class Config {
     execDir: string; execFile: string;
     contentConfig: codebook.CellContentConfig;
-    afterExecFuncs: codebook.AfterExecuteFunc[];
+    postExecutables: codebook.Executable[];
 
     constructor(typescriptConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
         this.execDir = config.getTempPath();
         this.execFile = path.join(this.execDir, typescriptConfig?.get('execFilename') || 'codebook_md_exec.ts');
         this.contentConfig = new codebook.CellContentConfig(notebookCell, "//");
-        this.afterExecFuncs = [];
+        this.postExecutables = [];
     }
 }

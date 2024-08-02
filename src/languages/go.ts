@@ -8,7 +8,7 @@ import * as config from "../config";
 import * as io from "../io";
 
 // Cell is a class that contains the configuration settings for executing go code from Cells
-export class Cell implements codebook.Cell {
+export class Cell implements codebook.ExecutableCell {
     imports: string[];
     importNumber: number;
     outerScope: string;
@@ -173,8 +173,8 @@ export class Cell implements codebook.Cell {
         return io.spawnCommand('go', [this.config.execCmd, ...this.config.execArgs, this.config.execFile], { cwd: this.config.execDir });
     }
 
-    afterExecuteFuncs(): codebook.AfterExecuteFunc[] {
-        return this.config.afterExecFuncs;
+    postExecutables(): codebook.Executable[] {
+        return this.config.postExecutables;
     }
 
     // parseImports parses the imports for the go code in the cell, returning the imports as a sclie of strings
@@ -219,7 +219,7 @@ export class Config {
     useGoimports: boolean;
     execCmd: string;
     execArgs: string[];
-    afterExecFuncs: codebook.AfterExecuteFunc[];
+    postExecutables: codebook.Executable[];
 
     constructor(goConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
         this.contentConfig = new codebook.CellContentConfig(notebookCell, "//");
@@ -256,8 +256,8 @@ export class Config {
             this.execCmd = 'run';
         }
 
-        // initialize the afterExecFuncs array
-        this.afterExecFuncs = [];
+        // initialize the postExecutables array
+        this.postExecutables = [];
     }
 
 }
