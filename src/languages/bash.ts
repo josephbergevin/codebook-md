@@ -3,11 +3,11 @@ import { mkdirSync, writeFileSync } from "fs";
 import * as path from "path";
 import * as config from "../config";
 import * as codebook from "../codebook";
-import { NotebookCell, WorkspaceConfiguration, window } from "vscode";
+import { NotebookCell, WorkspaceConfiguration } from "vscode";
 import { workspace } from "vscode";
 import * as io from "../io";
 
-export class Cell implements codebook.Cell {
+export class Cell implements codebook.ExecutableCell {
     innerScope: string;
     executableCode: string;
     execCmd: string;
@@ -28,29 +28,23 @@ export class Cell implements codebook.Cell {
             this.innerScope = '';
         }
 
-        // if the innerScope is a single line, and execSingleLineAsCommand is true, execute it as a command with args
-        if (this.config.execSingleLineAsCommand && this.innerScope.split('\n').length === 1) {
-            this.executableCode = "";
-            // use io.parseCommandAndArgs to get the command and arguments
-            const parsed = io.parseCommandAndArgs(this.innerScope);
-            this.execCmd = parsed.cmd;
-            this.execArgs = parsed.args;
 
-            // post a notification that the command is being executed
-            window.showInformationMessage(`Executing command: ${this.execCmd} ${this.execArgs.join(' ')}`);
-        } else {
-            // form the executable code as a bash script to execute from a file
-            this.executableCode = "#!/bin/bash\n\n";
+        // form the executable code as a bash script to execute from a file
+        this.executableCode = "#!/bin/bash\n\n";
+        // if innerScope doesn't contain 'set -e\n', add it
+        if (!this.innerScope.includes("set -e\n")) {
             this.executableCode += "set -e\n\n";
-            this.executableCode += this.innerScope;
-
-            // create the directory and main file
-            mkdirSync(this.config.execDir, { recursive: true });
-            writeFileSync(this.config.execFile, this.executableCode);
-
-            this.execCmd = 'bash';
-            this.execArgs = [this.config.execFile];
         }
+
+        // and finally, add the innerScope to the executable code
+        this.executableCode += this.innerScope;
+
+        // create the directory and main file
+        mkdirSync(this.config.execDir, { recursive: true });
+        writeFileSync(this.config.execFile, this.executableCode);
+
+        this.execCmd = 'bash';
+        this.execArgs = [this.config.execFile];
     }
 
     contentCellConfig(): codebook.CellContentConfig {
@@ -65,8 +59,8 @@ export class Cell implements codebook.Cell {
         return io.spawnCommand(this.execCmd, this.execArgs, { cwd: this.config.execDir });
     }
 
-    afterExecuteFuncs(): codebook.AfterExecuteFunc[] {
-        return this.config.afterExecFuncs;
+    postExecutables(): codebook.Executable[] {
+        return this.config.postExecutables;
     }
 }
 
@@ -75,13 +69,13 @@ export class Config {
     execDir: string;
     execFile: string;
     execSingleLineAsCommand: boolean;
-    afterExecFuncs: codebook.AfterExecuteFunc[];
+    postExecutables: codebook.Executable[];
 
     constructor(bashConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell | undefined) {
         this.contentConfig = new codebook.CellContentConfig(notebookCell, "#");
         this.execDir = config.getTempPath();
         this.execFile = path.join(this.execDir, bashConfig?.get('execFilename') || 'codebook_md_exec.sh');
         this.execSingleLineAsCommand = bashConfig?.get('execSingleLineAsCommand') || false;
-        this.afterExecFuncs = [];
+        this.postExecutables = [];
     }
 }

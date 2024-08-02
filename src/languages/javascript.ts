@@ -7,7 +7,7 @@ import { NotebookCell, WorkspaceConfiguration } from "vscode";
 import { workspace } from "vscode";
 import * as io from "../io";
 
-export class Cell implements codebook.Cell {
+export class Cell implements codebook.ExecutableCell {
     innerScope: string;
     executableCode: string;
     config: Config;
@@ -34,8 +34,8 @@ export class Cell implements codebook.Cell {
         return io.spawnCommand('node', [this.config.execFile], { cwd: this.config.execDir });
     }
 
-    afterExecuteFuncs(): codebook.AfterExecuteFunc[] {
-        return this.config.afterExecFuncs;
+    postExecutables(): codebook.Executable[] {
+        return this.config.postExecutables;
     }
 }
 
@@ -43,12 +43,12 @@ export class Config {
     contentConfig: codebook.CellContentConfig;
     execDir: string;
     execFile: string;
-    afterExecFuncs: codebook.AfterExecuteFunc[];
+    postExecutables: codebook.Executable[];
 
     constructor(javascriptConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
         this.execDir = config.getTempPath();
         this.execFile = path.join(this.execDir, javascriptConfig?.get('execFilename') || 'codebook_md_exec.js');
         this.contentConfig = new codebook.CellContentConfig(notebookCell, "//");
-        this.afterExecFuncs = [];
+        this.postExecutables = [];
     }
 }

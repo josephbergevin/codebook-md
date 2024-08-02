@@ -7,7 +7,7 @@ import * as io from "../io";
 import { NotebookCell, WorkspaceConfiguration } from "vscode";
 import { workspace } from "vscode";
 
-export class Cell implements codebook.Cell {
+export class Cell implements codebook.ExecutableCell {
     innerScope: string;
     executableCode: string;
 
@@ -56,8 +56,8 @@ export class Cell implements codebook.Cell {
         return io.spawnCommand(this.execCmd, this.execArgs, { cwd: this.config.execDir });
     }
 
-    afterExecuteFuncs(): codebook.AfterExecuteFunc[] {
-        return this.config.afterExecFuncs;
+    postExecutables(): codebook.Executable[] {
+        return this.config.postExecutables;
     }
 }
 
@@ -68,7 +68,7 @@ export class Config {
     execFilename: string;
     execCmd: string;
     execOptions: string[];
-    afterExecFuncs: codebook.AfterExecuteFunc[];
+    postExecutables: codebook.Executable[];
 
     constructor(sqlConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
         this.contentConfig = new codebook.CellContentConfig(notebookCell, "--");
@@ -79,6 +79,6 @@ export class Config {
         this.execOptions = sqlConfig?.get('execOptions') || [];
 
         // add the afterExecution functions
-        this.afterExecFuncs = [];
+        this.postExecutables = [];
     }
 }
