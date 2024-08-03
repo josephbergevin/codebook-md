@@ -41,9 +41,13 @@ export class Cell implements codebook.ExecutableCell {
             this.config.postExecutables.push(cmd);
         });
     }
-
+    
     contentCellConfig(): codebook.CellContentConfig {
         return this.config.contentConfig;
+    }
+    
+    executableCodeToDisplay(): string {
+        return this.innerScope;
     }
 
     execute(): ChildProcessWithoutNullStreams {

@@ -28,6 +28,10 @@ export class Cell implements codebook.ExecutableCell {
         return this.config.contentConfig;
     };
 
+    executableCodeToDisplay(): string {
+        return this.innerScope;
+    }
+
     execute(): ChildProcessWithoutNullStreams {
         // return an error message: "Unsupported language" as ChildProcessWithoutNullStreams
         return io.spawnCommand(`echo "Unsupported language '${this.language}'"`, [], { cwd: config.getTempPath() });

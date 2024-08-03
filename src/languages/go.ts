@@ -131,6 +131,10 @@ export class Cell implements codebook.ExecutableCell {
         return this.config.contentConfig;
     }
 
+    executableCodeToDisplay(): string {
+        return this.innerScope;
+    }
+
     execute(): ChildProcessWithoutNullStreams {
         // define dir and mainFile as empty strings
         if (this.config.execFrom !== "") {

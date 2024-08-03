@@ -14,23 +14,56 @@ export class Kernel {
 
     async executeCell(doc: NotebookDocument, notebookCell: NotebookCell, ctrl: NotebookController): Promise<void> {
         console.log(`kernel.executeCell: ${notebookCell.document.languageId} cell`);
-        const exec = ctrl.createNotebookCellExecution(notebookCell);
+        const cellExec = ctrl.createNotebookCellExecution(notebookCell);
 
         // Allow for the ability to cancel execution
-        const token = exec.token;
+        const token = cellExec.token;
         token.onCancellationRequested(() => {
-            exec.end(false, (new Date).getTime());
+            cellExec.end(false, (new Date).getTime());
         });
 
         // start the cell timer counter
-        exec.start((new Date).getTime());
+        cellExec.start((new Date).getTime());
 
         // Get a Cell for the language that was used to run this cell
         const codebookCell = codebook.NewExecutableCell(notebookCell);
         const outputConfig = codebookCell.contentCellConfig().output;
         if (outputConfig.replaceOutputCell) {
             // clear the output of the cell
-            exec.clearOutput(notebookCell);
+            cellExec.clearOutput(notebookCell);
+        }
+
+        // displayOutput will be the output that is displayed in the cell and will be appended
+        // to as the cell runs - this is the output that will be displayed in the cell
+        let displayOutput = "";
+
+        // first, prepend the output with a timestamp, so it's at the top of the output
+        if (outputConfig.showTimestamp === true) {
+            const timestamp = new Date().toLocaleString('en-US', { timeZone: outputConfig.timestampTimezone });
+            displayOutput += timestamp + "\n";
+            console.log(`showing timestamp: ${timestamp}`);
+        }
+
+        // append the executableCodeToDisplay to the displayOutput
+        if (outputConfig.showExecutableCodeInOutput === true) {
+            displayOutput += codebookCell.executableCodeToDisplay() + "\n";
+        }
+
+        // append the output with the strings in outputConfig.prependOutputStrings
+        if (outputConfig.prependToOutputStrings.length > 0) {
+            console.log(`${outputConfig.prependToOutputStrings.length} prependOutputStrings found - prepending`);
+            outputConfig.prependToOutputStrings.forEach((prependString) => {
+                displayOutput += prependString + "\n";
+            });
+        }
+
+        // create a new cell output with an empty string
+        // this will be appended to as the cell runs
+        const cellOutput = new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput)]);
+
+        if (outputConfig.replaceOutputCell) {
+            console.log("replacing output cell");
+            cellExec.replaceOutput([cellOutput]);
         }
 
         // Run the code and directly assign output
@@ -39,7 +72,7 @@ export class Kernel {
         // Now there's an output stream, kill that as well on cancel request
         token.onCancellationRequested(() => {
             output.kill();
-            exec.end(false, Date.now()); // Simplified timestamp retrieval
+            cellExec.end(false, Date.now()); // Simplified timestamp retrieval
         });
 
         let errorText = "";
@@ -50,8 +83,8 @@ export class Kernel {
                 errorText = "An error occurred - no error text was returned.";
                 console.error("error text is empty");
             }
-            exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.text(errorText)])]);
-            exec.end(true, (new Date).getTime());
+            cellExec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.text(errorText)])]);
+            cellExec.end(true, (new Date).getTime());
         });
 
         let buf = Buffer.from([]);
@@ -60,60 +93,44 @@ export class Kernel {
             const arr = [buf, data];
             buf = Buffer.concat(arr);
             // get the entire output of the cell
-            const fullOutput = decoder.decode(buf);
-            let displayOutput = fullOutput;
+            const fullCommandOutput = decoder.decode(buf);
+            let commandOutput = fullCommandOutput;
 
-            // if the displayOutput contains the start cell marker, remove everything before it
-            const startIndex = displayOutput.indexOf(codebook.StartOutput);
+            // if the commandOutput contains the start cell marker, remove everything before it
+            const startIndex = commandOutput.indexOf(codebook.StartOutput);
             if (startIndex !== -1) {
-                displayOutput = displayOutput.slice(startIndex + codebook.StartOutput.length + 1);
+                commandOutput = commandOutput.slice(startIndex + codebook.StartOutput.length + 1);
             }
 
-            // if the displayOutput contains the end cell marker, remove everything after it
-            const endIndex = displayOutput.indexOf(codebook.EndOutput);
+            // if the commandOutput contains the end cell marker, remove everything after it
+            const endIndex = commandOutput.indexOf(codebook.EndOutput);
             if (endIndex !== -1) {
-                displayOutput = displayOutput.slice(0, endIndex);
+                commandOutput = commandOutput.slice(0, endIndex);
             }
 
-            // log out if the displayOutput is different from the fullOutput
-            if (displayOutput !== fullOutput) {
-                console.log(`displayOutput: ${displayOutput} | fullOutput: ${fullOutput}`);
+            // log out if the commandOutput is different from the fullOutput
+            if (commandOutput !== fullCommandOutput) {
+                console.log(`commandOutput: ${commandOutput} | fullOutput: ${fullCommandOutput}`);
             }
 
-            // prepend the output with the strings in outputConfig.prependOutputStrings
-            if (outputConfig.prependToOutputStrings.length > 0) {
-                console.log(`${outputConfig.prependToOutputStrings.length} prependOutputStrings found - prepending`);
-                outputConfig.prependToOutputStrings.forEach((prependString) => {
-                    displayOutput = prependString + "\n" + displayOutput;
-                });
-            }
-
-            // lastly, prepend the output with a timestamp, so it's at the top of the output
-            if (outputConfig.showTimestamp === true) {
-                const timestamp = new Date().toLocaleString('en-US', { timeZone: outputConfig.timestampTimezone });
-                displayOutput = timestamp + "\n" + displayOutput;
-                console.log(`showing timestamp: ${timestamp}`);
-            }
-
-            // call the postExecutables and append the output to the displayOutput
+            // call the postExecutables and append the output to the commandOutput
             // const postOutput = executePostExecutables(codebookCell.postExecutables());
-            // displayOutput += await postOutput;
+            // commandOutput += await postOutput;
 
+            // append the commandOutput to the existing cellOutput
             if (outputConfig.replaceOutputCell) {
-                console.log("replacing output cell");
-                exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput)])]);
+                cellExec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput + commandOutput)])]);
             } else {
-                console.log("appending output cell");
-                exec.appendOutput(new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput)]));
+                cellExec.appendOutput(new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput + commandOutput)]));
             }
         });
 
         output.on('close', () => {
             // If stdout returned anything consider it a success
             if (buf.length === 0) {
-                exec.end(false, (new Date).getTime());
+                cellExec.end(false, (new Date).getTime());
             } else {
-                exec.end(true, (new Date).getTime());
+                cellExec.end(true, (new Date).getTime());
             }
         });
     }
