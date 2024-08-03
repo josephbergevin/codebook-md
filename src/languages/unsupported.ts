@@ -51,7 +51,7 @@ export class Config {
     constructor(notebookCell: NotebookCell) {
         // set the contentConfig to the CellContentConfig for the notebookCell - using all common comment characters since we 
         // don't know the language comment character(s) for unsupported languages
-        this.contentConfig = new codebook.CellContentConfig(notebookCell, "#", "//", "#!/bin/bash", "--");
+        this.contentConfig = new codebook.CellContentConfig(notebookCell, undefined, "#", "//", "#!/bin/bash", "--");
 
         // initialize the postExecutables array
         this.postExecutables = [];

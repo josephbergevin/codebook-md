@@ -51,7 +51,7 @@ export class Config {
     postExecutables: codebook.Executable[];
 
     constructor(pythonConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
-        this.contentConfig = new codebook.CellContentConfig(notebookCell, "#");
+        this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-md.python.output'), "#");
         this.execDir = config.getTempPath();
         this.execFile = path.join(this.execDir, pythonConfig?.get('execFilename') || 'codebook_md_exec.py');
         this.execCmd = pythonConfig?.get('execCmd') || 'python3';

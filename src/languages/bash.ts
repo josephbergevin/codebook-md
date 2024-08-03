@@ -51,7 +51,7 @@ export class Cell implements codebook.ExecutableCell {
         if (this.config.contentConfig) {
             return this.config.contentConfig;
         } else {
-            return new codebook.CellContentConfig(undefined, "#");
+            return new codebook.CellContentConfig(undefined, workspace.getConfiguration('codebook-md.bash.output'), "#");
         }
     }
 
@@ -76,7 +76,7 @@ export class Config {
     postExecutables: codebook.Executable[];
 
     constructor(bashConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell | undefined) {
-        this.contentConfig = new codebook.CellContentConfig(notebookCell, "#");
+        this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-md.bash.output'), "#");
         this.execDir = config.getTempPath();
         this.execFile = path.join(this.execDir, bashConfig?.get('execFilename') || 'codebook_md_exec.sh');
         this.execSingleLineAsCommand = bashConfig?.get('execSingleLineAsCommand') || false;
