@@ -55,6 +55,10 @@ export class Cell implements codebook.ExecutableCell {
         }
     }
 
+    executableCodeToDisplay(): string {
+        return this.innerScope;
+    }
+
     execute(): ChildProcessWithoutNullStreams {
         return io.spawnCommand(this.execCmd, this.execArgs, { cwd: this.config.execDir });
     }

@@ -25,6 +25,10 @@ export class Cell implements codebook.ExecutableCell {
         return this.config.contentConfig;
     }
 
+    executableCodeToDisplay(): string {
+        return this.innerScope;
+    }
+
     execute(): ChildProcessWithoutNullStreams {
         // create the directory and main file
         mkdirSync(this.config.execDir, { recursive: true });

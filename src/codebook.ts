@@ -37,6 +37,7 @@ export interface ExecutableCell {
     execute(): ChildProcessWithoutNullStreams;
     postExecutables(): Executable[];
     contentCellConfig(): CellContentConfig;
+    executableCodeToDisplay(): string;
     // commentPrefixes(): string[];
     // parseImports(): string[];
     // resolveImports(): Promise<void>;
