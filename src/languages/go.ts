@@ -226,7 +226,7 @@ export class Config {
     postExecutables: codebook.Executable[];
 
     constructor(goConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
-        this.contentConfig = new codebook.CellContentConfig(notebookCell, "//");
+        this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-md.go.output'), "//");
         const execType = goConfig?.get<string>('execType') ?? 'run';
         this.execFrom = '';
         this.execTypeRun = execType === 'run';

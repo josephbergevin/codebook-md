@@ -7,6 +7,7 @@ import {
     NotebookCell, NotebookCellData, NotebookCellKind,
     ProviderResult, Position, Range,
     TextDocument, TextEditor, Uri,
+    WorkspaceConfiguration,
 } from 'vscode';
 import { TextDecoder, TextEncoder } from 'util';
 import { ChildProcessWithoutNullStreams } from "child_process";
@@ -626,14 +627,14 @@ export class CellContentConfig {
     execFrom: string; // the file location where the cell executable code should be executed from
     output: OutputConfig; // the output configuration for the cell
 
-    constructor(notebookCell: NotebookCell | undefined, ...commentPrefixes: string[]) {
+    constructor(notebookCell: NotebookCell | undefined, languageOutputConfig: WorkspaceConfiguration | undefined, ...commentPrefixes: string[]) {
         if (!notebookCell) {
             this.notebookCell = undefined;
             this.codebookCommands = [];
             this.comments = [];
             this.innerScope = "";
             this.execFrom = "";
-            this.output = new OutputConfig([]);
+            this.output = new OutputConfig(languageOutputConfig, []);
             return;
         }
         this.notebookCell = notebookCell;
@@ -656,7 +657,7 @@ export class CellContentConfig {
         this.innerScope = this.innerScope.trim();
 
         this.execFrom = this.codebookCommands.find(command => command.startsWith(".execFrom"))?.split(" ").pop() || "";
-        this.output = new OutputConfig(this.codebookCommands);
+        this.output = new OutputConfig(languageOutputConfig, this.codebookCommands);
     }
 
     // jsonStringify returns the JSON string representation of the CellContentConfig object, excluding the notebookCell
@@ -691,7 +692,7 @@ export class OutputConfig {
     prependToOutputStrings: string[]; // the strings to prepend to the output
     appendToOutputStrings: string[]; // the strings to append to the output
 
-    constructor(commands: string[]) {
+    constructor(languageOutputConfig: WorkspaceConfiguration | undefined = undefined, commands: string[]) {
         const outputConfig = workspace.getConfiguration('codebook-md.output');
         // initialize the output configuration with the default values
         this.showExecutableCodeInOutput = outputConfig.get('showExecutableCodeInOutput') || false;
@@ -701,6 +702,16 @@ export class OutputConfig {
         this.timestampTimezone = validTimezone(outputConfig.get('timestampTimezone') || "");
         this.prependToOutputStrings = [];
         this.appendToOutputStrings = [];
+
+        // languageOutputConfig is the configuration for the language output - all fields are the same as the default output config
+        // these config values are allowed to override the default output config, if they are set
+        if (languageOutputConfig) {
+            this.showExecutableCodeInOutput = languageOutputConfig.get('showExecutableCodeInOutput') || this.showExecutableCodeInOutput;
+            this.showOutputOnRun = languageOutputConfig.get('showOutputOnRun') || this.showOutputOnRun;
+            this.replaceOutputCell = languageOutputConfig.get('replaceOutputCell') || this.replaceOutputCell;
+            this.showTimestamp = languageOutputConfig.get('showTimestamp') || this.showTimestamp;
+            this.timestampTimezone = validTimezone(languageOutputConfig.get('timestampTimezone') || this.timestampTimezone);
+        }
 
         // filter out the output commands from the cell commands
         const outputCommands = commands.filter(command => command.startsWith(".output."));

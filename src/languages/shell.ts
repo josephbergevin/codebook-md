@@ -65,7 +65,7 @@ export class Config {
     postExecutables: codebook.Executable[];
 
     constructor(shellConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell | undefined) {
-        this.contentConfig = new codebook.CellContentConfig(notebookCell, "#");
+        this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-md.shell.output'), "#");
         this.execDir = config.getTempPath();
         this.postExecutables = [];
     }

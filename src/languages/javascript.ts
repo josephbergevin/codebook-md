@@ -52,7 +52,7 @@ export class Config {
     constructor(javascriptConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
         this.execDir = config.getTempPath();
         this.execFile = path.join(this.execDir, javascriptConfig?.get('execFilename') || 'codebook_md_exec.js');
-        this.contentConfig = new codebook.CellContentConfig(notebookCell, "//");
+        this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-javascript.bash.output'), "//");
         this.postExecutables = [];
     }
 }

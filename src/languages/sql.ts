@@ -75,7 +75,7 @@ export class Config {
     postExecutables: codebook.Executable[];
 
     constructor(sqlConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
-        this.contentConfig = new codebook.CellContentConfig(notebookCell, "--");
+        this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-md.sql.output'), "--");
         this.execDir = config.getTempPath();
         this.execFilename = sqlConfig?.get('execFilename') || 'codebook_md_exec.sql';
         this.execFile = path.join(this.execDir, this.execFilename);
