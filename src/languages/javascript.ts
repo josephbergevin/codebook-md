@@ -5,11 +5,12 @@ import * as config from "../config";
 import * as codebook from "../codebook";
 import { NotebookCell, WorkspaceConfiguration } from "vscode";
 import { workspace } from "vscode";
-import * as io from "../io";
 
 export class Cell implements codebook.ExecutableCell {
     innerScope: string;
     executableCode: string;
+    mainExecutable: codebook.Command;
+    postExecutables: codebook.Executable[] = [];
     config: Config;
 
     constructor(notebookCell: NotebookCell) {
@@ -21,6 +22,14 @@ export class Cell implements codebook.ExecutableCell {
 
         // form the executable code
         this.executableCode = this.innerScope;
+
+        // set the mainExecutable using the node command
+        this.mainExecutable = new codebook.Command('node', [this.config.execFile], this.config.execDir);
+        this.mainExecutable.addBeforeExecuteFunc(() => {
+            // create the directory and main file
+            mkdirSync(this.config.execDir, { recursive: true });
+            writeFileSync(this.config.execFile, this.executableCode);
+        });
     }
 
     contentCellConfig(): codebook.CellContentConfig {
@@ -32,14 +41,12 @@ export class Cell implements codebook.ExecutableCell {
     }
 
     execute(): ChildProcessWithoutNullStreams {
-        // create the directory and main file
-        mkdirSync(this.config.execDir, { recursive: true });
-        writeFileSync(this.config.execFile, this.executableCode);
-        return io.spawnCommand('node', [this.config.execFile], { cwd: this.config.execDir });
+        // use the mainExecutable to execute the bash script
+        return this.mainExecutable.execute();
     }
 
-    postExecutables(): codebook.Executable[] {
-        return this.config.postExecutables;
+    executables(): codebook.Executable[] {
+        return this.postExecutables;
     }
 }
 
@@ -47,12 +54,10 @@ export class Config {
     contentConfig: codebook.CellContentConfig;
     execDir: string;
     execFile: string;
-    postExecutables: codebook.Executable[];
 
     constructor(javascriptConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
         this.execDir = config.getTempPath();
         this.execFile = path.join(this.execDir, javascriptConfig?.get('execFilename') || 'codebook_md_exec.js');
         this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-javascript.bash.output'), "//");
-        this.postExecutables = [];
     }
 }

@@ -19,6 +19,8 @@ export class Cell implements codebook.ExecutableCell {
     funcRegex: RegExp;
     funcRecRegex: RegExp;
     executableCode: string;
+    mainExecutable: codebook.Command;
+    postExecutables: codebook.Executable[] = [];
     config: Config;
 
     constructor(notebookCell: NotebookCell) {
@@ -125,6 +127,58 @@ export class Cell implements codebook.ExecutableCell {
             // notify in vscode with the execFrom val
             [this.config.execDir, this.config.execFile] = getDirAndExecFile(this.config.execFrom);
         }
+
+        // set the mainExecutable to the bash script
+        // this.mainExecutable = new codebook.Command('go', [this.config.execCmd, this.config.execFile], this.config.execDir);
+
+        if (this.config.execTypeTest) {
+            // if we're executing with a test, then we won't use the execFile in the command
+            this.mainExecutable = new codebook.Command('go', [this.config.execCmd, ...this.config.execArgs], this.config.execDir);
+        } else {
+            this.mainExecutable = new codebook.Command('go', [this.config.execCmd, ...this.config.execArgs, this.config.execFile], this.config.execDir);
+        }
+
+        // add the beforeExecuteFunc to the mainExecutable
+        this.mainExecutable.addBeforeExecuteFunc(() => {
+            // define dir and mainFile as empty strings
+            if (this.config.execFrom !== "") {
+                // notify in vscode with the execFrom val
+                [this.config.execDir, this.config.execFile] = getDirAndExecFile(this.config.execFrom);
+                // log out a message in vscode to indicate we're using go setting
+                window.showInformationMessage('found execFrom: ' + this.config.execFrom, 'executing from: ' + this.config.execFile);
+            }
+
+            console.log("execFile", this.config.execFile);
+            console.log("cell contents", this.executableCode);
+
+            // create the directory and main file
+            mkdirSync(this.config.execDir, { recursive: true });
+            writeFileSync(this.config.execFile, this.executableCode);
+
+            // run goimports on the file
+            if (this.config.useGoimports) {
+                io.spawnCommandSync('goimports', ['-w', this.config.execFile], { cwd: this.config.execDir });
+            } else {
+                io.spawnCommandSync('gopls', ['imports', '-w', this.config.execFile], { cwd: this.config.execDir });
+            }
+        });
+
+        // if we're executing with a test, then we'll need to prepend the generate message and the build tag to the file contents
+        if (this.config.execTypeTest) {
+            this.mainExecutable.addBeforeExecuteFunc(() => {
+                // prepend the generate message and the build tag to the file contents
+                // read the file contents from the this.config.execFile
+                readFile(this.config.execFile, 'utf8', (err, data) => {
+                    if (err) {
+                        console.error(err);
+                        return;
+                    }
+                    let fileContents = data;
+                    fileContents = `// +build ${this.config.execTypeTestBuildTag}\n\n` + fileContents;
+                    writeFileSync(this.config.execFile, fileContents);
+                });
+            });
+        }
     }
 
     contentCellConfig(): codebook.CellContentConfig {
@@ -136,49 +190,11 @@ export class Cell implements codebook.ExecutableCell {
     }
 
     execute(): ChildProcessWithoutNullStreams {
-        // define dir and mainFile as empty strings
-        if (this.config.execFrom !== "") {
-            // notify in vscode with the execFrom val
-            [this.config.execDir, this.config.execFile] = getDirAndExecFile(this.config.execFrom);
-            // log out a message in vscode to indicate we're using go setting
-            window.showInformationMessage('found execFrom: ' + this.config.execFrom, 'executing from: ' + this.config.execFile);
-        }
-
-        console.log("execFile", this.config.execFile);
-        console.log("cell contents", this.executableCode);
-
-        // create the directory and main file
-        mkdirSync(this.config.execDir, { recursive: true });
-        writeFileSync(this.config.execFile, this.executableCode);
-
-        // run goimports on the file
-        if (this.config.useGoimports) {
-            io.spawnCommandSync('goimports', ['-w', this.config.execFile], { cwd: this.config.execDir });
-        } else {
-            io.spawnCommandSync('gopls', ['imports', '-w', this.config.execFile], { cwd: this.config.execDir });
-        }
-
-        if (this.config.execTypeTest) {
-            // prepend the generate message and the build tag to the file contents
-            // read the file contents from the this.config.execFile
-            readFile(this.config.execFile, 'utf8', (err, data) => {
-                if (err) {
-                    console.error(err);
-                    return;
-                }
-                let fileContents = data;
-                fileContents = `// +build ${this.config.execTypeTestBuildTag}\n\n` + fileContents;
-                writeFileSync(this.config.execFile, fileContents);
-            });
-
-            // if we're executing with a test, then we won't use the execFile in the command
-            return io.spawnCommand('go', [this.config.execCmd, ...this.config.execArgs], { cwd: this.config.execDir });
-        }
-        return io.spawnCommand('go', [this.config.execCmd, ...this.config.execArgs, this.config.execFile], { cwd: this.config.execDir });
+        return this.mainExecutable.execute();
     }
 
-    postExecutables(): codebook.Executable[] {
-        return this.config.postExecutables;
+    executables(): codebook.Executable[] {
+        return [this.mainExecutable, ...this.postExecutables];
     }
 
     // parseImports parses the imports for the go code in the cell, returning the imports as a sclie of strings
@@ -223,7 +239,6 @@ export class Config {
     useGoimports: boolean;
     execCmd: string;
     execArgs: string[];
-    postExecutables: codebook.Executable[];
 
     constructor(goConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
         this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-md.go.output'), "//");
@@ -259,9 +274,6 @@ export class Config {
             this.execFile = path.join(this.execDir, this.execFilename);
             this.execCmd = 'run';
         }
-
-        // initialize the postExecutables array
-        this.postExecutables = [];
     }
 
 }

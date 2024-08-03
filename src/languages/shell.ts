@@ -7,7 +7,8 @@ import { workspace } from "vscode";
 export class Cell implements codebook.ExecutableCell {
     innerScope: string;
     executableCode: string;
-    execCmd: codebook.Command;
+    mainExecutable: codebook.Command;
+    postExecutables: codebook.Executable[] = [];
     config: Config;
 
     constructor(notebookCell: NotebookCell | undefined) {
@@ -23,12 +24,12 @@ export class Cell implements codebook.ExecutableCell {
 
         // no commands found: notify a warning and return
         if (cmds.length === 0) {
-            this.execCmd = new codebook.Command("echo", ["No commands found in cell"], this.config.execDir);
+            this.mainExecutable = new codebook.Command("echo", ["No commands found in cell"], this.config.execDir);
             return;
         }
 
         // get the first command and arguments
-        this.execCmd = cmds[0];
+        this.mainExecutable = cmds[0];
 
         if (cmds.length === 1) {
             // if there is only one command, return early
@@ -38,35 +39,34 @@ export class Cell implements codebook.ExecutableCell {
         // if there are more commands, add them to the postExecutables
         const additionalCmds = cmds.slice(1);
         additionalCmds.forEach(cmd => {
-            this.config.postExecutables.push(cmd);
+            this.postExecutables.push(cmd);
         });
     }
-    
+
     contentCellConfig(): codebook.CellContentConfig {
         return this.config.contentConfig;
     }
-    
+
     executableCodeToDisplay(): string {
         return this.innerScope;
     }
 
     execute(): ChildProcessWithoutNullStreams {
-        return this.execCmd.execute();
+        return this.mainExecutable.execute();
     }
 
-    postExecutables(): codebook.Executable[] {
-        return this.config.postExecutables;
+    // executables returns the mainExecutable and postExecutables
+    executables(): codebook.Executable[] {
+        return [this.mainExecutable, ...this.postExecutables];
     }
 }
 
 export class Config {
     contentConfig: codebook.CellContentConfig;
     execDir: string;
-    postExecutables: codebook.Executable[];
 
     constructor(shellConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell | undefined) {
         this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-md.shell.output'), "#");
         this.execDir = config.getTempPath();
-        this.postExecutables = [];
     }
 }
