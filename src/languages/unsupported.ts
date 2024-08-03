@@ -2,13 +2,14 @@ import { ChildProcessWithoutNullStreams } from "child_process";
 import * as config from "../config";
 import * as codebook from "../codebook";
 import { NotebookCell } from "vscode";
-import * as io from "../io";
 
 // Cell implements the codebook.Cell interface for all unsupported languages
 export class Cell implements codebook.ExecutableCell {
     innerScope: string;
     executableCode: string;
     language: string;
+    mainExecutable: codebook.Command;
+    postExecutables: codebook.Executable[] = [];
     config: Config;
 
     constructor(notebookCell: NotebookCell) {
@@ -22,6 +23,9 @@ export class Cell implements codebook.ExecutableCell {
 
         // set the language to the languageId of the notebookCell
         this.language = notebookCell.document.languageId;
+
+        // set the mainExecutable to a new Command with the executable code
+        this.mainExecutable = new codebook.Command(`echo "Unsupported language '${this.language}'"`, [], config.getTempPath());
     }
 
     contentCellConfig(): codebook.CellContentConfig {
@@ -33,27 +37,23 @@ export class Cell implements codebook.ExecutableCell {
     }
 
     execute(): ChildProcessWithoutNullStreams {
-        // return an error message: "Unsupported language" as ChildProcessWithoutNullStreams
-        return io.spawnCommand(`echo "Unsupported language '${this.language}'"`, [], { cwd: config.getTempPath() });
+        // use the mainExecutable to execute the code
+        return this.mainExecutable.execute();
     }
 
     // afterExecution is a no-op for unsupported languages
-    postExecutables(): codebook.Executable[] {
-        return this.config.postExecutables;
+    executables(): codebook.Executable[] {
+        return this.postExecutables;
     }
 }
 
 // Config implements the configuration for unsupported languages
 export class Config {
     contentConfig: codebook.CellContentConfig;
-    postExecutables: codebook.Executable[];
 
     constructor(notebookCell: NotebookCell) {
         // set the contentConfig to the CellContentConfig for the notebookCell - using all common comment characters since we 
         // don't know the language comment character(s) for unsupported languages
         this.contentConfig = new codebook.CellContentConfig(notebookCell, undefined, "#", "//", "#!/bin/bash", "--");
-
-        // initialize the postExecutables array
-        this.postExecutables = [];
     }
 }

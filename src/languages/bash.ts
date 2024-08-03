@@ -5,13 +5,14 @@ import * as config from "../config";
 import * as codebook from "../codebook";
 import { NotebookCell, WorkspaceConfiguration } from "vscode";
 import { workspace } from "vscode";
-import * as io from "../io";
 
 export class Cell implements codebook.ExecutableCell {
     innerScope: string;
     executableCode: string;
     execCmd: string;
     execArgs: string[];
+    mainExecutable: codebook.Command;
+    postExecutables: codebook.Executable[] = [];
     config: Config;
 
     constructor(notebookCell: NotebookCell | undefined) {
@@ -39,12 +40,18 @@ export class Cell implements codebook.ExecutableCell {
         // and finally, add the innerScope to the executable code
         this.executableCode += this.innerScope;
 
-        // create the directory and main file
-        mkdirSync(this.config.execDir, { recursive: true });
-        writeFileSync(this.config.execFile, this.executableCode);
+
 
         this.execCmd = 'bash';
         this.execArgs = [this.config.execFile];
+
+        // set the mainExecutable to the bash script
+        this.mainExecutable = new codebook.Command(this.execCmd, this.execArgs, this.config.execDir);
+        this.mainExecutable.addBeforeExecuteFunc(() => {
+            // create the directory and main file
+            mkdirSync(this.config.execDir, { recursive: true });
+            writeFileSync(this.config.execFile, this.executableCode);
+        });
     }
 
     contentCellConfig(): codebook.CellContentConfig {
@@ -60,11 +67,12 @@ export class Cell implements codebook.ExecutableCell {
     }
 
     execute(): ChildProcessWithoutNullStreams {
-        return io.spawnCommand(this.execCmd, this.execArgs, { cwd: this.config.execDir });
+        // use the mainExecutable to execute the bash script
+        return this.mainExecutable.execute();
     }
 
-    postExecutables(): codebook.Executable[] {
-        return this.config.postExecutables;
+    executables(): codebook.Executable[] {
+        return this.postExecutables;
     }
 }
 
@@ -73,13 +81,11 @@ export class Config {
     execDir: string;
     execFile: string;
     execSingleLineAsCommand: boolean;
-    postExecutables: codebook.Executable[];
 
     constructor(bashConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell | undefined) {
         this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-md.bash.output'), "#");
         this.execDir = config.getTempPath();
         this.execFile = path.join(this.execDir, bashConfig?.get('execFilename') || 'codebook_md_exec.sh');
         this.execSingleLineAsCommand = bashConfig?.get('execSingleLineAsCommand') || false;
-        this.postExecutables = [];
     }
 }

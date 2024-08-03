@@ -3,7 +3,6 @@ import { mkdirSync, writeFileSync } from "fs";
 import * as path from "path";
 import * as config from "../config";
 import * as codebook from "../codebook";
-import * as io from "../io";
 import { NotebookCell, WorkspaceConfiguration } from "vscode";
 import { workspace } from "vscode";
 
@@ -13,6 +12,8 @@ export class Cell implements codebook.ExecutableCell {
 
     execCmd: string;
     execArgs: string[];
+    mainExecutable: codebook.Command;
+    postExecutables: codebook.Executable[] = [];
     config: Config;
 
     constructor(notebookCell: NotebookCell) {
@@ -36,6 +37,14 @@ export class Cell implements codebook.ExecutableCell {
         // set the execCmd and execArgs to execute the bash script
         this.execCmd = 'bash';
         this.execArgs = [this.config.execFile];
+
+        // set the mainExecutable to the bash script
+        this.mainExecutable = new codebook.Command(this.execCmd, this.execArgs, this.config.execDir);
+        this.mainExecutable.addBeforeExecuteFunc(() => {
+            // create the directory and main file
+            mkdirSync(this.config.execDir, { recursive: true });
+            writeFileSync(this.config.execFile, this.executableCode);
+        });
     }
 
     contentCellConfig(): codebook.CellContentConfig {
@@ -47,21 +56,12 @@ export class Cell implements codebook.ExecutableCell {
     }
 
     execute(): ChildProcessWithoutNullStreams {
-        // create the directory and main file
-        mkdirSync(this.config.execDir, { recursive: true });
-        writeFileSync(this.config.execFile, this.executableCode);
-
-        // if the exececutable code is to be printed, then add an output cell with the executable code
-        if (this.config.contentConfig.output.showExecutableCodeInOutput) {
-            console.log("adding executable code to output:", this.innerScope);
-            this.config.contentConfig.output.prependToOutputStrings.push(this.innerScope);
-        }
-
-        return io.spawnCommand(this.execCmd, this.execArgs, { cwd: this.config.execDir });
+        // use the mainExecutable to execute the bash script
+        return this.mainExecutable.execute();
     }
 
-    postExecutables(): codebook.Executable[] {
-        return this.config.postExecutables;
+    executables(): codebook.Executable[] {
+        return this.postExecutables;
     }
 }
 
@@ -72,7 +72,6 @@ export class Config {
     execFilename: string;
     execCmd: string;
     execOptions: string[];
-    postExecutables: codebook.Executable[];
 
     constructor(sqlConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
         this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-md.sql.output'), "--");
@@ -83,6 +82,5 @@ export class Config {
         this.execOptions = sqlConfig?.get('execOptions') || [];
 
         // add the afterExecution functions
-        this.postExecutables = [];
     }
 }

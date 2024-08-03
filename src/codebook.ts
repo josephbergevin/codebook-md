@@ -36,7 +36,7 @@ export interface RawNotebookCell {
 // Cell is an interface that defines the methods that a cell must implement
 export interface ExecutableCell {
     execute(): ChildProcessWithoutNullStreams;
-    postExecutables(): Executable[];
+    executables(): Executable[];
     contentCellConfig(): CellContentConfig;
     executableCodeToDisplay(): string;
     // commentPrefixes(): string[];
@@ -53,6 +53,7 @@ export interface Executable {
 
 // Command is class for a command and its arguments
 export class Command implements Executable {
+    beforeExecuteFuncs: (() => void)[] = [];
     command: string;
     args: string[];
     cwd: string;
@@ -63,8 +64,14 @@ export class Command implements Executable {
         this.cwd = cwd;
     }
 
+    // addBeforeExecuteFunc adds a function to be executed before the command is executed
+    addBeforeExecuteFunc(func: () => void): void {
+        this.beforeExecuteFuncs.push(func);
+    }
+
     // execute fulfills the codebook.Executable interface
     execute(): ChildProcessWithoutNullStreams {
+        this.beforeExecuteFuncs.forEach(func => func());
         console.log(`executing command: ${this.command} ${this.args.join(' ')}`);
         return io.spawnCommand(this.command, this.args, { cwd: this.cwd });
     }
