@@ -70,9 +70,15 @@ export class Kernel {
         }
 
         for (const executable of codebookCell.executables()) {
-            displayOutput = await runExecutable(token, executable, displayOutput, outputConfig.showExecutableCodeInOutput);
-            displayOutput += "\n";
-            await displayOutputAsync(cellExec, displayOutput, outputConfig.replaceOutputCell);
+            try {
+                displayOutput = await runExecutable(token, executable, displayOutput, outputConfig.showExecutableCodeInOutput);
+                displayOutput += "\n";
+                await displayOutputAsync(cellExec, displayOutput, outputConfig.replaceOutputCell);
+            } catch (error) {
+                console.error(`error running executable: ${error}`);
+                await displayOutputAsync(cellExec, displayOutput + error, outputConfig.replaceOutputCell);
+                break;
+            }
         }
 
         // end the cell timer counter
