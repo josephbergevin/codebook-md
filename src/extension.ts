@@ -35,11 +35,15 @@ export function activate(context: ExtensionContext) {
 		'typescript',
 		'zsh',
 	];
-	controller.executeHandler = (cells, doc, ctrl) => {
-		if (cells.length > 1) {
-			kernel.executeCells(doc, cells, ctrl);
-		} else {
-			kernel.executeCell(doc, cells[0], ctrl);
+	controller.executeHandler = async (cells, doc, ctrl) => {
+		try {
+			if (cells.length > 1) {
+				await kernel.executeCells(doc, cells, ctrl);
+			} else {
+				await kernel.executeCell(doc, cells[0], ctrl);
+			}
+		} catch (error) {
+			console.error("Error executing cells:", error);
 		}
 	};
 

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ChildProcessWithoutNullStreams, spawn, spawnSync, execSync } from "child_process";
 import { window, env, Uri } from "vscode";
+import { mkdirSync, writeFileSync } from "fs";
 
 // spawnCommand is a helper function to child_process.spawn, with error handling
 export const spawnCommand = (command: string, args: string[], options: any): ChildProcessWithoutNullStreams => {
@@ -47,6 +48,15 @@ export const execCommandSync = (command: string): string => {
     throw error;
   }
 };
+
+export function writeDirAndFileSync(dir: string, file: string, data: string) {
+  try {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(file, data);
+  } catch (error) {
+    console.error("error writing file: ", error);
+  }
+}
 
 // commandNotOnPath checks if a command is on the system path
 export const commandNotOnPath = (command: string, link: string): boolean => {

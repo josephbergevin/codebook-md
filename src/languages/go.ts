@@ -152,8 +152,7 @@ export class Cell implements codebook.ExecutableCell {
             console.log("cell contents", this.executableCode);
 
             // create the directory and main file
-            mkdirSync(this.config.execDir, { recursive: true });
-            writeFileSync(this.config.execFile, this.executableCode);
+            io.writeDirAndFileSync(this.config.execDir, this.config.execFile, this.executableCode);
 
             // run goimports on the file
             if (this.config.useGoimports) {

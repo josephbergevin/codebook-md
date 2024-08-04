@@ -1,8 +1,8 @@
 import { ChildProcessWithoutNullStreams } from "child_process";
-import { mkdirSync, writeFileSync } from "fs";
 import * as path from "path";
 import * as config from "../config";
 import * as codebook from "../codebook";
+import * as io from "../io";
 import { NotebookCell, WorkspaceConfiguration } from "vscode";
 import { workspace } from "vscode";
 
@@ -48,8 +48,8 @@ export class Cell implements codebook.ExecutableCell {
         this.mainExecutable = new codebook.Command(this.execCmd, this.execArgs, this.config.execDir);
         this.mainExecutable.addBeforeExecuteFunc(() => {
             // create the directory and main file
-            mkdirSync(this.config.execDir, { recursive: true });
-            writeFileSync(this.config.execFile, this.executableCode);
+            // run in a try-catch block to avoid errors if the directory already exists
+            io.writeDirAndFileSync(this.config.execDir, this.config.execFile, this.executableCode);
         });
         this.mainExecutable.setCommandToDisplay(this.innerScope);
 
@@ -60,8 +60,12 @@ export class Cell implements codebook.ExecutableCell {
                 const postExecutable = new codebook.Command(this.execCmd, this.execArgs, this.config.execDir);
                 postExecutable.setCommandToDisplay(sqlStatement);
                 postExecutable.addBeforeExecuteFunc(() => {
-                    const sqlCliCommand = "#!/bin/bash\n\nset -e\n\n" + this.config.execCmd + " " + this.config.execOptions.join(" ") + " -e " + '"' + sqlStatement + '"';
-                    writeFileSync(this.config.execFile, sqlCliCommand);
+                    try {
+                        const sqlCliCommand = "#!/bin/bash\n\nset -e\n\n" + this.config.execCmd + " " + this.config.execOptions.join(" ") + " -e " + '"' + sqlStatement + '"';
+                        io.writeDirAndFileSync(this.config.execDir, this.config.execFile, sqlCliCommand);
+                    } catch (error) {
+                        console.error("error writing file: ", error);
+                    }
                 });
                 this.postExecutables.push(postExecutable);
             });
