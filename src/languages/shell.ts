@@ -47,7 +47,7 @@ export class Cell implements codebook.ExecutableCell {
         return this.config.contentConfig;
     }
 
-    executableCodeToDisplay(): string {
+    toString(): string {
         return this.innerScope;
     }
 

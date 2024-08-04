@@ -52,11 +52,6 @@ export class Kernel {
             console.log(`showing timestamp: ${timestamp}`);
         }
 
-        // append the executableCodeToDisplay to the displayOutput
-        if (outputConfig.showExecutableCodeInOutput === true) {
-            displayOutput += codebookCell.executableCodeToDisplay() + "\n";
-        }
-
         // append the output with the strings in outputConfig.prependOutputStrings
         if (outputConfig.prependToOutputStrings.length > 0) {
             console.log(`${outputConfig.prependToOutputStrings.length} prependOutputStrings found - prepending`);
@@ -75,7 +70,8 @@ export class Kernel {
         }
 
         for (const executable of codebookCell.executables()) {
-            displayOutput = await runExecutable(token, executable, displayOutput);
+            displayOutput = await runExecutable(token, executable, displayOutput, outputConfig.showExecutableCodeInOutput);
+            displayOutput += "\n";
             await displayOutputAsync(cellExec, displayOutput, outputConfig.replaceOutputCell);
         }
 
@@ -95,12 +91,16 @@ async function displayOutputAsync(cellExec: NotebookCellExecution, displayOutput
     });
 }
 
-async function runExecutable(token: CancellationToken, executable: codebook.Executable, displayOutput: string): Promise<string> {
+async function runExecutable(token: CancellationToken, executable: codebook.Executable, displayOutput: string, showExecutableCodeInOutput: boolean): Promise<string> {
     return new Promise((resolve, reject) => {
-        // Run the code and directly assign output
+        if (showExecutableCodeInOutput) {
+            displayOutput += executable.toString() + "\n";
+        }
+
+        // run the code and directly assign output
         const output = executable.execute();
 
-        // Now there's an output stream, kill that as well on cancel request
+        // now there's an output stream, kill that as well on cancel request
         token.onCancellationRequested(() => {
             output.kill();
             reject("Execution cancelled");

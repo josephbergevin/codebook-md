@@ -62,7 +62,7 @@ export class Cell implements codebook.ExecutableCell {
         }
     }
 
-    executableCodeToDisplay(): string {
+    toString(): string {
         return this.innerScope;
     }
 
