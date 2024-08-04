@@ -38,7 +38,7 @@ export interface ExecutableCell {
     execute(): ChildProcessWithoutNullStreams;
     executables(): Executable[];
     contentCellConfig(): CellContentConfig;
-    executableCodeToDisplay(): string;
+    toString(): string;
     // commentPrefixes(): string[];
     // parseImports(): string[];
     // resolveImports(): Promise<void>;
@@ -49,6 +49,8 @@ export interface Executable {
     execute(): ChildProcessWithoutNullStreams;
     toString(): string;
     jsonStringify(): string;
+
+    beforeExecuteFuncs: (() => void)[];
 }
 
 // Command is class for a command and its arguments
@@ -57,6 +59,7 @@ export class Command implements Executable {
     command: string;
     args: string[];
     cwd: string;
+    commandToDisplay: string = "";
 
     constructor(command: string, args: string[], cwd: string) {
         this.command = command;
@@ -67,6 +70,11 @@ export class Command implements Executable {
     // addBeforeExecuteFunc adds a function to be executed before the command is executed
     addBeforeExecuteFunc(func: () => void): void {
         this.beforeExecuteFuncs.push(func);
+    }
+
+    // setDisplayCommand sets command string to display in the output
+    setCommandToDisplay(commandToDisplay: string): void {
+        this.commandToDisplay = commandToDisplay;
     }
 
     // execute fulfills the codebook.Executable interface
@@ -87,6 +95,9 @@ export class Command implements Executable {
 
     // toString returns the string representation of the Command object
     toString(): string {
+        if (this.commandToDisplay !== "") {
+            return this.commandToDisplay;
+        }
         return `${this.command} ${this.args.join(' ')}`;
     }
 }

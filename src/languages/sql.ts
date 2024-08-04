@@ -23,11 +23,17 @@ export class Cell implements codebook.ExecutableCell {
         // form the innerScope, skipping lines that start with the sql comment character #
         console.log("cellConfig: ", this.config.contentConfig.jsonStringify());
         // the innerScope should only contain the sql command
-        this.innerScope = this.config.contentConfig.innerScope.trim();
+        const fullInnerScope = this.config.contentConfig.innerScope.trim();
+
+        // split on semicolons to get the sql commands, filtering out empty strings and trimming whitespace
+        const sqlStatements = fullInnerScope.split(";").filter((sqlStatement) => sqlStatement.trim() !== "").map((sqlStatement) => sqlStatement.trim() + ";");
+        console.log("sqlStatements: ", sqlStatements);
+
+        // the first command is the main command
+        this.innerScope = sqlStatements[0];
 
         // add the query to the execOptions along with the -e flag - commonly used as the execute flag in sql cli commands
         this.config.execOptions.push("-e " + '"' + this.innerScope + '"');
-
 
         // form the executable code as a bash script that will execute the sql code from a file
         this.executableCode = "#!/bin/bash\n\n";
@@ -45,13 +51,28 @@ export class Cell implements codebook.ExecutableCell {
             mkdirSync(this.config.execDir, { recursive: true });
             writeFileSync(this.config.execFile, this.executableCode);
         });
+        this.mainExecutable.setCommandToDisplay(this.innerScope);
+
+        // if there are more than one sql commands, add the rest as postExecutables
+        if (sqlStatements.length > 1) {
+            sqlStatements.slice(1).forEach((sqlStatement) => {
+                // form the executable code as a bash script that will execute the sql code from a file
+                const postExecutable = new codebook.Command(this.execCmd, this.execArgs, this.config.execDir);
+                postExecutable.setCommandToDisplay(sqlStatement);
+                postExecutable.addBeforeExecuteFunc(() => {
+                    const sqlCliCommand = "#!/bin/bash\n\nset -e\n\n" + this.config.execCmd + " " + this.config.execOptions.join(" ") + " -e " + '"' + sqlStatement + '"';
+                    writeFileSync(this.config.execFile, sqlCliCommand);
+                });
+                this.postExecutables.push(postExecutable);
+            });
+        }
     }
 
     contentCellConfig(): codebook.CellContentConfig {
         return this.config.contentConfig;
     }
 
-    executableCodeToDisplay(): string {
+    toString(): string {
         return this.innerScope;
     }
 
