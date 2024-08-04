@@ -46,7 +46,7 @@ export class Cell implements codebook.ExecutableCell {
     }
 
     executables(): codebook.Executable[] {
-        return this.postExecutables;
+        return [this.mainExecutable, ...this.postExecutables];
     }
 }
 
