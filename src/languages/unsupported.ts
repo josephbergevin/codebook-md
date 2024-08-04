@@ -43,7 +43,7 @@ export class Cell implements codebook.ExecutableCell {
 
     // afterExecution is a no-op for unsupported languages
     executables(): codebook.Executable[] {
-        return this.postExecutables;
+        return [this.mainExecutable, ...this.postExecutables];
     }
 }
 

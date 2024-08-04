@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { NotebookDocument, NotebookCell, NotebookController, NotebookCellOutput, NotebookCellOutputItem } from 'vscode';
+import { NotebookDocument, NotebookCell, NotebookController, NotebookCellOutput, NotebookCellOutputItem, NotebookCellExecution, CancellationToken } from 'vscode';
 import * as codebook from "./codebook";
 
 // Kernel in this case matches Jupyter definition i.e. this is responsible for taking the frontend notebook
@@ -28,6 +28,14 @@ export class Kernel {
         // Get a Cell for the language that was used to run this cell
         const codebookCell = codebook.NewExecutableCell(notebookCell);
         const outputConfig = codebookCell.contentCellConfig().output;
+
+        // if the executables length is more than 1, then we'll need to ensure the output is replaced
+        // otherwise, we're allowed to append to the output
+        if (codebookCell.executables().length > 1 && !outputConfig.replaceOutputCell) {
+            outputConfig.replaceOutputCell = true;
+            console.warn("executables length is more than 1 - overriding replaceOutputCell value - setting to true");
+        }
+
         if (outputConfig.replaceOutputCell) {
             // clear the output of the cell
             cellExec.clearOutput(notebookCell);
@@ -66,30 +74,61 @@ export class Kernel {
             cellExec.replaceOutput([cellOutput]);
         }
 
+        for (const executable of codebookCell.executables()) {
+            displayOutput = await runExecutable(token, executable, displayOutput);
+            await displayOutputAsync(cellExec, displayOutput, outputConfig.replaceOutputCell);
+        }
+
+        // end the cell timer counter
+        cellExec.end(true, (new Date).getTime());
+    }
+}
+
+async function displayOutputAsync(cellExec: NotebookCellExecution, displayOutput: string, replaceOutputCell: boolean): Promise<void> {
+    return new Promise((resolve) => {
+        if (replaceOutputCell) {
+            cellExec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput)])]);
+        } else {
+            cellExec.appendOutput(new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput)]));
+        }
+        resolve();
+    });
+}
+
+async function runExecutable(token: CancellationToken, executable: codebook.Executable, displayOutput: string): Promise<string> {
+    return new Promise((resolve, reject) => {
         // Run the code and directly assign output
-        const output = codebookCell.execute();
+        const output = executable.execute();
 
         // Now there's an output stream, kill that as well on cancel request
         token.onCancellationRequested(() => {
             output.kill();
-            cellExec.end(false, Date.now()); // Simplified timestamp retrieval
+            reject("Execution cancelled");
         });
 
         let errorText = "";
 
-        output.stderr.on("data", async (data: Uint8Array) => {
+        output.stderr.on("data", (data: Uint8Array) => {
             errorText = data.toString();
             if (errorText === "") {
                 errorText = "An error occurred - no error text was returned.";
                 console.error("error text is empty");
             }
-            cellExec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.text(errorText)])]);
-            cellExec.end(true, (new Date).getTime());
+            resolve(displayOutput + errorText);
+        });
+
+        output.on("close", () => {
+            resolve(displayOutput);
+        });
+
+        output.on("error", (err) => {
+            reject(`Executable errored: ${err}`);
         });
 
         let buf = Buffer.from([]);
         const decoder = new TextDecoder;
-        output.stdout.on('data', (data: Uint8Array) => {
+
+        output.stdout.on("data", (data: Uint8Array) => {
             const arr = [buf, data];
             buf = Buffer.concat(arr);
             // get the entire output of the cell
@@ -113,72 +152,7 @@ export class Kernel {
                 console.log(`commandOutput: ${commandOutput} | fullOutput: ${fullCommandOutput}`);
             }
 
-            // call the postExecutables and append the output to the commandOutput
-            // const postOutput = executePostExecutables(codebookCell.postExecutables());
-            // commandOutput += await postOutput;
-
-            // append the commandOutput to the existing cellOutput
-            if (outputConfig.replaceOutputCell) {
-                cellExec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput + commandOutput)])]);
-            } else {
-                cellExec.appendOutput(new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput + commandOutput)]));
-            }
+            resolve(displayOutput + commandOutput);
         });
-
-        output.on('close', () => {
-            // If stdout returned anything consider it a success
-            if (buf.length === 0) {
-                cellExec.end(false, (new Date).getTime());
-            } else {
-                cellExec.end(true, (new Date).getTime());
-            }
-        });
-    }
-}
-
-// executePostExecutables will execute the postExecutables and return the output as a string
-export async function executePostExecutables(postExecutables: codebook.Executable[]): Promise<string> {
-    if (postExecutables.length === 0) {
-        return "";
-    }
-
-    let output = "";
-
-    for (const executable of postExecutables) {
-        await new Promise<void>((resolve, reject) => {
-            // start with the command and arguments
-            output += executable.toString() + "\n";
-
-            const exec = executable.execute();
-            exec.stdout.on('data', (data: Uint8Array) => {
-                output += dataToString(data);
-            });
-
-            exec.stderr.on('data', (data: Uint8Array) => {
-                output += dataToString(data);
-            });
-
-            exec.on('close', () => {
-                resolve();
-            });
-
-            exec.on('error', (err) => {
-                reject(err);
-            });
-        });
-    }
-
-    return output;
-}
-
-// dataToString will convert the Uint8Array data to a string
-export function dataToString(data: Uint8Array): string {
-    let buf = Buffer.from([]);
-    const decoder = new TextDecoder;
-    const arr = [buf, data];
-    buf = Buffer.concat(arr);
-    // get the entire output of the cell
-    const cmdOutput = decoder.decode(buf);
-    console.log(`cmdOutput: ${cmdOutput}`);
-    return cmdOutput;
+    });
 }
