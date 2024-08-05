@@ -128,7 +128,14 @@ async function runExecutable(token: CancellationToken, executable: codebook.Exec
         });
 
         output.on("error", (err) => {
-            reject(`Executable errored: ${err}`);
+            console.error(`executable errored: ${err}`);
+            // spawn echo ENOENT
+            // if the error contains "spawn" or "ENOENT", it's likely it just needs to be tried again
+            if (err.toString().includes("spawn") || err.toString().includes("ENOENT")) {
+                reject("something went wrong - please try your request again");
+            } else {
+                reject(`executable errored: ${err}`);
+            }
         });
 
         let buf = Buffer.from([]);
