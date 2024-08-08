@@ -18,23 +18,7 @@ const kernel = new Kernel();
 // Your extension is activated the very first time the command is executed
 export function activate(context: ExtensionContext) {
 	const controller = notebooks.createNotebookController('codebook-md', 'codebook-md', 'codebook-md');
-	controller.supportedLanguages = [
-		'bash',
-		'go',
-		'http',
-		'javascript',
-		'json',
-		'plaintext',
-		'python',
-		'rust',
-		'sh',
-		'shell',
-		'shell-script',
-		'shellscript',
-		'sql',
-		'typescript',
-		'zsh',
-	];
+	controller.supportedLanguages = [];
 	controller.executeHandler = async (cells, doc, ctrl) => {
 		try {
 			if (cells.length > 1) {

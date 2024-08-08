@@ -13,7 +13,6 @@ import { TextDecoder, TextEncoder } from 'util';
 import { ChildProcessWithoutNullStreams } from "child_process";
 import * as path from 'path';
 import * as fs from 'fs';
-import * as bash from "./languages/bash";
 import * as go from "./languages/go";
 import * as javascript from "./languages/javascript";
 import * as typescript from "./languages/typescript";
@@ -117,50 +116,90 @@ export function parseCommandAndArgs(fullCmd: string, cwd: string): Command {
     return new Command(command, args, cwd);
 }
 
+export class Language {
+    displayName: string;
+    nameId: string;
+    aliases: string[];
+    isExecutable: boolean;
+
+    constructor(name: string, aliases: string[], isExecutable: boolean) {
+        this.displayName = name;
+        this.nameId = name.toLowerCase();
+        this.aliases = aliases;
+        this.isExecutable = isExecutable;
+    }
+}
+
+// executable languages
+export const languageGo = new Language("Go", ["golang"], true);
+export const languageJavaScript = new Language("JavaScript", ["js"], true);
+export const languagePython = new Language("Python", ["py"], true);
+export const languageShellScript = new Language("ShellScript", ["sh", "shell-script", "shell", "shellscript", "zsh", "bash"], true);
+export const languageSQL = new Language("SQL", ["mysql", "postgres"], true);
+export const languageTypeScript = new Language("TypeScript", ["ts"], true);
+
+// non-executable languages
+export const languageHttp = new Language("Http", [], false);
+export const languageRust = new Language("Rust", [], false);
+
+const languages = [
+    languageGo,
+    languageJavaScript,
+    languagePython,
+    languageShellScript,
+    languageSQL,
+    languageTypeScript,
+    languageHttp,
+    languageRust,
+];
+
+// languagesByAbbrev is a map of language abbreviations to their corresponding Language object
+const languagesByAbbrev = new Map<string, Language>();
+languages.forEach(lang => {
+    languagesByAbbrev.set(lang.displayName.toLowerCase(), lang);
+    lang.aliases.forEach(alias => {
+        languagesByAbbrev.set(alias.toLowerCase(), lang);
+    });
+});
+
+function findLanguageId(language: string): string {
+    const lang = languagesByAbbrev.get(language.toLowerCase());
+    if (lang) {
+        return lang.nameId;
+    }
+    return language;
+}
 
 // NewCell returns a new Cell object based on the language of the notebook cell - if the language
 // is not supported, it returns an unsupported cell
 export function NewExecutableCell(notebookCell: NotebookCell): ExecutableCell {
     const lang = notebookCell.document.languageId;
     switch (lang) {
-        case "go":
+        case languageGo.nameId:
             if (io.commandNotOnPath("go", "https://go.dev/doc/install")) {
                 return new unsupported.Cell(notebookCell);
             }
             return new go.Cell(notebookCell);
 
-        case "http":
+        case languageHttp.nameId:
             return new unsupported.Cell(notebookCell);
 
-        case "javascript":
-        case "js":
+        case languageJavaScript.nameId:
             if (io.commandNotOnPath("node", "https://nodejs.org/")) {
                 return new unsupported.Cell(notebookCell);
             }
             return new javascript.Cell(notebookCell);
 
-        case "typescript":
-        case "ts":
+        case languageTypeScript.nameId:
             if (io.commandNotOnPath("ts-node", "https://www.npmjs.com/package/ts-node")) {
                 return new unsupported.Cell(notebookCell);
             }
             return new typescript.Cell(notebookCell);
 
-        case "shell":
-        case "sh":
-        case "zsh":
+        case languageShellScript.nameId:
             return new shell.Cell(notebookCell);
 
-        case "shellscript":
-        case "shell-script":
-        case "bash":
-            if (io.commandNotOnPath("bash", "https://www.gnu.org/software/bash/")) {
-                return new unsupported.Cell(notebookCell);
-            }
-            return new bash.Cell(notebookCell);
-
-        case "python":
-        case "py":
+        case languagePython.nameId:
             {
                 const pythonCell = new python.Cell(notebookCell);
                 if (io.commandNotOnPath(pythonCell.config.execCmd, "https://www.python.org/")) {
@@ -169,7 +208,7 @@ export function NewExecutableCell(notebookCell: NotebookCell): ExecutableCell {
                 return pythonCell;
             }
 
-        case "sql":
+        case languageSQL.nameId:
             return new sql.Cell(notebookCell);
 
         default:
@@ -189,44 +228,6 @@ export const StartOutput = `!!output-start-cell`;
 
 // EndOutput is a string that indicates the end of an output block
 export const EndOutput = `!!output-end-cell`;
-
-export class Language {
-    name: string;
-    aliases: string[];
-    isExecutable: boolean;
-
-    constructor(name: string, aliases: string[], isExecutable: boolean) {
-        this.name = name;
-        this.aliases = aliases;
-        this.isExecutable = isExecutable;
-    }
-}
-
-const languages = [
-    new Language("Bash", ["shell-script", "shellscript"], true),
-    new Language("Go", ["golang"], true),
-    new Language("JavaScript", ["js"], true),
-    new Language("Python", ["py"], true),
-    new Language("Shell", ["sh", "shell"], true),
-    new Language("SQL", ["mysql", "postgres"], true),
-    new Language("TypeScript", ["ts"], true),
-
-    // non-executable languages
-    new Language("Fish", [], false),
-    new Language("Http", [], false),
-    new Language("Nushell", ["nu"], false),
-    new Language("Rust", [], false),
-    new Language("Zsh", [], false),
-];
-
-// languagesByAbbrev is a map of language abbreviations to their corresponding Language object
-const languagesByAbbrev = new Map<string, Language>();
-languages.forEach(lang => {
-    languagesByAbbrev.set(lang.name.toLowerCase(), lang);
-    lang.aliases.forEach(alias => {
-        languagesByAbbrev.set(alias.toLowerCase(), lang);
-    });
-});
 
 function parseCodeBlockStart(line: string): string | null {
     const match = line.match(/( {4}|\t)?```(\S*)/);
@@ -282,7 +283,7 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
     }
 
     function parseCodeBlock(leadingWhitespace: string, languageSyntax: string): void {
-        const language = languagesByAbbrev.get(languageSyntax.toLowerCase())?.name.toLowerCase() ?? languageSyntax.toLowerCase();
+        const language = languagesByAbbrev.get(languageSyntax.toLowerCase())?.displayName.toLowerCase() ?? languageSyntax.toLowerCase();
         const startSourceIdx = ++i;
         // eslint-disable-next-line no-constant-condition
         while (true) {
@@ -362,11 +363,10 @@ export function writeCellsToMarkdown(cells: ReadonlyArray<NotebookCellData>): st
                     }
                 }
             }
-            const languageAbbrev = languagesByAbbrev.get(cell.languageId)?.name ?? cell.languageId;
-            if (languageAbbrev === cell.languageId) {
-                console.log(`writeCellsToMarkdown language not found in map: ${languageAbbrev}`);
-            }
-            const codePrefix = '```' + languageAbbrev + '\n';
+
+            // set the language to the official language name recognized by VS Code
+            // if the language is not recognized by VS Code, it won't be executable.
+            const codePrefix = '```' + findLanguageId(cell.languageId) + '\n';
             const contents = cell.value.split(/\r?\n/g)
                 .join('\n');
             const codeSuffix = '\n```';
