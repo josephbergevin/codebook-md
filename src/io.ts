@@ -4,7 +4,7 @@ import { window, env, Uri } from "vscode";
 import { mkdirSync, writeFileSync } from "fs";
 
 // spawnCommand is a helper function to child_process.spawn, with error handling
-export const spawnCommand = (command: string, args: string[], options: any): ChildProcessWithoutNullStreams => {
+export const spawnSafe = (command: string, args: string[], options: any): ChildProcessWithoutNullStreams => {
   console.log(`Running ${command} ${args.join(' ')} with options:`, options);
   try {
     return spawn(command, args, options);
@@ -16,7 +16,7 @@ export const spawnCommand = (command: string, args: string[], options: any): Chi
 };
 
 // spawnCommandSync is a helper function to child_process.spawnSync, with error handling
-export const spawnCommandSync = (command: string, args: string[], options: any): string => {
+export const spawnSyncSafe = (command: string, args: string[], options: any): string => {
   try {
     const result = spawnSync(command, args, options);
     if (result.error) {
@@ -30,17 +30,7 @@ export const spawnCommandSync = (command: string, args: string[], options: any):
 };
 
 // execCommand is a helper function to child_process.execSync, with error handling
-export const execCommand = (command: string): string => {
-  try {
-    return execSync(command).toString();
-  } catch (error) {
-    window.showErrorMessage(`Error running ${command}: ${error}`);
-    throw error;
-  }
-};
-
-// execCommandSync is a helper function to child_process.exec, with error handling
-export const execCommandSync = (command: string): string => {
+export const execSyncSafe = (command: string): string => {
   try {
     return execSync(command).toString();
   } catch (error) {
