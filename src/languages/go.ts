@@ -1,5 +1,5 @@
 import { ChildProcessWithoutNullStreams } from "child_process";
-import { mkdirSync, readFile, writeFileSync } from "fs";
+import { readFile, writeFileSync } from "fs";
 import * as path from "path";
 import { join } from "path";
 import { workspace, window, WorkspaceConfiguration, NotebookCell } from "vscode";
@@ -156,9 +156,9 @@ export class Cell implements codebook.ExecutableCell {
 
             // run goimports on the file
             if (this.config.useGoimports) {
-                io.spawnCommandSync('goimports', ['-w', this.config.execFile], { cwd: this.config.execDir });
+                io.spawnSyncSafe('goimports', ['-w', this.config.execFile], { cwd: this.config.execDir });
             } else {
-                io.spawnCommandSync('gopls', ['imports', '-w', this.config.execFile], { cwd: this.config.execDir });
+                io.spawnSyncSafe('gopls', ['imports', '-w', this.config.execFile], { cwd: this.config.execDir });
             }
         });
 
@@ -266,7 +266,7 @@ export class Config {
             this.execFilename = this.execTypeTestFilename;
             this.execFile = path.join(this.execDir, this.execFilename);
             this.execCmd = 'test';
-            this.execArgs = ['-run=TestExecNotebook', '-tags=playground'];
+            this.execArgs = ['-run=TestExecNotebook', '-tags=playground', '-v'];
         } else {
             this.execDir = config.getTempPath();
             this.execFilename = this.execTypeRunFilename;

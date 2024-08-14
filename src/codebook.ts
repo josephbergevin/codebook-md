@@ -80,7 +80,7 @@ export class Command implements Executable {
     execute(): ChildProcessWithoutNullStreams {
         this.beforeExecuteFuncs.forEach(func => func());
         console.log(`executing command: ${this.command} ${this.args.join(' ')}`);
-        return io.spawnCommand(this.command, this.args, { cwd: this.cwd });
+        return io.spawnSafe(this.command, this.args, { cwd: this.cwd });
     }
 
     // jsonStringify returns the JSON string representation of the Command object
