@@ -27,7 +27,7 @@ export class Cell implements codebook.ExecutableCell {
         this.mainExecutable = new codebook.Command(this.config.execCmd, [this.config.execFile], this.config.execDir);
         this.mainExecutable.addBeforeExecuteFunc(() => {
             // create the directory and main file
-            io.writeDirAndFileSync(this.config.execDir, this.config.execFile, this.executableCode);
+            io.writeDirAndFileSyncSafe(this.config.execDir, this.config.execFile, this.executableCode);
         });
     }
 

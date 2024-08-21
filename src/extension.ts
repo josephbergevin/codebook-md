@@ -5,11 +5,8 @@ import {
 	TreeDataProvider, TreeItem, TreeItemCollapsibleState
 } from 'vscode';
 
-import * as codebook from './codebook';
-
-// import { parseMarkdown, writeCellsToMarkdown, RawNotebookCell } from './markdownParser';
 import { Kernel } from './kernel';
-
+import * as codebook from './codebook';
 import * as fs from 'fs';
 
 const kernel = new Kernel();
@@ -59,6 +56,12 @@ export function activate(context: ExtensionContext) {
 	});
 
 	context.subscriptions.push(disposable);
+
+	// add the codebook-md.helloGo command
+	disposable = commands.registerCommand('codebook-md.helloGo', async () => {
+		console.log('called codebook-md.helloGo');
+		codebook.helloLanguage('go', 'macos');
+	});
 
 	// add "CodebookMD" to the status bar that opens the settings for the extension
 	const statusBarIcon = window.createStatusBarItem(StatusBarAlignment.Right, 100);

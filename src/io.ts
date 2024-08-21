@@ -39,9 +39,33 @@ export const execSyncSafe = (command: string): string => {
   }
 };
 
-export function writeDirAndFileSync(dir: string, file: string, data: string) {
+// getCurrentDir is a function to get the directory of the file currently being edited by the user
+export const getCurrentDir = (): string => {
+  return window.activeTextEditor?.document.uri.fsPath ?? '';
+};
+
+// mkdirIfNotExistsSafe checks to see if the directory exists
+// if it exists, returns early
+// if it doesn't exist, creates the directory, and posts a notification to the user
+// if there is an error, posts an error message to the user
+export const mkdirIfNotExistsSafe = (dir: string): void => {
+  // if the directory is blank or '.', return early
+  if (dir === '' || dir === '.') {
+    return;
+  }
+
   try {
     mkdirSync(dir, { recursive: true });
+    window.showInformationMessage(`created exec dir: '${dir}'`);
+  } catch (error) {
+    window.showErrorMessage(`error creating exec dir ${dir}: ${error}`);
+  }
+};
+
+// writeDirAndFileSync writes a file to a directory, creating the directory if it doesn't exist
+export function writeDirAndFileSyncSafe(dir: string, file: string, data: string) {
+  try {
+    mkdirIfNotExistsSafe(dir);
     writeFileSync(file, data);
   } catch (error) {
     console.error("error writing file: ", error);
