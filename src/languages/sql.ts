@@ -49,7 +49,7 @@ export class Cell implements codebook.ExecutableCell {
         this.mainExecutable.addBeforeExecuteFunc(() => {
             // create the directory and main file
             // run in a try-catch block to avoid errors if the directory already exists
-            io.writeDirAndFileSync(this.config.execDir, this.config.execFile, this.executableCode);
+            io.writeDirAndFileSyncSafe(this.config.execDir, this.config.execFile, this.executableCode);
         });
         this.mainExecutable.setCommandToDisplay(this.innerScope);
 
@@ -62,7 +62,7 @@ export class Cell implements codebook.ExecutableCell {
                 postExecutable.addBeforeExecuteFunc(() => {
                     try {
                         const sqlCliCommand = "#!/bin/bash\n\nset -e\n\n" + this.config.execCmd + " " + this.config.execOptions.join(" ") + " -e " + '"' + sqlStatement + '"';
-                        io.writeDirAndFileSync(this.config.execDir, this.config.execFile, sqlCliCommand);
+                        io.writeDirAndFileSyncSafe(this.config.execDir, this.config.execFile, sqlCliCommand);
                     } catch (error) {
                         console.error("error writing file: ", error);
                     }

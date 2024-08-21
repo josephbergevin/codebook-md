@@ -731,45 +731,41 @@ export class OutputConfig {
             this.timestampTimezone = validTimezone(languageOutputConfig.get('timestampTimezone') || this.timestampTimezone);
         }
 
-        // filter out the output commands from the cell commands
+        // if the commands include any in-line output config, collect them
         const outputCommands = commands.filter(command => command.startsWith(".output."));
-
-        // if the commands don't include any in-line output config, return the default output config
-        if (outputCommands.length === 0) {
-            return;
+        if (outputCommands.length > 0) {
+            outputCommands.forEach(command => {
+                switch (command) {
+                    case ".output.showExecutableCodeInOutput(true)":
+                        this.showExecutableCodeInOutput = true;
+                        break;
+                    case ".output.showExecutableCodeInOutput(false)":
+                        this.showExecutableCodeInOutput = false;
+                        break;
+                    case ".output.showOutputOnRun(true)":
+                        this.showOutputOnRun = true;
+                        break;
+                    case ".output.showOutputOnRun(false)":
+                        this.showOutputOnRun = false;
+                        break;
+                    case ".output.replaceOutputCell(true)":
+                        this.replaceOutputCell = true;
+                        break;
+                    case ".output.replaceOutputCell(false)":
+                        this.replaceOutputCell = false;
+                        break;
+                    case ".output.showTimestamp(true)":
+                        this.showTimestamp = true;
+                        break;
+                    case ".output.showTimestamp(false)":
+                        this.showTimestamp = false;
+                        break;
+                    default:
+                        // if the command is not recognized, send a warning notification
+                        window.showWarningMessage(`output command unknown: ${command}`);
+                }
+            });
         }
-
-        outputCommands.forEach(command => {
-            switch (command) {
-                case ".output.showExecutableCodeInOutput(true)":
-                    this.showExecutableCodeInOutput = true;
-                    break;
-                case ".output.showExecutableCodeInOutput(false)":
-                    this.showExecutableCodeInOutput = false;
-                    break;
-                case ".output.showOutputOnRun(true)":
-                    this.showOutputOnRun = true;
-                    break;
-                case ".output.showOutputOnRun(false)":
-                    this.showOutputOnRun = false;
-                    break;
-                case ".output.replaceOutputCell(true)":
-                    this.replaceOutputCell = true;
-                    break;
-                case ".output.replaceOutputCell(false)":
-                    this.replaceOutputCell = false;
-                    break;
-                case ".output.showTimestamp(true)":
-                    this.showTimestamp = true;
-                    break;
-                case ".output.showTimestamp(false)":
-                    this.showTimestamp = false;
-                    break;
-                default:
-                    // if the command is not recognized, send a warning notification
-                    window.showWarningMessage(`output command unknown: ${command}`);
-            }
-        });
     }
 }
 
@@ -818,5 +814,33 @@ export function validTimezone(timezone: string): string {
         };
         console.log(`valid timezone found: ${timezone} >> ${validTimezone}`);
         return validTimezone;
+    }
+}
+
+// helloLanguage creates a new md file in the user's workspace for the given language
+export function helloLanguage(language: string, env: string): void {
+    switch (language) {
+        case "go":
+            // open a new tab with the contents of 'languages/installations/go-${env}.md'
+            console.log(`creating new md file for go installation on ${env}`);
+            break;
+        // case "javascript":
+        //     javascript.helloJavaScript();
+        //     break;
+        // case "python":
+        //     python.helloPython();
+        //     break;
+        // case "shell":
+        //     shell.helloShell();
+        //     break;
+        // case "sql":
+        //     sql.helloSQL();
+        //     break;
+        // case "typescript":
+        //     typescript.helloTypeScript();
+        //     break;
+        default:
+            window.showWarningMessage(`helloLanguage not implemented for language: ${language}`);
+            break;
     }
 }

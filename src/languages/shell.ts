@@ -1,6 +1,6 @@
 import { ChildProcessWithoutNullStreams } from "child_process";
-import * as config from "../config";
 import * as codebook from "../codebook";
+import * as io from "../io";
 import { NotebookCell, WorkspaceConfiguration } from "vscode";
 import { workspace } from "vscode";
 
@@ -67,6 +67,6 @@ export class Config {
 
     constructor(shellConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell | undefined) {
         this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-md.shell.output'), "#");
-        this.execDir = config.getTempPath();
+        this.execDir = io.getCurrentDir();
     }
 }

@@ -152,7 +152,7 @@ export class Cell implements codebook.ExecutableCell {
             console.log("cell contents", this.executableCode);
 
             // create the directory and main file
-            io.writeDirAndFileSync(this.config.execDir, this.config.execFile, this.executableCode);
+            io.writeDirAndFileSyncSafe(this.config.execDir, this.config.execFile, this.executableCode);
 
             // run goimports on the file
             if (this.config.useGoimports) {
@@ -217,9 +217,6 @@ export class Cell implements codebook.ExecutableCell {
         }
         return imports;
     }
-
-    // resolveImports resolves the imports for the go code in the cell by running goimports on the file
-
 }
 
 // Config is a class that contains the configuration settings for executing go code from Cells
@@ -304,3 +301,5 @@ export const getDirAndExecFile = (execFrom: string): [string, string] => {
     // get the main file path
     return [dir, execFile];
 };
+
+// hello is a function that runs the go code to print "Hello, Go!" and returns the output

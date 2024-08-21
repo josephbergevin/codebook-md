@@ -33,4 +33,41 @@
 		"io",
 		"tooling",
 	],
+	"codebook-md.rootPath": "${workspaceFolder}",
+	"codebook-md.tempPath": "./apiplayground/",
+	"codebook-md.go": {
+		"execType": "test",
+		"execTypeRunFilename": "main.go",
+		"execTypeTestFilename": "codebook_md_exec_test.go",
+		"goimportsCmd": "goimports",
+		"execTypeTestBuildTag": "playground",
+		"excludeOutputPrefixes": ["mysql: ", "W0626 "]
+	},
+	"codebook-md.permalinkPrefix": "https://github.com/josephbergevin/codebook-md/blob/",
+	"codebook-md.output": {
+		"showTimestamp": true,
+		"timestampTimezone": "MDT"
+	},
+	"codebook-md.sql": {
+		"execCmd": "mycli",
+		"execOptions": [
+			"-t",
+		],
+		"output": {
+			"showExecutableCodeInOutput": true
+		}
+	},
+	"codebook-md.bash": {
+		"execSingleLineAsCommand": true,
+	},
+	"codebook-md.shell": {
+		"output": {
+		"showTimestamp": true,
+		"timestampTimezone": "MDT",
+		"showExecutableCodeInOutput": true
+		}
+	},
+	"notebook.experimental.cellChat": true,
+	"notebook.output.scrolling": true,
+	"editor.hover.delay": 700,
 }

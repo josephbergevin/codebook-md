@@ -35,8 +35,7 @@
     "Notebooks"
   ],
   "activationEvents": [
-    "onLanguage:markdown",
-    "onCommand:codebook-md.openMarkdownPreview"
+    "onLanguage:markdown"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -381,7 +380,15 @@
     "commands": [
       {
         "command": "codebook-md.openFileAtLine",
-        "title": "Open File at Line"
+        "title": "Codebook: Open File at Line"
+      },
+      {
+        "command": "codebook-md.openMarkdownPreview",
+        "title": "Codebook: Open Markdown Preview"
+      },
+      {
+        "command": "codebook-md.helloGo",
+        "title": "Codebook: Run Hello Go"
       }
     ],
     "viewsContainers": {
