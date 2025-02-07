@@ -12,6 +12,7 @@ import {
 import { TextDecoder, TextEncoder } from 'util';
 import { ChildProcessWithoutNullStreams } from "child_process";
 import * as path from 'path';
+import { existsSync, readFileSync } from 'fs';
 import * as fs from 'fs';
 import * as go from "./languages/go";
 import * as javascript from "./languages/javascript";
@@ -54,6 +55,7 @@ export interface Executable {
 
 // Command is class for a command and its arguments
 export class Command implements Executable {
+    // beforeExecuteFuncs is a list of functions (with promises) to execute before the command is executed
     beforeExecuteFuncs: (() => void)[] = [];
     command: string;
     args: string[];
@@ -78,8 +80,14 @@ export class Command implements Executable {
 
     // execute fulfills the codebook.Executable interface
     execute(): ChildProcessWithoutNullStreams {
+        // execute the beforeExecuteFuncs and wait for them to finish before executing the command
         this.beforeExecuteFuncs.forEach(func => func());
         console.log(`executing command: ${this.command} ${this.args.join(' ')}`);
+        // ensure the cwd exists before executing the command - if not, post an error message and return early
+        if (!fs.existsSync(this.cwd)) {
+            window.showErrorMessage(`Error: directory does not exist: ${this.cwd}`);
+            return io.spawnSafe("echo", [`error: directory does not exist: ${this.cwd}`], { cwd: "." });
+        }
         return io.spawnSafe(this.command, this.args, { cwd: this.cwd });
     }
 
@@ -103,12 +111,17 @@ export class Command implements Executable {
 
 // parseCommands takes a string and returns an array of Command objects
 export const parseCommands = (fullCmd: string, cwd: string): Command[] => {
-    const commands = fullCmd.split('\n');
+    // split the fullCmd into separate commands:
+    // 1. split on newline
+    // 2. filter out empty strings, whitespace, and comments
+    const commands = fullCmd.split('\n').filter((cmd: string) => {
+        return cmd.trim() !== '' && !cmd.startsWith('#');
+    });
     return commands.map((cmd: string) => parseCommandAndArgs(cmd, cwd));
 };
 
 // parseCommandAndArgs takes a string and returns the command and arguments
-// sections wrapped in quotes are considered a single argument
+// sections wrapped in quotes are considered a single argument.
 export function parseCommandAndArgs(fullCmd: string, cwd: string): Command {
     const parts = fullCmd.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
     const command = parts[0] || '';
@@ -447,14 +460,14 @@ export class CellHover implements HoverProvider {
     }
 
     provideHoverForFileLoc(fileLoc: string, document: TextDocument): ProviderResult<Hover> {
-        const doc = parseFileLoc(fileLoc, document.uri.fsPath);
-        if (!fs.existsSync(doc.fileLoc)) {
+        const doc = newCodeDocumentFromFileLoc(fileLoc, document.uri.fsPath);
+        if (!existsSync(doc.fileLoc)) {
             console.error(`\tfile not found: ${doc.fileLoc}`);
             return;
         }
 
         // read the file content
-        let fileContent = fs.readFileSync(doc.fileLoc, 'utf-8');
+        let fileContent = readFileSync(doc.fileLoc, 'utf-8');
 
         // use doc.lineBegin to start from a specific line
         let lineCount = fileContent.split('\n').length;
@@ -494,6 +507,7 @@ export class CellHover implements HoverProvider {
 // CodeDoc is a class containing the data for a document in vscode: file loc, preview line begin, preview line end, language
 export class CodeDocument {
     fileLoc: string;
+    fileDir: string;
     resolvePath: string;
     lineBegin: number;
     lineEnd: number;
@@ -504,6 +518,7 @@ export class CodeDocument {
             lineEnd = lineBegin;
         }
         this.fileLoc = fileLoc;
+        this.fileDir = path.dirname(fileLoc);
         this.resolvePath = resolvePath;
         this.lineBegin = lineBegin;
         this.lineEnd = lineEnd;
@@ -590,8 +605,18 @@ export function findCodeDocument(text: string): string | null {
     return match[0];
 }
 
+// emptyCodeDocument is an empty CodeDocument object
+export const emptyCodeDocument = new CodeDocument('', '', 0, 0, 'plaintext');
+
 // newCodeDocument returns a new CodeDocument object from a given file location - if it includes a line number, it will be parsed
-export function parseFileLoc(fileLoc: string, resolvePath: string): CodeDocument {
+export function newCodeDocumentFromFileLoc(fileLoc: string, resolvePath: string): CodeDocument {
+    if (resolvePath === '') {
+        resolvePath = window.activeTextEditor?.document.fileName || '';
+        if (resolvePath === '') {
+            console.error("resolvePath is empty and no active text editor could be found");
+            return emptyCodeDocument;
+        }
+    }
     let fullPath = fileLoc;
     if (!path.isAbsolute(fileLoc) && resolvePath) {
         fullPath = path.resolve(path.dirname(resolvePath), fileLoc);
@@ -616,6 +641,48 @@ export function parseFileLoc(fileLoc: string, resolvePath: string): CodeDocument
 
     return new CodeDocument(fullPath, resolvePath, lineBegin, lineEnd, language);
 }
+
+// newCodeDocumentCurrentFile returns a new CodeDocument object from the current active file
+export function newCodeDocumentCurrentFile(): CodeDocument {
+    let fileName = window.activeTextEditor?.document.fileName;
+    if (!fileName) {
+        // post a warning message if the file is undefined
+        window.showWarningMessage("No active file found, trying again...");
+        // wait 2 seconds and try again
+        setTimeout(() => {
+            fileName = window.activeTextEditor?.document.fileName;
+        }, 2000);
+
+        if (!fileName) {
+            // post an error message if the file is still undefined
+            window.showErrorMessage("No active file found, exiting...");
+            return emptyCodeDocument;
+        }
+    }
+
+    return new CodeDocument(fileName, fileName, 0, 0, path.extname(fileName).substring(1));
+}
+
+
+// function newCodeDocumentCurrentFile = (): string => {
+//     let fileName = window.activeTextEditor?.document.fileName;
+//     if (fileName === undefined) {
+//         // post a warning message if the file is undefined
+//         window.showWarningMessage("No active file found, trying again...");
+//         // wait 2 seconds and try again
+//         setTimeout(() => {
+//             fileName = window.activeTextEditor?.document.fileName;
+//         }, 2000);
+
+//         if (fileName === undefined) {
+//             // post an error message if the file is still undefined
+//             window.showErrorMessage("No active file found, exiting...");
+//             return "";
+//         }
+//     }
+
+//     return path.dirname(fileName);
+// };
 
 // notebookCellToInnerScope returns the innerScope of a notebook cell, removing 
 // 1. any lines that start with the given prefixes

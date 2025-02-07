@@ -41,7 +41,6 @@ export class Cell implements codebook.ExecutableCell {
         this.executableCode += this.innerScope;
 
 
-
         this.execCmd = 'bash';
         this.execArgs = [this.config.execFile];
 
