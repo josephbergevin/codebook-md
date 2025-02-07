@@ -1,0 +1,51 @@
+<svg width="128" height="128" viewBox="0 0 128 128" 
+     xmlns="http://www.w3.org/2000/svg" 
+     version="1.1">
+  <!-- Background rectangle -->
+  <rect x="0" y="0" width="128" height="128" 
+        fill="#444" />
+
+  <!-- Outer border (light gray corners) -->
+  <rect x="4" y="4" width="120" height="120" 
+        fill="none"
+        stroke="#eee"
+        stroke-width="4" />
+
+  <!-- Circular ring (center) -->
+  <circle cx="64" cy="64" r="24" 
+          fill="none" 
+          stroke="#fff" 
+          stroke-width="4" />
+
+  <!-- Play triangle in the center -->
+  <path d="M58,50 L58,78 L78,64 Z" 
+        fill="#fff" />
+
+  <!-- Green and blue accent lines 
+       (adjust thickness/positions as desired) -->
+  <!-- A few lines on the left side -->
+  <line x1="26" y1="36" x2="48" y2="36"
+        stroke="#7fff7f"
+        stroke-width="4" />
+  <line x1="26" y1="50" x2="48" y2="50"
+        stroke="#7fff7f"
+        stroke-width="4" />
+  <line x1="26" y1="64" x2="48" y2="64"
+        stroke="#7fafff"
+        stroke-width="4" />
+  <line x1="26" y1="78" x2="48" y2="78"
+        stroke="#7fff7f"
+        stroke-width="4" />
+  <line x1="26" y1="92" x2="48" y2="92"
+        stroke="#7fafff"
+        stroke-width="4" />
+
+  <!-- A couple of lines on the right side to mirror the design -->
+  <line x1="80" y1="42" x2="102" y2="42"
+        stroke="#7fafff"
+        stroke-width="4" />
+  <line x1="80" y1="86" x2="102" y2="86"
+        stroke="#7fff7f"
+        stroke-width="4" />
+
+</svg>

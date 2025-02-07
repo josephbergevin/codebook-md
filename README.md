@@ -1,4 +1,6 @@
-![Codebook MD Logo](extension/src/img/logo_2-1_orig.png)
+<div style="padding-bottom: 10px;">
+<img src="extension/src/img/logo_3_800x800.png" alt="Codebook MD Logo" width="256" height="256" />
+</div>
 
 # Codebook MD
 
