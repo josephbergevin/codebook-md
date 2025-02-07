@@ -45,7 +45,7 @@ export function activate(context: ExtensionContext) {
 	// add the codebook-md.openFileAtLine command
 	let disposable = commands.registerCommand('codebook-md.openFileAtLine', async (fileLoc: string, currentFileLoc: string) => {
 		console.log(`called codebook-md.openFileAtLine | fileLoc: ${fileLoc} | currentFileLoc: ${currentFileLoc}`);
-		const doc = codebook.parseFileLoc(fileLoc, currentFileLoc);
+		const doc = codebook.newCodeDocumentFromFileLoc(fileLoc, currentFileLoc);
 		if (!fs.existsSync(doc.fileLoc)) {
 			console.error(`\tfile not found: ${doc.fileLoc}`);
 			return;

@@ -80,11 +80,16 @@ MD section
 
 ```shellscript
 echo hello, zsh - begin
+
+echo "sleeping 3 seconds"
 sleep 3
+
+echo "sleeping 5 seconds"
 sleep 5
+
 echo hello, zsh 2 - end
 # [>].output.replaceOutputCell(true)
-# [>].output.showExecutableCodeInOutput(true)
+# [>].output.showExecutableCodeInOutput(false)
 ```
 
 ```shellscript
@@ -162,6 +167,7 @@ GET https://example.com
   - sub-list item 1
   - sub-list item 2
 - list item 2
+
 ```
 
 - list item 1

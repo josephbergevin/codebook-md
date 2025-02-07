@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ChildProcessWithoutNullStreams, spawn, spawnSync, execSync } from "child_process";
 import { window, env, Uri } from "vscode";
-import { mkdirSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 
 // spawnCommand is a helper function to child_process.spawn, with error handling
 export const spawnSafe = (command: string, args: string[], options: any): ChildProcessWithoutNullStreams => {
@@ -39,11 +39,6 @@ export const execSyncSafe = (command: string): string => {
   }
 };
 
-// getCurrentDir is a function to get the directory of the file currently being edited by the user
-export const getCurrentDir = (): string => {
-  return window.activeTextEditor?.document.uri.fsPath ?? '';
-};
-
 // mkdirIfNotExistsSafe checks to see if the directory exists
 // if it exists, returns early
 // if it doesn't exist, creates the directory, and posts a notification to the user
@@ -51,6 +46,11 @@ export const getCurrentDir = (): string => {
 export const mkdirIfNotExistsSafe = (dir: string): void => {
   // if the directory is blank or '.', return early
   if (dir === '' || dir === '.') {
+    return;
+  }
+
+  // ensure the directory exists - return early if it does
+  if (existsSync(dir)) {
     return;
   }
 
