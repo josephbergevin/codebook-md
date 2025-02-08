@@ -1,11 +1,10 @@
-import { describe, it } from 'mocha';
-import { expect } from 'chai';
+import { describe, it, expect } from '@jest/globals';
 import { toUpper } from '../fmt';
 
 describe('toUpper', () => {
   it('should convert a string to uppercase', () => {
     const result = toUpper('hello');
-    expect(result).to.equal('HELLO');
+    expect(result).toBe('HELLO');
   });
 
   // Additional test cases can be added here
