@@ -34,6 +34,7 @@
   "categories": [
     "Notebooks"
   ],
+  "type": "module",
   "activationEvents": [
     "onLanguage:markdown",
     "onCommand:codebook-md.openMarkdownPreview"
