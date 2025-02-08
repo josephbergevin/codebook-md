@@ -1,5 +1,17 @@
 import * as config from '../config';
 
+jest.mock('vscode', () => ({
+  window: {
+    showInformationMessage: jest.fn(),
+  },
+  workspace: {
+    getConfiguration: jest.fn(() => ({
+      get: jest.fn(),
+      update: jest.fn(),
+    })),
+  },
+}));
+
 describe('config.ts Test Suite', () => {
   const workspacePath = '/Users/tijoe/go/src/github.com/josephbergevin/codebook-md';
   it('fullTempPath with relative folder', () => {

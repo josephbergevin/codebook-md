@@ -1,5 +1,17 @@
 import * as codebook from '../codebook';
 
+jest.mock('vscode', () => ({
+  window: {
+    showInformationMessage: jest.fn(),
+  },
+  workspace: {
+    getConfiguration: jest.fn(() => ({
+      get: jest.fn(),
+      update: jest.fn(),
+    })),
+  },
+}));
+
 describe('md.ts Test Suite', () => {
   it('permalinkToCodeDocument should return the correct message', () => {
     const permalink = 'https://github.com/josephbergevin/codebook-md/blob/520c1c66dcc6e1c5edf7fffe643bc8c463d02ee2/src/extension.ts#L9-L15';
@@ -8,7 +20,7 @@ describe('md.ts Test Suite', () => {
     const codeDoc = codebook.permalinkToCodeDocument(permalink, permalinkPrefix, workspaceRoot);
     expect(codeDoc).toEqual(new codebook.CodeDocument(
       '/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/src/extension.ts',
-      '/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/example.md',
+      '/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/src/extension.ts',
       9,
       15,
       'ts',
