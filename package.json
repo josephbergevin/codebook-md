@@ -30,7 +30,6 @@
     "sql",
     "rust"
   ],
-  "type": "module",
   "version": "0.8.0",
   "categories": [
     "Notebooks"
