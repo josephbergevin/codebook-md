@@ -52,6 +52,10 @@ Output from executed code blocks can be configured in the following ways:
 - In a new tab (coming soon)
 - In a file location specified in the settings (coming soon)
 
+## Release Notes
+
+All notable changes to Codebook MD are documented in our [CHANGELOG](CHANGELOG.md). We follow [Semantic Versioning](https://semver.org/) and structure our changelog according to [Keep a Changelog](https://keepachangelog.com/).
+
 ## Collaboration
 
 This project is open to collaboration! If you have an idea for a feature, or would like to contribute to the project, please feel free to reach out to me via an [issue](https://github.com/josephbergevin/codebook-md/issues).
