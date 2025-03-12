@@ -1,19 +1,27 @@
 import {
   languages, commands, window, notebooks, workspace,
-  ExtensionContext, StatusBarAlignment, ProviderResult, Command,
+  ExtensionContext, StatusBarAlignment, ProviderResult,
   NotebookSerializer, NotebookData, NotebookCellData, CancellationToken,
-  TreeDataProvider, TreeItem, TreeItemCollapsibleState
+  TreeDataProvider, TreeItem, TreeItemCollapsibleState, Uri, EventEmitter, Event,
 } from 'vscode';
 
 import { Kernel } from './kernel';
 import * as codebook from './codebook';
 import * as fs from 'fs';
+import * as config from './config';
+import * as path from 'path';
+import { ThemeIcon } from 'vscode';
 
 const kernel = new Kernel();
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: ExtensionContext) {
+  // Create and register the TreeDataProvider for the view
+  const treeDataProvider = new MarkdownFileTreeDataProvider();
+  const treeView = window.createTreeView('codebook-md-view', { treeDataProvider });
+  context.subscriptions.push(treeView);
+
   const controller = notebooks.createNotebookController('codebook-md', 'codebook-md', 'codebook-md');
   controller.supportedLanguages = [];
   controller.executeHandler = async (cells, doc, ctrl) => {
@@ -79,63 +87,884 @@ export function activate(context: ExtensionContext) {
 
   context.subscriptions.push(disposable);
 
-  // Register the TreeDataProvider for your view
-  const treeDataProvider = new MyTreeDataProvider();
-  window.createTreeView('codebook-md-view', { treeDataProvider });
-
   // Register the command to open the tree view
-  commands.registerCommand('codebook-md.openTreeView', () => {
+  disposable = commands.registerCommand('codebook-md.openTreeView', () => {
     commands.executeCommand('workbench.view.extension.codebook-md-activitybar');
   });
+  context.subscriptions.push(disposable);
+
+  // Register the command to manually refresh the tree view
+  disposable = commands.registerCommand('codebook-md.refreshTreeView', () => {
+    treeDataProvider.refresh();
+    window.showInformationMessage('Tree view refreshed');
+  });
+  context.subscriptions.push(disposable);
+
+  // Register the command to open a markdown file with preview
+  disposable = commands.registerCommand('codebook-md.openMarkdownFile', (filePath: string) => {
+    const uri = Uri.file(filePath);
+
+    // Open the markdown file directly in the notebook editor
+    commands.executeCommand('vscode.openWith', uri, 'codebook-md');
+  });
+  context.subscriptions.push(disposable);
+
+  // Register the command to open a markdown preview
+  disposable = commands.registerCommand('codebook-md.openMarkdownPreview', (uri: Uri) => {
+    commands.executeCommand('markdown.showPreview', uri);
+  });
+  context.subscriptions.push(disposable);
+
+  // Command: Add a markdown file to tree view via file picker and folder selection
+  disposable = commands.registerCommand('codebook-md.addFileToChosenFolder', async () => {
+    // Get the folders from configuration
+    const configuration = workspace.getConfiguration('codebook-md');
+    const treeViewConfig = configuration.get<{ folders: config.TreeViewFolderEntry[]; }>('treeView') || { folders: [] };
+
+    // Create folder options for quickpick
+    const folderOptions = treeViewConfig.folders.map(folder => ({
+      label: folder.name,
+      description: folder.folderPath,
+    }));
+
+    // Show folder picker
+    const selectedFolder = await window.showQuickPick(folderOptions, {
+      placeHolder: 'Select a folder to add the file to',
+      title: 'Choose Folder'
+    });
+
+    if (!selectedFolder) {
+      return; // User canceled folder selection
+    }
+
+    // Show file picker
+    const uris = await window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      filters: {
+        Markdown: ['md', 'markdown']
+      },
+      title: 'Select Markdown File to Add'
+    });
+
+    if (!uris || uris.length === 0) {
+      return; // User canceled file selection
+    }
+
+    // Use addFileToFolder to add the file to the selected folder
+    await addFileToTreeViewFolder(uris[0].fsPath, selectedFolder.description);
+    treeDataProvider.refresh(); // Auto-refresh after adding
+  });
+  context.subscriptions.push(disposable);
+
+  // Command: Remove a markdown file from tree view
+  disposable = commands.registerCommand('codebook-md.removeFromFavorites', async (item: MarkdownFileTreeItem) => {
+    if (!item || !item.entry) {
+      return;
+    }
+
+    await removeFileFromTreeView(item.entry);
+    treeDataProvider.refresh(); // Auto-refresh after removing
+  });
+  context.subscriptions.push(disposable);
+
+  // Command: Rename a file in the tree view
+  disposable = commands.registerCommand('codebook-md.renameTreeViewFile', async (item: MarkdownFileTreeItem) => {
+    if (!item || !item.entry) {
+      return;
+    }
+
+    // Get new name from user
+    const newName = await window.showInputBox({
+      placeHolder: item.entry.name,
+      prompt: 'Enter a new name for this file',
+      value: item.entry.name
+    });
+
+    if (!newName || newName === item.entry.name) {
+      return; // User canceled or no change
+    }
+
+    await renameTreeViewFile(item.entry, newName);
+    treeDataProvider.refresh(); // Refresh the view to show the change
+  });
+  context.subscriptions.push(disposable);
+
+  // Command: Add file to a specific folder
+  disposable = commands.registerCommand('codebook-md.addFileToFolder', async (item: MarkdownFileTreeItem) => {
+    // Get the folder path from the item
+    const folderPath = item.description as string;
+
+    if (!folderPath) {
+      window.showErrorMessage('Invalid folder path');
+      return;
+    }
+
+    const uris = await window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      filters: {
+        Markdown: ['md', 'markdown']
+      },
+      title: 'Select Markdown File to Add to Folder'
+    });
+
+    if (!uris || uris.length === 0) {
+      return;
+    }
+
+    // Add the file directly to the specified folder path
+    await addFileToTreeViewFolder(uris[0].fsPath, folderPath);
+    treeDataProvider.refresh(); // Auto-refresh after adding
+  });
+  context.subscriptions.push(disposable);
+
+  // Listen for configuration changes to update the tree view
+  context.subscriptions.push(workspace.onDidChangeConfiguration(e => {
+    if (e.affectsConfiguration('codebook-md.treeView.files') ||
+      e.affectsConfiguration('codebook-md.treeView.folders')) {
+      treeDataProvider.refresh();
+    }
+  }));
+
+  // Listen for file changes in the workspace to update the tree view
+  const watcher = workspace.createFileSystemWatcher('**/*.md');
+
+  // When files are created, check if they should be refreshed in the tree
+  watcher.onDidCreate(() => {
+    treeDataProvider.refresh();
+  });
+
+  // When files are deleted, check if they should be refreshed in the tree
+  watcher.onDidDelete(() => {
+    treeDataProvider.refresh();
+  });
+
+  // When files are changed, refresh the tree to ensure any name changes are reflected
+  watcher.onDidChange(() => {
+    treeDataProvider.refresh();
+  });
+
+  context.subscriptions.push(watcher);
+
+  // Command: Add a folder to tree view
+  disposable = commands.registerCommand('codebook-md.addFolderToTreeView', async () => {
+    await addFolderToTreeView();
+    treeDataProvider.refresh(); // Auto-refresh after adding
+  });
+  context.subscriptions.push(disposable);
+
+  // Command: Add a subfolder to an existing folder
+  disposable = commands.registerCommand('codebook-md.addSubFolder', async (item: MarkdownFileTreeItem) => {
+    // Get the folder path from the item
+    const folderPath = item.description as string;
+
+    if (!folderPath) {
+      window.showErrorMessage('Invalid folder path');
+      return;
+    }
+
+    await addSubFolder(folderPath);
+    treeDataProvider.refresh(); // Auto-refresh after adding
+  });
+  context.subscriptions.push(disposable);
+
+  // Command: Rename folder display name
+  disposable = commands.registerCommand('codebook-md.renameFolderDisplay', async (item: MarkdownFileTreeItem) => {
+    // Get the folder path from the item
+    const folderPath = item.description as string;
+
+    if (!folderPath) {
+      window.showErrorMessage('Invalid folder path');
+      return;
+    }
+
+    await renameFolderDisplay(folderPath, item.label as string);
+    treeDataProvider.refresh(); // Refresh the view to show the change
+  });
+  context.subscriptions.push(disposable);
 }
 
-// MyTreeDataProvider implements TreeDataProvider and provides the data for the tree view
-// For now, we'll just return a simple tree with a few hard-coded elements
-class MyTreeDataProvider implements TreeDataProvider<MyTreeItem> {
-  // Implement the TreeDataProvider methods like getTreeItem and getChildren
-  getTreeItem(element: MyTreeItem): TreeItem | Thenable<TreeItem> {
+// Remove a file from tree view
+async function removeFileFromTreeView(entry: config.TreeViewFileEntry): Promise<void> {
+  try {
+    console.log(`Removing file ${entry.name} from tree view`);
+
+    // Get current tree view configuration directly
+    const configuration = workspace.getConfiguration('codebook-md');
+
+    // Get the entire treeView object first, then work with it
+    const treeViewConfig: { folders: config.TreeViewFolderEntry[]; } =
+      configuration.get<{ folders: config.TreeViewFolderEntry[]; }>('treeView') || { folders: [] };
+    const treeViewFolders = [...treeViewConfig.folders]; // Make a copy of the array
+
+    // Find the folder containing the file
+    const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
+    let fileRemoved = false;
+
+    for (const folder of treeViewFolders) {
+      if (!folder.files) continue;
+
+      const fileIndex = folder.files.findIndex(f =>
+        f.name === entry.name && config.getFullPath(f.path, workspacePath) === config.getFullPath(entry.path, workspacePath));
+
+      if (fileIndex !== -1) {
+        // Remove the file from the folder
+        folder.files.splice(fileIndex, 1);
+        fileRemoved = true;
+        break;
+      }
+    }
+
+    if (!fileRemoved) {
+      window.showWarningMessage('File not found in tree view');
+      return;
+    }
+
+    // Update the configuration
+    await configuration.update('treeView', { folders: treeViewFolders }, true);
+    window.showInformationMessage(`Removed ${entry.name} from tree view`);
+  } catch (error) {
+    console.error('Error removing file from tree view:', error);
+    window.showErrorMessage(`Failed to remove file from tree view: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// Rename a file in the tree view
+async function renameTreeViewFile(entry: config.TreeViewFileEntry, newName: string): Promise<void> {
+  try {
+    console.log(`Renaming file from "${entry.name}" to "${newName}"`);
+
+    // Get current tree view configuration directly
+    const configuration = workspace.getConfiguration('codebook-md');
+
+    // Get the entire treeView object first, then work with it
+    const treeViewConfig: { folders: config.TreeViewFolderEntry[]; } =
+      configuration.get<{ folders: config.TreeViewFolderEntry[]; }>('treeView') || { folders: [] };
+    const treeViewFolders = [...treeViewConfig.folders]; // Make a copy of the array
+
+    // Find the file in its folder and rename it
+    const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
+    let fileRenamed = false;
+
+    for (const folder of treeViewFolders) {
+      if (!folder.files) continue;
+
+      const fileIndex = folder.files.findIndex(f =>
+        f.name === entry.name && config.getFullPath(f.path, workspacePath) === config.getFullPath(entry.path, workspacePath));
+
+      if (fileIndex !== -1) {
+        // Rename the file in its folder
+        folder.files[fileIndex] = {
+          ...folder.files[fileIndex],
+          name: newName
+        };
+        fileRenamed = true;
+        break;
+      }
+    }
+
+    if (!fileRenamed) {
+      window.showWarningMessage('File not found in tree view');
+      return;
+    }
+
+    // Update the configuration
+    await configuration.update('treeView', { folders: treeViewFolders }, true);
+    window.showInformationMessage(`Renamed file to: ${newName}`);
+  } catch (error) {
+    console.error('Error renaming file in tree view:', error);
+    window.showErrorMessage(`Failed to rename file: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// Rename the display name of a folder in the tree view
+async function renameFolderDisplay(folderPath: string, currentDisplayName: string): Promise<void> {
+  try {
+    // Get new display name from user
+    const newName = await window.showInputBox({
+      placeHolder: currentDisplayName,
+      prompt: 'Enter a new display name for this folder',
+      value: currentDisplayName
+    });
+
+    if (!newName || newName === currentDisplayName) {
+      return; // User canceled or no change
+    }
+
+    // Get current tree view configuration directly
+    const configuration = workspace.getConfiguration('codebook-md');
+
+    // Get the entire treeView object first, then work with it
+    const treeViewConfig: { folders?: config.TreeViewFolderEntry[]; } = configuration.get<{ folders?: config.TreeViewFolderEntry[]; }>('treeView') || { folders: [] };
+    const treeViewFolders = [...(treeViewConfig.folders || [])]; // Make a copy of the array or use empty array if undefined
+
+    // Find the folder entry by its path
+    const folderIndex = treeViewFolders.findIndex(f => f.folderPath === folderPath);
+
+    if (folderIndex === -1) {
+      // If the exact folder isn't found in the configuration, we need to add it
+      // This happens for folders that were automatically created by the hierarchy but not explicitly defined
+      treeViewFolders.push({
+        name: newName,
+        folderPath: folderPath
+      });
+      window.showInformationMessage(`Added folder with new name: ${newName}`);
+    } else {
+      // Update the existing folder's display name
+      treeViewFolders[folderIndex] = {
+        ...treeViewFolders[folderIndex],
+        name: newName
+      };
+      window.showInformationMessage(`Renamed folder to: ${newName}`);
+    }
+
+    // Create a completely new treeView object
+    const newTreeViewConfig = {
+      ...treeViewConfig,
+      folders: treeViewFolders
+    };
+
+    // Update the entire treeView object in the configuration
+    await configuration.update('treeView', newTreeViewConfig, true);
+  } catch (error) {
+    console.error('Error renaming folder:', error);
+    window.showErrorMessage(`Failed to rename folder: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// Add a file to a specific folder in the tree view
+async function addFileToTreeViewFolder(filePath: string, folderPath: string): Promise<void> {
+  try {
+    console.log(`Adding file ${filePath} to folder ${folderPath}`);
+
+    // Get display name from user
+    const fileName = path.basename(filePath);
+    const displayName = await window.showInputBox({
+      placeHolder: fileName,
+      prompt: 'Enter a display name for this markdown file',
+      value: fileName
+      .replace(/\.\w+$/, '') // Remove extension
+      .split(/[_\-\s]/) // Split by underscore, dash, or space
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize first letter of each word
+      .join(' ') // Join with spaces
+    });
+
+    if (!displayName) {
+      return; // User canceled
+    }
+
+    // Get current tree view configuration directly
+    const configuration = workspace.getConfiguration('codebook-md');
+
+    // Get the entire treeView object first, then work with it
+    const treeViewConfig: { folders: config.TreeViewFolderEntry[]; } =
+      configuration.get<{ folders: config.TreeViewFolderEntry[]; }>('treeView') || { folders: [] };
+    const treeViewFolders = [...treeViewConfig.folders]; // Make a copy of the array
+
+    // Find or create the target folder
+    let targetFolder = treeViewFolders.find(f => f.folderPath === folderPath);
+    if (!targetFolder) {
+      // Create new folder entry
+      targetFolder = {
+        name: folderPath.split('.').pop() || folderPath,
+        folderPath: folderPath,
+        files: []
+      };
+      treeViewFolders.push(targetFolder);
+    }
+
+    // Initialize files array if it doesn't exist
+    if (!targetFolder.files) {
+      targetFolder.files = [];
+    }
+
+    // Convert to relative path if possible
+    const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
+    let relativePath = filePath;
+    if (workspacePath && filePath.startsWith(workspacePath)) {
+      relativePath = path.relative(workspacePath, filePath);
+    }
+
+    // Check if file already exists in the folder
+    const existingIndex = targetFolder.files.findIndex(f =>
+      config.getFullPath(f.path, workspacePath) === filePath);
+
+    if (existingIndex >= 0) {
+      // Update existing file entry
+      targetFolder.files[existingIndex] = {
+        name: displayName,
+        path: relativePath
+      };
+      window.showInformationMessage(`Updated markdown file in folder: ${displayName}`);
+    } else {
+      // Add new file entry
+      targetFolder.files.push({
+        name: displayName,
+        path: relativePath
+      });
+      window.showInformationMessage(`Added markdown file to folder: ${displayName}`);
+    }
+
+    // Update the configuration
+    await configuration.update('treeView', { folders: treeViewFolders }, true);
+  } catch (error) {
+    console.error('Error adding file to folder:', error);
+    window.showErrorMessage(`Failed to add file to folder: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// Add a folder to tree view
+async function addFolderToTreeView(): Promise<void> {
+  try {
+    // Get folder name from user
+    const folderName = await window.showInputBox({
+      placeHolder: 'Animals',
+      prompt: 'Enter a display name for this folder',
+      value: ''
+    });
+
+    if (!folderName) {
+      return; // User canceled
+    }
+
+    // Get current tree view configuration directly
+    const configuration = workspace.getConfiguration('codebook-md');
+
+    // Get the entire treeView object first, then work with it
+    const treeViewConfig: { folders?: config.TreeViewFolderEntry[]; } = configuration.get<{ folders?: config.TreeViewFolderEntry[]; }>('treeView') || { folders: [] };
+    const treeViewFolders = [...(treeViewConfig.folders || [])]; // Make a copy of the array or use empty array if undefined
+
+    // Use folderName as both display name and path for top-level folder
+    const folderPath = folderName.toLowerCase();
+
+    // Check if folder already exists in tree view
+    const existingIndex = treeViewFolders.findIndex(f =>
+      f.folderPath === folderPath);
+
+    if (existingIndex >= 0) {
+      // If it exists, update the name
+      treeViewFolders[existingIndex] = {
+        ...treeViewFolders[existingIndex],
+        name: folderName
+      };
+      window.showInformationMessage(`Updated folder in tree view: ${folderName}`);
+    } else {
+      // Add to tree view folders
+      const newFolder: config.TreeViewFolderEntry = {
+        name: folderName,
+        folderPath: folderPath,
+        files: []
+      };
+
+      treeViewFolders.push(newFolder);
+      window.showInformationMessage(`Added folder to tree view: ${folderName}`);
+    }
+
+    // Create a completely new treeView object
+    const newTreeViewConfig = {
+      ...treeViewConfig,
+      folders: treeViewFolders
+    };
+
+    // Update the entire treeView object in the configuration
+    await configuration.update('treeView', newTreeViewConfig, true);
+  } catch (error) {
+    console.error('Error adding folder to tree view:', error);
+    window.showErrorMessage(`Failed to add folder to tree view: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// Add a sub-folder to an existing folder
+async function addSubFolder(parentFolderPath: string): Promise<void> {
+  try {
+    // Get the display name for the new sub-folder from user
+    const folderName = await window.showInputBox({
+      placeHolder: 'Sub-folder name',
+      prompt: 'Enter a display name for this sub-folder',
+      value: ''
+    });
+
+    if (!folderName) {
+      return; // User canceled
+    }
+
+    // Derive the full folder path from the parent folder path
+    const subFolderPath = parentFolderPath ? `${parentFolderPath}.${folderName.toLowerCase()}` : folderName.toLowerCase();
+
+    // Get current tree view configuration directly
+    const configuration = workspace.getConfiguration('codebook-md');
+
+    // Get the entire treeView object first, then work with it
+    const treeViewConfig: { folders?: config.TreeViewFolderEntry[]; } = configuration.get<{ folders?: config.TreeViewFolderEntry[]; }>('treeView') || { folders: [] };
+    const treeViewFolders = [...(treeViewConfig.folders || [])]; // Make a copy of the array or use empty array if undefined
+
+    // Check if folder already exists in tree view
+    const existingIndex = treeViewFolders.findIndex(f =>
+      f.folderPath === subFolderPath);
+
+    if (existingIndex >= 0) {
+      window.showWarningMessage(`A folder with path ${subFolderPath} already exists`);
+      return;
+    }
+
+    // Add to tree view folders
+    const newFolder: config.TreeViewFolderEntry = {
+      name: folderName,
+      folderPath: subFolderPath,
+    };
+
+    treeViewFolders.push(newFolder);
+    window.showInformationMessage(`Added sub-folder ${folderName} to ${parentFolderPath || 'root'}`);
+
+    // Create a completely new treeView object
+    const newTreeViewConfig = {
+      ...treeViewConfig,
+      folders: treeViewFolders
+    };
+
+    // Update the entire treeView object in the configuration
+    await configuration.update('treeView', newTreeViewConfig, true);
+  } catch (error) {
+    console.error('Error adding sub-folder:', error);
+    window.showErrorMessage(`Failed to add sub-folder: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// Represents a node in the tree view structure
+class TreeNode {
+  public readonly children: Map<string, TreeNode> = new Map();
+  public readonly files: MarkdownFileTreeItem[] = [];
+
+  constructor(public readonly name: string) { }
+
+  addChild(name: string): TreeNode {
+    if (!this.children.has(name)) {
+      this.children.set(name, new TreeNode(name));
+    }
+    return this.children.get(name)!;
+  }
+
+  addFile(item: MarkdownFileTreeItem): void {
+    this.files.push(item);
+  }
+
+  get isEmpty(): boolean {
+    return this.children.size === 0 && this.files.length === 0;
+  }
+}
+
+// Custom TreeItem class to hold markdown file data
+class MarkdownFileTreeItem extends TreeItem {
+  constructor(
+    public readonly label: string,
+    public readonly collapsibleState: TreeItemCollapsibleState,
+    public readonly entry?: config.TreeViewFileEntry,
+    public readonly contextValue: string = 'default'
+  ) {
+    super(label, collapsibleState);
+    this.contextValue = entry ? 'markdownFile' : this.contextValue;
+  }
+}
+
+// MarkdownFileTreeDataProvider implements TreeDataProvider and provides the data for the tree view
+class MarkdownFileTreeDataProvider implements TreeDataProvider<TreeItem> {
+  private _onDidChangeTreeData: EventEmitter<TreeItem | undefined | null | void> = new EventEmitter<TreeItem | undefined | null | void>();
+
+  readonly onDidChangeTreeData: Event<TreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
+
+  // Root node of the tree structure
+  private rootNode: TreeNode = new TreeNode('root');
+  // Flag to track if the tree structure has been built
+  private treeBuilt: boolean = false;
+  // Map to store custom folder configurations
+  private folderConfigs: Map<string, config.TreeViewFolderEntry> = new Map();
+
+  refresh(): void {
+    // Reset the tree built flag
+    this.treeBuilt = false;
+    // Reset root node 
+    this.rootNode = new TreeNode('root');
+    // Clear folder configs
+    this.folderConfigs.clear();
+    // Emit the event to notify VS Code that the tree data has changed
+    // Using undefined explicitly notifies all nodes to refresh
+    this._onDidChangeTreeData.fire(undefined);
+    console.log('Tree view refresh triggered with full rebuild');
+  }
+
+  private buildTreeStructure(): void {
+    console.log('Building tree structure');
+    // Clear current structure
+    this.rootNode = new TreeNode('root');
+    this.folderConfigs.clear();
+
+    // Get folders from configuration
+    const treeViewFolders = config.getTreeViewFolders();
+
+    // Process and store folder configurations
+    for (const folderEntry of treeViewFolders) {
+      const normalizedPath = config.normalizeFolderPath(folderEntry.folderPath);
+      this.folderConfigs.set(normalizedPath, folderEntry);
+
+      // Create the folder structure if it doesn't exist
+      // Skip hidden folders as they're only for hierarchy
+      if (!folderEntry.hide) {
+        const pathSegments = config.parseFolderPath(folderEntry.folderPath);
+        let currentNode = this.rootNode;
+        const pathSoFar: string[] = [];
+
+        // Build path through the tree
+        for (const segment of pathSegments) {
+          currentNode = currentNode.addChild(segment);
+          pathSoFar.push(segment);
+
+          // Store metadata for this path
+          const currentPath = pathSoFar.join('.');
+          if (!this.folderConfigs.has(currentPath)) {
+            // Store a default configuration for folders not explicitly configured
+            this.folderConfigs.set(currentPath, {
+              name: segment,
+              folderPath: currentPath
+            });
+          }
+        }
+
+        // Add files from this folder if any exist
+        if (folderEntry.files) {
+          const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
+
+          for (const fileEntry of folderEntry.files) {
+            const fullPath = config.getFullPath(fileEntry.path, workspacePath);
+            const fileExists = fs.existsSync(fullPath);
+
+            // Create a tree item for this file
+            const fileItem = new MarkdownFileTreeItem(fileEntry.name, TreeItemCollapsibleState.None, fileEntry);
+            fileItem.tooltip = fullPath;
+
+            if (fileExists) {
+              // Create a command to open the file
+              fileItem.command = {
+                command: 'codebook-md.openMarkdownFile',
+                title: 'Open Markdown File',
+                arguments: [fullPath]
+              };
+              fileItem.description = path.basename(fullPath);
+              // Use the markdown file icon instead of generic file icon
+              fileItem.iconPath = new ThemeIcon('markdown');
+            } else {
+              // If file doesn't exist, show an indication
+              fileItem.description = '(not found)';
+              fileItem.tooltip += ' - File not found';
+              fileItem.iconPath = new ThemeIcon('warning');
+            }
+
+            // Add the file to the leaf node
+            currentNode.addFile(fileItem);
+          }
+        }
+      }
+    }
+
+    // Mark tree as built
+    this.treeBuilt = true;
+  }
+
+  getTreeItem(element: TreeItem): TreeItem | Thenable<TreeItem> {
     return element;
   }
 
-  getChildren(element?: MyTreeItem): ProviderResult<MyTreeItem[]> {
-    if (element) {
-      // Return children of the given element
-      return [];
-    } else {
-      // Return root level elements, each 
-      // 1. collapsible
-      // 2. with a child element that is not collapsible, but is a link
-      const openSettingsCommand: Command = {
-        command: 'workbench.action.openSettings',
-        title: 'Open Settings',
-        arguments: ['@ext:josephbergevin.codebook-md']
-      };
-
-      return [
-        new MyTreeItem('Welcome to Codebook MD!', TreeItemCollapsibleState.Collapsed),
-        new MyTreeItem('Open CodebookMD Settings', TreeItemCollapsibleState.None, openSettingsCommand),
-      ];
+  getChildren(element?: TreeItem): ProviderResult<TreeItem[]> {
+    // If tree structure not built or a refresh has been triggered, rebuild it
+    if (!this.treeBuilt) {
+      this.buildTreeStructure();
     }
+
+    // If we're at the root level
+    if (!element) {
+      const items: TreeItem[] = [];
+
+      // Add Tree View Documentation section
+      const treeViewTitle = new MarkdownFileTreeItem('Welcome to Tree View', TreeItemCollapsibleState.Collapsed, undefined, 'documentation');
+      items.push(treeViewTitle);
+
+      // Add How-to Section
+      const howToSection = new MarkdownFileTreeItem('Tree View: Adding Folders and Files', TreeItemCollapsibleState.Collapsed, undefined, 'documentation');
+      items.push(howToSection);
+
+      // Add tree structure items - only top-level folders and files
+      for (const [name, childNode] of this.rootNode.children) {
+        const hasChildren = childNode.children.size > 0 || childNode.files.length > 0;
+
+        // Check if we have a custom configuration for this folder
+        const folderConfig = this.folderConfigs.get(name);
+
+        const folderItem = new MarkdownFileTreeItem(
+          folderConfig?.name || name, // Use customized name if available
+          hasChildren ? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.None,
+          undefined,
+          'folder'
+        );
+
+        // Set custom folder icon if specified, otherwise use default
+        if (folderConfig?.icon && fs.existsSync(folderConfig.icon)) {
+          folderItem.iconPath = Uri.file(folderConfig.icon);
+        } else {
+          folderItem.iconPath = ThemeIcon.Folder;
+        }
+
+        // Store folder path in description to track hierarchy
+        folderItem.description = name;
+        items.push(folderItem);
+      }
+
+      // Add direct root files if any
+      items.push(...this.rootNode.files);
+
+      return items;
+    }
+    // If we're looking at the main Tree View Folders section
+    else if (element.label === 'Welcome to Tree View') {
+      const items: TreeItem[] = [];
+
+      // Add sections
+      const description = new MarkdownFileTreeItem('Tree View', TreeItemCollapsibleState.None);
+      description.tooltip = 'Tree View';
+      description.description = 'Features:';
+      items.push(description);
+
+      // Add bullet points as separate items for better readability
+      const bulletPoints = [
+        'Organize .md files into virtual folders',
+        'Create custom folder hierarchies for easy navigation',
+        'Add frequently used notebooks to specific folders',
+        'Rename files and folders with custom display names',
+        'Access your important documents with one click'
+      ];
+
+      bulletPoints.forEach(point => {
+        const bulletItem = new MarkdownFileTreeItem(`• ${point}`, TreeItemCollapsibleState.None);
+        items.push(bulletItem);
+      });
+
+      return items;
+    }
+    // If we're looking at the How-to section
+    else if (element.label === 'Tree View: Adding Folders and Files') {
+      const items: TreeItem[] = [];
+
+      // Add sections
+      const description = new MarkdownFileTreeItem(
+        'The Tree View feature allows you to create virtual folders to organize your markdown files. ' +
+        'You can add files to these folders, making it easier to navigate and manage your workspace.',
+        TreeItemCollapsibleState.None
+      );
+      items.push(description);
+
+      // Virtual Folders section
+      const addFoldersSection = new MarkdownFileTreeItem('How to Add Virtual Folders', TreeItemCollapsibleState.None);
+      items.push(addFoldersSection);
+      items.push(new MarkdownFileTreeItem('1. Click on the New Folder icon above the Tree View.', TreeItemCollapsibleState.None));
+      items.push(new MarkdownFileTreeItem('2. Enter the display name of the folder.', TreeItemCollapsibleState.None));
+      items.push(new MarkdownFileTreeItem('   Example: "Animals"', TreeItemCollapsibleState.None));
+      items.push(new MarkdownFileTreeItem('3. The virtual folder will be added to the top-level of the Tree View.', TreeItemCollapsibleState.None));
+
+      // Sub-folders section
+      const subFoldersSection = new MarkdownFileTreeItem('How to add Sub-Folders', TreeItemCollapsibleState.None);
+      items.push(subFoldersSection);
+      items.push(new MarkdownFileTreeItem('1. Right-click on the folder you want to add a sub-folder to.', TreeItemCollapsibleState.None));
+      items.push(new MarkdownFileTreeItem('2. Select "Add Sub-Folder" from the context menu.', TreeItemCollapsibleState.None));
+      items.push(new MarkdownFileTreeItem('3. Enter the display name of the sub-folder.', TreeItemCollapsibleState.None));
+      items.push(new MarkdownFileTreeItem('   Example: "Dogs"', TreeItemCollapsibleState.None));
+      items.push(new MarkdownFileTreeItem('4. The sub-folder will be added to the selected folder in the Tree View.', TreeItemCollapsibleState.None));
+
+      // Add files section
+      const addFilesSection = new MarkdownFileTreeItem('How to Add Files to Folders', TreeItemCollapsibleState.None);
+      items.push(addFilesSection);
+      items.push(new MarkdownFileTreeItem('1. Right-click on the folder you want to add a file to.', TreeItemCollapsibleState.None));
+      items.push(new MarkdownFileTreeItem('2. Select "Add File" from the context menu.', TreeItemCollapsibleState.None));
+      items.push(new MarkdownFileTreeItem('3. Enter the display name of the file.', TreeItemCollapsibleState.None));
+      items.push(new MarkdownFileTreeItem('   Example: "Dog Breeds"', TreeItemCollapsibleState.None));
+      items.push(new MarkdownFileTreeItem('4. The file will be added to the selected folder in the Tree View.', TreeItemCollapsibleState.None));
+
+      return items;
+    }
+    // If we're looking at children of a folder item
+    else if ((element as MarkdownFileTreeItem).contextValue === 'folder') {
+      // Get the folder's path from its description
+      const folderPath = (element as MarkdownFileTreeItem).description as string;
+      // Find the node that matches this folder path
+      const node = this.findNodeByPath(folderPath);
+
+      if (!node) {
+        return [];
+      }
+
+      const items: TreeItem[] = [];
+
+      // Add child folders first
+      for (const [childName, childNode] of node.children) {
+        const hasChildren = childNode.children.size > 0 || childNode.files.length > 0;
+        const childPath = folderPath ? `${folderPath}.${childName}` : childName;
+
+        // Check if we have a custom configuration for this folder
+        const folderConfig = this.folderConfigs.get(childPath);
+
+        // Skip this folder if it's configured to be hidden
+        if (folderConfig?.hide) {
+          continue;
+        }
+
+        const folderItem = new MarkdownFileTreeItem(
+          folderConfig?.name || childName, // Use customized name if available
+          hasChildren ? TreeItemCollapsibleState.Expanded : TreeItemCollapsibleState.None,
+          undefined,
+          'folder'
+        );
+
+        // Set custom folder icon if specified, otherwise use default
+        if (folderConfig?.icon && fs.existsSync(folderConfig.icon)) {
+          folderItem.iconPath = Uri.file(folderConfig.icon);
+        } else {
+          folderItem.iconPath = ThemeIcon.Folder;
+        }
+
+        // Store full path in description to track hierarchy
+        folderItem.description = childPath;
+        items.push(folderItem);
+      }
+
+      // Then add files in this folder
+      items.push(...node.files);
+
+      return items;
+    }
+
+    return [];
   }
-}
 
-// MyTreeItem implements TreeItem and provides the data for each element in the tree view
-class MyTreeItem extends TreeItem {
-  constructor(
-    public readonly label: string,
-    public readonly collapsibleState: TreeItemCollapsibleState = TreeItemCollapsibleState.None,
-    public readonly command?: Command // Add this line
-  ) {
-    super(label, collapsibleState);
-    this.command = command; // And this line
+  // Helper function to find a node by its path
+  private findNodeByPath(fullPath?: string): TreeNode | undefined {
+    // If no path is provided, return the root
+    if (!fullPath || fullPath === 'root') {
+      return this.rootNode;
+    }
+
+    // Navigate through the tree structure using the path
+    const pathParts = fullPath.split('.');
+    let currentNode = this.rootNode;
+
+    for (const part of pathParts) {
+      if (!currentNode.children.has(part)) {
+        return undefined;
+      }
+      currentNode = currentNode.children.get(part)!;
+    }
+
+    return currentNode;
   }
-
-  iconPath = {
-    light: 'resources/light.svg',
-    dark: 'resources/dark.svg'
-  };
-
-  contextValue = 'myTreeItem';
 }
 
 // This method is called when your extension is deactivated
