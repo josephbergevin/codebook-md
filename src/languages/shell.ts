@@ -18,7 +18,11 @@ export class Cell implements codebook.ExecutableCell {
     this.innerScope = this.config.contentConfig.innerScope;
 
     this.executableCode = "";
-    // use io.parseCommands to get the commands and arguments from the innerScope
+
+    // Create a shell script that will run all commands sequentially
+    this.executableCode = "#!/bin/bash\nset -e\n\n";
+
+    // Get all commands from the inner scope
     const cmds = codebook.parseCommands(this.innerScope, this.config.execDir);
 
     // no commands found: notify a warning and return
@@ -30,8 +34,17 @@ export class Cell implements codebook.ExecutableCell {
     // Ensure the execution directory exists
     io.mkdirIfNotExistsSafe(this.config.execDir);
 
-    // get the first command and arguments
-    this.mainExecutable = cmds[0];
+    // Create the full script content with all commands
+    cmds.forEach(cmd => {
+      // Add command to script without wait output
+      this.executableCode += `${cmd.command} ${cmd.args.map(arg => `"${arg}"`).join(' ')}\n`;
+    });
+
+    // Set the main executable to run our script
+    this.mainExecutable = new codebook.Command("bash", ["-c", this.executableCode], this.config.execDir);
+
+    // Set a clean display of the commands for output
+    this.mainExecutable.setCommandToDisplay(this.innerScope.trim());
 
     // Override the working directory if it doesn't exist
     if (!existsSync(this.mainExecutable.cwd)) {
@@ -42,19 +55,6 @@ export class Cell implements codebook.ExecutableCell {
         this.config.execDir
       );
     }
-
-    if (cmds.length === 1) {
-      return;
-    }
-
-    // if there are more commands, add them to the postExecutables with the same directory handling
-    const additionalCmds = cmds.slice(1);
-    additionalCmds.forEach(cmd => {
-      if (!existsSync(cmd.cwd)) {
-        cmd = new codebook.Command(cmd.command, cmd.args, this.config.execDir);
-      }
-      this.postExecutables.push(cmd);
-    });
   }
 
   contentCellConfig(): codebook.CellContentConfig {
@@ -69,9 +69,9 @@ export class Cell implements codebook.ExecutableCell {
     return this.mainExecutable.execute();
   }
 
-  // executables returns the mainExecutable and postExecutables
   executables(): codebook.Executable[] {
-    return [this.mainExecutable, ...this.postExecutables];
+    // All commands are now part of a single script execution
+    return [this.mainExecutable];
   }
 }
 

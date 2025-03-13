@@ -71,12 +71,11 @@ export class Kernel {
 
     for (const executable of codebookCell.executables()) {
       try {
-        displayOutput = await runExecutable(token, executable, displayOutput, outputConfig.showExecutableCodeInOutput);
+        displayOutput = await runExecutable(token, executable, displayOutput, outputConfig.showExecutableCodeInOutput, cellExec);
         displayOutput += "\n";
-        await displayOutputAsync(cellExec, displayOutput, outputConfig.replaceOutputCell);
       } catch (error) {
         console.error(`error running executable: ${error}`);
-        await displayOutputAsync(cellExec, displayOutput + error, outputConfig.replaceOutputCell);
+        await displayOutputAsync(cellExec, displayOutput + error, true);
         break;
       }
     }
@@ -97,77 +96,60 @@ async function displayOutputAsync(cellExec: NotebookCellExecution, displayOutput
   });
 }
 
-async function runExecutable(token: CancellationToken, executable: codebook.Executable, displayOutput: string, showExecutableCodeInOutput: boolean): Promise<string> {
+async function runExecutable(
+  token: CancellationToken,
+  executable: codebook.Executable,
+  displayOutput: string,
+  showExecutableCodeInOutput: boolean,
+  cellExec: NotebookCellExecution
+): Promise<string> {
   return new Promise((resolve, reject) => {
     if (showExecutableCodeInOutput) {
       displayOutput += executable.toString() + "\n";
+      displayOutputAsync(cellExec, displayOutput, true);
     }
 
-    // run the code and directly assign output
     const output = executable.execute();
 
-    // now there's an output stream, kill that as well on cancel request
     token.onCancellationRequested(() => {
       output.kill();
       reject("Execution cancelled");
     });
 
     let errorText = "";
+    let fullOutput = displayOutput;
 
     output.stderr.on("data", (data: Uint8Array) => {
-      errorText = data.toString();
-      if (errorText === "") {
-        errorText = "An error occurred - no error text was returned.";
-        console.error("error text is empty");
-      }
-      resolve(displayOutput + errorText);
+      const text = data.toString();
+      errorText += text;
+      // Show stderr in real-time too
+      fullOutput += text;
+      displayOutputAsync(cellExec, fullOutput, true);
     });
 
-    output.on("close", () => {
-      resolve(displayOutput);
+    output.stdout.on("data", (data: Uint8Array) => {
+      const text = data.toString();
+      fullOutput += text;
+      // Update output in real-time
+      displayOutputAsync(cellExec, fullOutput, true);
+    });
+
+    output.on("close", (code) => {
+      // Add any final error text if there was a non-zero exit code
+      if (code !== 0 && errorText) {
+        fullOutput += errorText;
+        displayOutputAsync(cellExec, fullOutput, true);
+      }
+      resolve(fullOutput);
     });
 
     output.on("error", (err) => {
       console.error(`executable errored: ${err}`);
-      // spawn echo ENOENT
-      // if the error contains "spawn" or "ENOENT", it's likely it just needs to be tried again
       if (err.toString().includes("spawn") || err.toString().includes("ENOENT")) {
         reject("something went wrong - please try your request again");
       } else {
         reject(`executable errored: ${err}`);
       }
-    });
-
-
-
-    let buf = Buffer.from([]);
-    const decoder = new TextDecoder;
-
-    output.stdout.on("data", (data: Uint8Array) => {
-      const arr = [buf, data];
-      buf = Buffer.concat(arr);
-      // get the entire output of the cell
-      const fullCommandOutput = decoder.decode(buf);
-      let commandOutput = fullCommandOutput;
-
-      // if the commandOutput contains the start cell marker, remove everything before it
-      const startIndex = commandOutput.indexOf(codebook.StartOutput);
-      if (startIndex !== -1) {
-        commandOutput = commandOutput.slice(startIndex + codebook.StartOutput.length + 1);
-      }
-
-      // if the commandOutput contains the end cell marker, remove everything after it
-      const endIndex = commandOutput.indexOf(codebook.EndOutput);
-      if (endIndex !== -1) {
-        commandOutput = commandOutput.slice(0, endIndex);
-      }
-
-      // log out if the commandOutput is different from the fullOutput
-      if (commandOutput !== fullCommandOutput) {
-        console.log(`commandOutput: ${commandOutput} | fullOutput: ${fullCommandOutput}`);
-      }
-
-      resolve(displayOutput + commandOutput);
     });
   });
 }
