@@ -81,14 +81,31 @@ export class Command implements Executable {
   // execute fulfills the codebook.Executable interface
   execute(): ChildProcessWithoutNullStreams {
     // execute the beforeExecuteFuncs and wait for them to finish before executing the command
-    this.beforeExecuteFuncs.forEach(func => func());
-    console.log(`executing command: ${this.command} ${this.args.join(' ')}`);
-    // ensure the cwd exists before executing the command - if not, post an error message and return early
-    if (!fs.existsSync(this.cwd)) {
-      window.showErrorMessage(`Error: directory does not exist: ${this.cwd}`);
-      return io.spawnSafe("echo", [`error: directory does not exist: ${this.cwd}`], { cwd: "." });
+    try {
+      this.beforeExecuteFuncs.forEach(func => func());
+    } catch (error) {
+      console.error(`Error in beforeExecuteFuncs: ${error}`);
+      window.showErrorMessage(`Error preparing command execution: ${error}`);
+      return io.spawnSafe("echo", [`Error preparing command execution: ${error}`], { cwd: "." });
     }
-    return io.spawnSafe(this.command, this.args, { cwd: this.cwd });
+
+    console.log(`executing command: ${this.command} ${this.args.join(' ')}`);
+
+    // Ensure the working directory exists
+    if (!fs.existsSync(this.cwd)) {
+      const error = `Error: directory does not exist: ${this.cwd}`;
+      console.error(error);
+      window.showErrorMessage(error);
+      return io.spawnSafe("echo", [error], { cwd: "." });
+    }
+
+    try {
+      return io.spawnSafe(this.command, this.args, { cwd: this.cwd });
+    } catch (error) {
+      console.error(`Error executing command: ${error}`);
+      window.showErrorMessage(`Error executing command: ${error}`);
+      return io.spawnSafe("echo", [`Error executing command: ${error}`], { cwd: "." });
+    }
   }
 
   // jsonStringify returns the JSON string representation of the Command object
