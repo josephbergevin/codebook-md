@@ -82,7 +82,14 @@ export class Config {
 
   constructor(bashConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell | undefined) {
     this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-md.bash.output'), "#");
-    this.execDir = config.getTempPath();
+    // First try to get the configured root path, then fall back to workspace folder
+    const rootPath = workspace.getConfiguration('codebook-md').get<string>('rootPath');
+    const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath;
+
+    // If rootPath is '${workspaceFolder}', use the actual workspace folder path
+    this.execDir = (rootPath === '${workspaceFolder}' ? workspaceFolder : rootPath) ||
+      workspaceFolder ||
+      config.getTempPath();
     this.execFile = path.join(this.execDir, bashConfig?.get('execFilename') || 'codebook_md_exec.sh');
     this.execSingleLineAsCommand = bashConfig?.get('execSingleLineAsCommand') || false;
   }
