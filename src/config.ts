@@ -1,5 +1,6 @@
 import { window, workspace } from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
 
 const config = workspace.getConfiguration('codebook-md');
 
@@ -63,11 +64,45 @@ export function getTempPath(): string {
 }
 
 // getTreeViewFolders is a convenience function to get the tree view folders from the configuration
-// Always reads directly from the configuration to avoid caching issues
+// Merges settings from both user and workspace configurations
 export function getTreeViewFolders(): TreeViewFolderEntry[] {
-  // Always get fresh configuration data
-  const freshConfig = workspace.getConfiguration('codebook-md');
-  return freshConfig.get<TreeViewFolderEntry[]>('treeView.folders', []);
+  // Get user settings
+  const userConfig = workspace.getConfiguration('codebook-md', null);
+  const userFolders = userConfig.get<TreeViewFolderEntry[]>('treeView.folders', []);
+
+  // Get workspace settings
+  const workspaceConfig = workspace.getConfiguration('codebook-md', workspace.workspaceFolders?.[0].uri);
+  const workspaceFolders = workspaceConfig.get<TreeViewFolderEntry[]>('treeView.folders', []);
+
+  // Get .vscode/settings.json settings if it exists
+  const vscodeSettings = readVSCodeSettings();
+  const vscodeFolders = vscodeSettings['codebook-md.treeView']?.folders || [];
+
+  // Merge folders from all sources, workspace settings takes precedence over user settings
+  // .vscode/settings.json takes precedence over workspace settings
+  const mergedFolders = [...userFolders];
+
+  // Merge workspace folders
+  for (const wsFolder of workspaceFolders) {
+    const existingIndex = mergedFolders.findIndex(f => f.folderPath === wsFolder.folderPath);
+    if (existingIndex >= 0) {
+      mergedFolders[existingIndex] = { ...mergedFolders[existingIndex], ...wsFolder };
+    } else {
+      mergedFolders.push(wsFolder);
+    }
+  }
+
+  // Merge .vscode/settings.json folders
+  for (const vsFolder of vscodeFolders) {
+    const existingIndex = mergedFolders.findIndex(f => f.folderPath === vsFolder.folderPath);
+    if (existingIndex >= 0) {
+      mergedFolders[existingIndex] = { ...mergedFolders[existingIndex], ...vsFolder };
+    } else {
+      mergedFolders.push(vsFolder);
+    }
+  }
+
+  return mergedFolders;
 }
 
 // normalizeFolderPath standardizes the folderPath format by converting slashes to dots
@@ -109,4 +144,66 @@ export function getFullPath(filePath: string, workspacePath: string): string {
     return filePath;
   }
   return path.resolve(workspacePath, filePath);
+}
+
+// Type for VS Code settings
+interface VSCodeSettings {
+  'codebook-md.treeView'?: {
+    folders: TreeViewFolderEntry[];
+  };
+  [key: string]: unknown;
+}
+
+// Helper function to read .vscode/settings.json
+export function readVSCodeSettings(): VSCodeSettings {
+  const vscodeSettingsPath = workspace.workspaceFolders?.[0]
+    ? path.join(workspace.workspaceFolders[0].uri.fsPath, '.vscode', 'settings.json')
+    : null;
+
+  if (!vscodeSettingsPath) {
+    return {};
+  }
+
+  try {
+    if (!fs.existsSync(vscodeSettingsPath)) {
+      return {};
+    }
+    return JSON.parse(fs.readFileSync(vscodeSettingsPath, 'utf8'));
+  } catch (error) {
+    console.error('Error reading .vscode/settings.json:', error);
+    return {};
+  }
+}
+
+// Helper function to write to .vscode/settings.json
+export function writeVSCodeSettings(settings: VSCodeSettings): void {
+  const vscodeSettingsPath = workspace.workspaceFolders?.[0]
+    ? path.join(workspace.workspaceFolders[0].uri.fsPath, '.vscode', 'settings.json')
+    : null;
+
+  if (!vscodeSettingsPath) {
+    throw new Error('No workspace folder found');
+  }
+
+  try {
+    // Create .vscode directory if it doesn't exist
+    const vscodeDirPath = path.dirname(vscodeSettingsPath);
+    if (!fs.existsSync(vscodeDirPath)) {
+      fs.mkdirSync(vscodeDirPath, { recursive: true });
+    }
+
+    // Format the JSON with 2 spaces indentation
+    const content = JSON.stringify(settings, null, 2);
+    fs.writeFileSync(vscodeSettingsPath, content, 'utf8');
+  } catch (error) {
+    console.error('Error writing .vscode/settings.json:', error);
+    throw error;
+  }
+}
+
+// Helper function to update tree view settings in .vscode/settings.json
+export function updateTreeViewSettings(folders: TreeViewFolderEntry[]): void {
+  const settings = readVSCodeSettings();
+  settings['codebook-md.treeView'] = { folders };
+  writeVSCodeSettings(settings);
 }
