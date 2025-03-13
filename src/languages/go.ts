@@ -1,5 +1,5 @@
 import { ChildProcessWithoutNullStreams } from "child_process";
-import { readFile, writeFileSync } from "fs";
+import { readFile, writeFileSync, existsSync } from "fs";
 import * as path from "path";
 import { join } from "path";
 import { workspace, window, WorkspaceConfiguration, NotebookCell } from "vscode";
@@ -153,6 +153,12 @@ export class Cell implements codebook.ExecutableCell {
 
       // create the directory and main file
       io.writeDirAndFileSyncSafe(this.config.execDir, this.config.execFile, this.executableCode);
+
+      // Initialize go.mod if it doesn't exist
+      const goModPath = path.join(this.config.execDir, 'go.mod');
+      if (!existsSync(goModPath)) {
+        io.spawnSyncSafe('go', ['mod', 'init', 'example.com/codebook'], { cwd: this.config.execDir });
+      }
 
       // run goimports on the file
       if (this.config.useGoimports) {
