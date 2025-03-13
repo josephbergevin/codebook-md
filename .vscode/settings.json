@@ -84,8 +84,8 @@
         "folderPath": "ci-cd",
         "files": [
           {
-            "name": "ReadMe",
-            "path": "/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/tooling/README.md"
+            "name": "Tooling",
+            "path": "/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/tooling/tooling.md"
           }
         ]
       },
