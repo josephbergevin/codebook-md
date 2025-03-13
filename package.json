@@ -620,5 +620,5 @@
   "engines": {
     "vscode": "^1.88.0"
   },
-  "type": "module"
+  "type": "commonjs"
 }
