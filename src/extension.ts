@@ -229,6 +229,13 @@ export function activate(context: ExtensionContext) {
     }
   }));
 
+  // Watch for changes in .vscode/settings.json
+  const settingsWatcher = workspace.createFileSystemWatcher('**/.vscode/settings.json');
+  settingsWatcher.onDidChange(() => treeDataProvider.refresh());
+  settingsWatcher.onDidCreate(() => treeDataProvider.refresh());
+  settingsWatcher.onDidDelete(() => treeDataProvider.refresh());
+  context.subscriptions.push(settingsWatcher);
+
   // Listen for file changes in the workspace to update the tree view
   const watcher = workspace.createFileSystemWatcher('**/*.md');
 
@@ -287,154 +294,6 @@ export function activate(context: ExtensionContext) {
   context.subscriptions.push(disposable);
 }
 
-// Remove a file from tree view
-async function removeFileFromTreeView(entry: config.TreeViewFileEntry): Promise<void> {
-  try {
-    console.log(`Removing file ${entry.name} from tree view`);
-
-    // Get current tree view configuration directly
-    const configuration = workspace.getConfiguration('codebook-md');
-
-    // Get the entire treeView object first, then work with it
-    const treeViewConfig: { folders: config.TreeViewFolderEntry[]; } =
-      configuration.get<{ folders: config.TreeViewFolderEntry[]; }>('treeView') || { folders: [] };
-    const treeViewFolders = [...treeViewConfig.folders]; // Make a copy of the array
-
-    // Find the folder containing the file
-    const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
-    let fileRemoved = false;
-
-    for (const folder of treeViewFolders) {
-      if (!folder.files) continue;
-
-      const fileIndex = folder.files.findIndex(f =>
-        f.name === entry.name && config.getFullPath(f.path, workspacePath) === config.getFullPath(entry.path, workspacePath));
-
-      if (fileIndex !== -1) {
-        // Remove the file from the folder
-        folder.files.splice(fileIndex, 1);
-        fileRemoved = true;
-        break;
-      }
-    }
-
-    if (!fileRemoved) {
-      window.showWarningMessage('File not found in tree view');
-      return;
-    }
-
-    // Update the configuration
-    await configuration.update('treeView', { folders: treeViewFolders }, true);
-    window.showInformationMessage(`Removed ${entry.name} from tree view`);
-  } catch (error) {
-    console.error('Error removing file from tree view:', error);
-    window.showErrorMessage(`Failed to remove file from tree view: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
-// Rename a file in the tree view
-async function renameTreeViewFile(entry: config.TreeViewFileEntry, newName: string): Promise<void> {
-  try {
-    console.log(`Renaming file from "${entry.name}" to "${newName}"`);
-
-    // Get current tree view configuration directly
-    const configuration = workspace.getConfiguration('codebook-md');
-
-    // Get the entire treeView object first, then work with it
-    const treeViewConfig: { folders: config.TreeViewFolderEntry[]; } =
-      configuration.get<{ folders: config.TreeViewFolderEntry[]; }>('treeView') || { folders: [] };
-    const treeViewFolders = [...treeViewConfig.folders]; // Make a copy of the array
-
-    // Find the file in its folder and rename it
-    const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
-    let fileRenamed = false;
-
-    for (const folder of treeViewFolders) {
-      if (!folder.files) continue;
-
-      const fileIndex = folder.files.findIndex(f =>
-        f.name === entry.name && config.getFullPath(f.path, workspacePath) === config.getFullPath(entry.path, workspacePath));
-
-      if (fileIndex !== -1) {
-        // Rename the file in its folder
-        folder.files[fileIndex] = {
-          ...folder.files[fileIndex],
-          name: newName
-        };
-        fileRenamed = true;
-        break;
-      }
-    }
-
-    if (!fileRenamed) {
-      window.showWarningMessage('File not found in tree view');
-      return;
-    }
-
-    // Update the configuration
-    await configuration.update('treeView', { folders: treeViewFolders }, true);
-    window.showInformationMessage(`Renamed file to: ${newName}`);
-  } catch (error) {
-    console.error('Error renaming file in tree view:', error);
-    window.showErrorMessage(`Failed to rename file: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
-// Rename the display name of a folder in the tree view
-async function renameFolderDisplay(folderPath: string, currentDisplayName: string): Promise<void> {
-  try {
-    // Get new display name from user
-    const newName = await window.showInputBox({
-      placeHolder: currentDisplayName,
-      prompt: 'Enter a new display name for this folder',
-      value: currentDisplayName
-    });
-
-    if (!newName || newName === currentDisplayName) {
-      return; // User canceled or no change
-    }
-
-    // Get current tree view configuration directly
-    const configuration = workspace.getConfiguration('codebook-md');
-
-    // Get the entire treeView object first, then work with it
-    const treeViewConfig: { folders?: config.TreeViewFolderEntry[]; } = configuration.get<{ folders?: config.TreeViewFolderEntry[]; }>('treeView') || { folders: [] };
-    const treeViewFolders = [...(treeViewConfig.folders || [])]; // Make a copy of the array or use empty array if undefined
-
-    // Find the folder entry by its path
-    const folderIndex = treeViewFolders.findIndex(f => f.folderPath === folderPath);
-
-    if (folderIndex === -1) {
-      // If the exact folder isn't found in the configuration, we need to add it
-      // This happens for folders that were automatically created by the hierarchy but not explicitly defined
-      treeViewFolders.push({
-        name: newName,
-        folderPath: folderPath
-      });
-      window.showInformationMessage(`Added folder with new name: ${newName}`);
-    } else {
-      // Update the existing folder's display name
-      treeViewFolders[folderIndex] = {
-        ...treeViewFolders[folderIndex],
-        name: newName
-      };
-      window.showInformationMessage(`Renamed folder to: ${newName}`);
-    }
-
-    // Create a completely new treeView object
-    const newTreeViewConfig = {
-      ...treeViewConfig,
-      folders: treeViewFolders
-    };
-
-    // Update the entire treeView object in the configuration
-    await configuration.update('treeView', newTreeViewConfig, true);
-  } catch (error) {
-    console.error('Error renaming folder:', error);
-    window.showErrorMessage(`Failed to rename folder: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
 // Add a file to a specific folder in the tree view
 async function addFileToTreeViewFolder(filePath: string, folderPath: string): Promise<void> {
   try {
@@ -446,23 +305,18 @@ async function addFileToTreeViewFolder(filePath: string, folderPath: string): Pr
       placeHolder: fileName,
       prompt: 'Enter a display name for this markdown file',
       value: fileName
-      .replace(/\.\w+$/, '') // Remove extension
-      .split(/[_\-\s]/) // Split by underscore, dash, or space
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize first letter of each word
-      .join(' ') // Join with spaces
+        .replace(/\.\w+$/, '') // Remove extension
+        .split(/[_\-\s]/) // Split by underscore, dash, or space
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize first letter of each word
+        .join(' ') // Join with spaces
     });
 
     if (!displayName) {
       return; // User canceled
     }
 
-    // Get current tree view configuration directly
-    const configuration = workspace.getConfiguration('codebook-md');
-
-    // Get the entire treeView object first, then work with it
-    const treeViewConfig: { folders: config.TreeViewFolderEntry[]; } =
-      configuration.get<{ folders: config.TreeViewFolderEntry[]; }>('treeView') || { folders: [] };
-    const treeViewFolders = [...treeViewConfig.folders]; // Make a copy of the array
+    // Get current folders from .vscode/settings.json
+    const treeViewFolders = config.getTreeViewFolders();
 
     // Find or create the target folder
     let targetFolder = treeViewFolders.find(f => f.folderPath === folderPath);
@@ -508,8 +362,8 @@ async function addFileToTreeViewFolder(filePath: string, folderPath: string): Pr
       window.showInformationMessage(`Added markdown file to folder: ${displayName}`);
     }
 
-    // Update the configuration
-    await configuration.update('treeView', { folders: treeViewFolders }, true);
+    // Update settings
+    config.updateTreeViewSettings(treeViewFolders);
   } catch (error) {
     console.error('Error adding file to folder:', error);
     window.showErrorMessage(`Failed to add file to folder: ${error instanceof Error ? error.message : String(error)}`);
@@ -530,17 +384,13 @@ async function addFolderToTreeView(): Promise<void> {
       return; // User canceled
     }
 
-    // Get current tree view configuration directly
-    const configuration = workspace.getConfiguration('codebook-md');
-
-    // Get the entire treeView object first, then work with it
-    const treeViewConfig: { folders?: config.TreeViewFolderEntry[]; } = configuration.get<{ folders?: config.TreeViewFolderEntry[]; }>('treeView') || { folders: [] };
-    const treeViewFolders = [...(treeViewConfig.folders || [])]; // Make a copy of the array or use empty array if undefined
+    // Get current folders from .vscode/settings.json
+    const treeViewFolders = config.getTreeViewFolders();
 
     // Use folderName as both display name and path for top-level folder
     const folderPath = folderName.toLowerCase();
 
-    // Check if folder already exists in tree view
+    // Check if folder already exists
     const existingIndex = treeViewFolders.findIndex(f =>
       f.folderPath === folderPath);
 
@@ -552,7 +402,7 @@ async function addFolderToTreeView(): Promise<void> {
       };
       window.showInformationMessage(`Updated folder in tree view: ${folderName}`);
     } else {
-      // Add to tree view folders
+      // Add new folder
       const newFolder: config.TreeViewFolderEntry = {
         name: folderName,
         folderPath: folderPath,
@@ -563,14 +413,8 @@ async function addFolderToTreeView(): Promise<void> {
       window.showInformationMessage(`Added folder to tree view: ${folderName}`);
     }
 
-    // Create a completely new treeView object
-    const newTreeViewConfig = {
-      ...treeViewConfig,
-      folders: treeViewFolders
-    };
-
-    // Update the entire treeView object in the configuration
-    await configuration.update('treeView', newTreeViewConfig, true);
+    // Update settings
+    config.updateTreeViewSettings(treeViewFolders);
   } catch (error) {
     console.error('Error adding folder to tree view:', error);
     window.showErrorMessage(`Failed to add folder to tree view: ${error instanceof Error ? error.message : String(error)}`);
@@ -594,14 +438,10 @@ async function addSubFolder(parentFolderPath: string): Promise<void> {
     // Derive the full folder path from the parent folder path
     const subFolderPath = parentFolderPath ? `${parentFolderPath}.${folderName.toLowerCase()}` : folderName.toLowerCase();
 
-    // Get current tree view configuration directly
-    const configuration = workspace.getConfiguration('codebook-md');
+    // Get current folders from .vscode/settings.json
+    const treeViewFolders = config.getTreeViewFolders();
 
-    // Get the entire treeView object first, then work with it
-    const treeViewConfig: { folders?: config.TreeViewFolderEntry[]; } = configuration.get<{ folders?: config.TreeViewFolderEntry[]; }>('treeView') || { folders: [] };
-    const treeViewFolders = [...(treeViewConfig.folders || [])]; // Make a copy of the array or use empty array if undefined
-
-    // Check if folder already exists in tree view
+    // Check if folder already exists
     const existingIndex = treeViewFolders.findIndex(f =>
       f.folderPath === subFolderPath);
 
@@ -610,26 +450,150 @@ async function addSubFolder(parentFolderPath: string): Promise<void> {
       return;
     }
 
-    // Add to tree view folders
+    // Add new sub-folder
     const newFolder: config.TreeViewFolderEntry = {
       name: folderName,
       folderPath: subFolderPath,
+      files: []
     };
 
     treeViewFolders.push(newFolder);
     window.showInformationMessage(`Added sub-folder ${folderName} to ${parentFolderPath || 'root'}`);
 
-    // Create a completely new treeView object
-    const newTreeViewConfig = {
-      ...treeViewConfig,
-      folders: treeViewFolders
-    };
-
-    // Update the entire treeView object in the configuration
-    await configuration.update('treeView', newTreeViewConfig, true);
+    // Update settings
+    config.updateTreeViewSettings(treeViewFolders);
   } catch (error) {
     console.error('Error adding sub-folder:', error);
     window.showErrorMessage(`Failed to add sub-folder: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// Remove a file from tree view
+async function removeFileFromTreeView(entry: config.TreeViewFileEntry): Promise<void> {
+  try {
+    console.log(`Removing file ${entry.name} from tree view`);
+
+    // Get current folders from .vscode/settings.json
+    const treeViewFolders = config.getTreeViewFolders();
+
+    // Find the folder containing the file
+    const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
+    let fileRemoved = false;
+
+    for (const folder of treeViewFolders) {
+      if (!folder.files) continue;
+
+      const fileIndex = folder.files.findIndex(f =>
+        f.name === entry.name && config.getFullPath(f.path, workspacePath) === config.getFullPath(entry.path, workspacePath));
+
+      if (fileIndex !== -1) {
+        // Remove the file from the folder
+        folder.files.splice(fileIndex, 1);
+        fileRemoved = true;
+        break;
+      }
+    }
+
+    if (!fileRemoved) {
+      window.showWarningMessage('File not found in tree view');
+      return;
+    }
+
+    // Update settings
+    config.updateTreeViewSettings(treeViewFolders);
+    window.showInformationMessage(`Removed ${entry.name} from tree view`);
+  } catch (error) {
+    console.error('Error removing file from tree view:', error);
+    window.showErrorMessage(`Failed to remove file from tree view: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// Rename the display name of a folder in the tree view
+async function renameFolderDisplay(folderPath: string, currentDisplayName: string): Promise<void> {
+  try {
+    // Get new display name from user
+    const newName = await window.showInputBox({
+      placeHolder: currentDisplayName,
+      prompt: 'Enter a new display name for this folder',
+      value: currentDisplayName
+    });
+
+    if (!newName || newName === currentDisplayName) {
+      return; // User canceled or no change
+    }
+
+    // Get current folders from .vscode/settings.json
+    const treeViewFolders = config.getTreeViewFolders();
+
+    // Find the folder entry by its path
+    const folderIndex = treeViewFolders.findIndex(f => f.folderPath === folderPath);
+
+    if (folderIndex === -1) {
+      // If the exact folder isn't found in the configuration, we need to add it
+      // This happens for folders that were automatically created by the hierarchy but not explicitly defined
+      treeViewFolders.push({
+        name: newName,
+        folderPath: folderPath,
+        files: []
+      });
+      window.showInformationMessage(`Added folder with new name: ${newName}`);
+    } else {
+      // Update the existing folder's display name
+      treeViewFolders[folderIndex] = {
+        ...treeViewFolders[folderIndex],
+        name: newName
+      };
+      window.showInformationMessage(`Renamed folder to: ${newName}`);
+    }
+
+    // Update settings
+    config.updateTreeViewSettings(treeViewFolders);
+  } catch (error) {
+    console.error('Error renaming folder:', error);
+    window.showErrorMessage(`Failed to rename folder: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// Rename a file in the tree view
+async function renameTreeViewFile(entry: config.TreeViewFileEntry, newName: string): Promise<void> {
+  try {
+    console.log(`Renaming file from "${entry.name}" to "${newName}"`);
+
+    // Get current folders from .vscode/settings.json
+    const treeViewFolders = config.getTreeViewFolders();
+
+    // Find the file in its folder and rename it
+    const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
+    let fileRenamed = false;
+
+    for (const folder of treeViewFolders) {
+      if (!folder.files) continue;
+
+      const fileIndex = folder.files.findIndex(f =>
+        f.name === entry.name && config.getFullPath(f.path, workspacePath) === config.getFullPath(entry.path, workspacePath));
+
+      if (fileIndex !== -1) {
+        // Rename the file in its folder
+        folder.files[fileIndex] = {
+          ...folder.files[fileIndex],
+          name: newName
+        };
+        fileRenamed = true;
+        break;
+      }
+    }
+
+    if (!fileRenamed) {
+      window.showWarningMessage('File not found in tree view');
+      return;
+    }
+
+    // Update settings
+    config.updateTreeViewSettings(treeViewFolders);
+    window.showInformationMessage(`Renamed file to: ${newName}`);
+  } catch (error) {
+    console.error('Error renaming file in tree view:', error);
+    window.showErrorMessage(`Failed to rename file: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
