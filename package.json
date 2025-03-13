@@ -476,6 +476,11 @@
       {
         "command": "codebook-md.renameFolderDisplay",
         "title": "Rename Folder"
+      },
+      {
+        "command": "codebook-md.removeFolderFromTreeView",
+        "title": "Remove Folder",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -519,6 +524,11 @@
         },
         {
           "command": "codebook-md.renameFolderDisplay",
+          "when": "view == codebook-md-view && viewItem == folder",
+          "group": "1_modification"
+        },
+        {
+          "command": "codebook-md.removeFolderFromTreeView",
           "when": "view == codebook-md-view && viewItem == folder",
           "group": "1_modification"
         }
