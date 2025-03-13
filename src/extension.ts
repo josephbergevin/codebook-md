@@ -292,6 +292,31 @@ export function activate(context: ExtensionContext) {
     treeDataProvider.refresh(); // Refresh the view to show the change
   });
   context.subscriptions.push(disposable);
+
+  // Command: Remove folder from tree view
+  disposable = commands.registerCommand('codebook-md.removeFolderFromTreeView', async (item: MarkdownFileTreeItem) => {
+    const folderPath = item.description as string;
+    if (!folderPath) {
+      window.showErrorMessage('Invalid folder path');
+      return;
+    }
+
+    // Ask for confirmation before removing
+    const answer = await window.showWarningMessage(
+      `Are you sure you want to remove the folder "${item.label}" and all its contents from the tree view?`,
+      { modal: true },
+      'Yes',
+      'No'
+    );
+
+    if (answer !== 'Yes') {
+      return;
+    }
+
+    await removeFolderFromTreeView(folderPath);
+    treeDataProvider.refresh();
+  });
+  context.subscriptions.push(disposable);
 }
 
 // Add a file to a specific folder in the tree view
@@ -594,6 +619,35 @@ async function renameTreeViewFile(entry: config.TreeViewFileEntry, newName: stri
   } catch (error) {
     console.error('Error renaming file in tree view:', error);
     window.showErrorMessage(`Failed to rename file: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// Remove a folder from tree view
+async function removeFolderFromTreeView(folderPath: string): Promise<void> {
+  try {
+    console.log(`Removing folder ${folderPath} from tree view`);
+
+    // Get current folders from .vscode/settings.json
+    const treeViewFolders = config.getTreeViewFolders();
+
+    // Find and remove the folder and any sub-folders
+    const foldersToKeep = treeViewFolders.filter(folder => {
+      const normalizedPath = config.normalizeFolderPath(folder.folderPath);
+      // Remove if it matches exactly or is a sub-folder
+      return !(normalizedPath === folderPath || normalizedPath.startsWith(folderPath + '.'));
+    });
+
+    if (foldersToKeep.length === treeViewFolders.length) {
+      window.showWarningMessage('Folder not found in tree view');
+      return;
+    }
+
+    // Update settings
+    config.updateTreeViewSettings(foldersToKeep);
+    window.showInformationMessage(`Removed folder from tree view`);
+  } catch (error) {
+    console.error('Error removing folder from tree view:', error);
+    window.showErrorMessage(`Failed to remove folder from tree view: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
