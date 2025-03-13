@@ -6,13 +6,25 @@ import { existsSync, mkdirSync, writeFileSync } from "fs";
 // spawnCommand is a helper function to child_process.spawn, with error handling
 export const spawnSafe = (command: string, args: string[], options: any): ChildProcessWithoutNullStreams => {
   console.log(`Running ${command} ${args.join(' ')} with options:`, options);
-  try {
-    return spawn(command, args, options);
-  } catch (error) {
-    window.showErrorMessage(`Error running ${command}: ${error}`);
-    throw error;
-  }
+  const maxRetries = 3;
+  const retryDelay = 100; // ms
 
+  const trySpawn = (retryCount: number): ChildProcessWithoutNullStreams => {
+    try {
+      return spawn(command, args, options);
+    } catch (error: any) {
+      if ((error.code === 'ENOENT' || error.toString().includes('spawn')) && retryCount < maxRetries) {
+        console.log(`Retrying command after ENOENT error (attempt ${retryCount + 1}/${maxRetries})`);
+        // Sleep then retry
+        return new Promise<void>(resolve => setTimeout(resolve, retryDelay))
+          .then(() => trySpawn(retryCount + 1)) as unknown as ChildProcessWithoutNullStreams;
+      }
+      window.showErrorMessage(`Error running ${command}: ${error}`);
+      throw error;
+    }
+  };
+
+  return trySpawn(0);
 };
 
 // spawnCommandSync is a helper function to child_process.spawnSync, with error handling

@@ -1,5 +1,7 @@
 import { ChildProcessWithoutNullStreams } from "child_process";
 import * as codebook from "../codebook";
+import * as io from "../io";
+import { existsSync } from "fs";
 import { NotebookCell, WorkspaceConfiguration } from "vscode";
 import { workspace } from "vscode";
 
@@ -12,8 +14,6 @@ export class Cell implements codebook.ExecutableCell {
 
   constructor(notebookCell: NotebookCell | undefined) {
     // get the configuration for the shell language
-
-    // form the innerScope with lines that don't start with # or set -e
     this.config = new Config(workspace.getConfiguration('codebook-md.shell'), notebookCell);
     this.innerScope = this.config.contentConfig.innerScope;
 
@@ -23,21 +23,36 @@ export class Cell implements codebook.ExecutableCell {
 
     // no commands found: notify a warning and return
     if (cmds.length === 0) {
-      this.mainExecutable = new codebook.Command("echo", ["No commands found in cell"], this.config.execDir);
+      this.mainExecutable = new codebook.Command("echo", ["No commands found in cell"], ".");
       return;
     }
+
+    // Ensure the execution directory exists
+    io.mkdirIfNotExistsSafe(this.config.execDir);
 
     // get the first command and arguments
     this.mainExecutable = cmds[0];
 
+    // Override the working directory if it doesn't exist
+    if (!existsSync(this.mainExecutable.cwd)) {
+      console.warn(`Working directory ${this.mainExecutable.cwd} does not exist, falling back to ${this.config.execDir}`);
+      this.mainExecutable = new codebook.Command(
+        this.mainExecutable.command,
+        this.mainExecutable.args,
+        this.config.execDir
+      );
+    }
+
     if (cmds.length === 1) {
-      // if there is only one command, return early
       return;
     }
 
-    // if there are more commands, add them to the postExecutables
+    // if there are more commands, add them to the postExecutables with the same directory handling
     const additionalCmds = cmds.slice(1);
     additionalCmds.forEach(cmd => {
+      if (!existsSync(cmd.cwd)) {
+        cmd = new codebook.Command(cmd.command, cmd.args, this.config.execDir);
+      }
       this.postExecutables.push(cmd);
     });
   }
