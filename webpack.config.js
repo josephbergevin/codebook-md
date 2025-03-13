@@ -1,8 +1,8 @@
-//@ts-check
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 
-'use strict';
-
-const path = require('path');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /** @typedef {import('webpack').Configuration} WebpackConfig **/
 
@@ -12,7 +12,7 @@ const extensionConfig = {
   mode: 'none',
   entry: './src/extension.ts',
   output: {
-    path: path.resolve(__dirname, 'dist'),
+    path: resolve(__dirname, 'dist'),
     filename: 'extension.js',
     libraryTarget: 'commonjs2'
   },
@@ -41,4 +41,4 @@ const extensionConfig = {
   },
 };
 
-module.exports = [extensionConfig];
+export default [extensionConfig];
