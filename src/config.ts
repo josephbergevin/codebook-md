@@ -148,10 +148,38 @@ export function getFullPath(filePath: string, workspacePath: string): string {
 
 // Type for VS Code settings
 interface VSCodeSettings {
+  'codebook-md'?: {
+    treeView?: {
+      folders: TreeViewFolderEntry[];
+    };
+    [key: string]: unknown;
+  };
   'codebook-md.treeView'?: {
     folders: TreeViewFolderEntry[];
   };
   [key: string]: unknown;
+}
+
+// Helper function for deep merging objects
+function deepMerge<T extends Record<string, unknown>>(target: T, source: Partial<T>): T {
+  const output = { ...target } as T;
+
+  for (const key in source) {
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      const sourceValue = source[key];
+      if (sourceValue && typeof sourceValue === 'object' && !Array.isArray(sourceValue)) {
+        const targetValue = output[key] as Record<string, unknown>;
+        output[key] = deepMerge(
+          (targetValue || {}) as Record<string, unknown>,
+          sourceValue as Record<string, unknown>
+        ) as T[Extract<keyof T, string>];
+      } else {
+        output[key] = sourceValue as T[Extract<keyof T, string>];
+      }
+    }
+  }
+
+  return output;
 }
 
 // Helper function to read .vscode/settings.json
@@ -192,9 +220,36 @@ export function writeVSCodeSettings(settings: VSCodeSettings): void {
       fs.mkdirSync(vscodeDirPath, { recursive: true });
     }
 
-    // Format the JSON with 2 spaces indentation
-    const content = JSON.stringify(settings, null, 2);
-    fs.writeFileSync(vscodeSettingsPath, content, 'utf8');
+    let existingContent = '';
+    if (fs.existsSync(vscodeSettingsPath)) {
+      existingContent = fs.readFileSync(vscodeSettingsPath, 'utf8');
+    }
+
+    // If there's existing content, try to preserve comments and formatting
+    if (existingContent) {
+      try {
+        const existingSettings = JSON.parse(existingContent);
+        // Use deep merge instead of shallow merge
+        const mergedSettings = deepMerge(existingSettings, settings);
+        // Keep the original formatting by using the same whitespace
+        const match = existingContent.match(/^\s+/m);
+        const indent = match ? match[0] : '  ';
+        // Preserve any leading comments by keeping everything before the first {
+        const commentMatch = existingContent.match(/^([\s\S]*?)\{/);
+        const leadingContent = commentMatch ? commentMatch[1] : '';
+        const content = leadingContent + JSON.stringify(mergedSettings, null, indent);
+        fs.writeFileSync(vscodeSettingsPath, content, 'utf8');
+      } catch (parseError) {
+        // If parsing fails, fall back to simple merge
+        console.error('Error parsing existing settings:', parseError);
+        const content = JSON.stringify(settings, null, 2);
+        fs.writeFileSync(vscodeSettingsPath, content, 'utf8');
+      }
+    } else {
+      // For new files, use standard formatting
+      const content = JSON.stringify(settings, null, 2);
+      fs.writeFileSync(vscodeSettingsPath, content, 'utf8');
+    }
   } catch (error) {
     console.error('Error writing .vscode/settings.json:', error);
     throw error;
@@ -203,7 +258,58 @@ export function writeVSCodeSettings(settings: VSCodeSettings): void {
 
 // Helper function to update tree view settings in .vscode/settings.json
 export function updateTreeViewSettings(folders: TreeViewFolderEntry[]): void {
-  const settings = readVSCodeSettings();
-  settings['codebook-md.treeView'] = { folders };
-  writeVSCodeSettings(settings);
+  try {
+    // Try to update via VS Code API first
+    const workspaceConfig = workspace.getConfiguration('codebook-md');
+
+    // Get the current treeView settings (this should get the whole treeView object)
+    const currentTreeView = workspaceConfig.get('treeView');
+
+    // Create a new treeView object with the updated folders but preserving other properties
+    const updatedTreeView = {
+      ...(currentTreeView || {}),
+      folders: folders
+    };
+
+    // Update the entire treeView object at once (using proper promise handling)
+    workspaceConfig.update('treeView', updatedTreeView, false)  // false = update at workspace level
+      .then(
+        () => {
+          console.log('Tree view settings updated successfully via VS Code API');
+        },
+        (apiError: Error) => {
+          console.error('Error updating via VS Code API, falling back to file method:', apiError);
+
+          // Fallback to direct file method if the API update fails
+          const settings = readVSCodeSettings();
+
+          if (!settings['codebook-md']) {
+            settings['codebook-md'] = {};
+          }
+
+          const codebookSettings = settings['codebook-md'] as {
+            treeView?: {
+              folders: TreeViewFolderEntry[];
+              [key: string]: unknown;
+            };
+            [key: string]: unknown;
+          };
+
+          if (!codebookSettings.treeView) {
+            codebookSettings.treeView = { folders: [] };
+          } else {
+            // Preserve any other treeView properties
+            codebookSettings.treeView = {
+              ...codebookSettings.treeView,
+              folders: folders
+            };
+          }
+
+          writeVSCodeSettings(settings);
+        }
+      );
+  } catch (error) {
+    console.error('Failed to update tree view settings:', error);
+    window.showErrorMessage(`Failed to update tree view settings: ${(error as Error).message}`);
+  }
 }
