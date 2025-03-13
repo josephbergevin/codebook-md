@@ -67,6 +67,30 @@
 		"showExecutableCodeInOutput": true
 		}
 	},
+  "codebook-md.treeView": {
+    "folders": [
+      {
+        "name": "Docs",
+        "folderPath": "docs",
+        "files": [
+          {
+            "name": "ReadMe",
+            "path": "/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/README.md"
+          }
+        ]
+      },
+      {
+        "name": "Ci-Cd",
+        "folderPath": "ci-cd",
+        "files": [
+          {
+            "name": "ReadMe",
+            "path": "/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/tooling/README.md"
+          }
+        ]
+      }
+    ]
+  },
 	"notebook.experimental.cellChat": true,
 	"notebook.output.scrolling": true,
 	"editor.hover.delay": 700,
