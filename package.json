@@ -58,7 +58,7 @@
           "type": "object",
           "properties": {
             "folders": {
-              "description": "Virtual folders to organize files in the tree view. Folders can be nested using the folderPath property.",
+              "description": "Virtual folders to organize files in the tree view. Folders can be nested using the folders property.",
               "type": "array",
               "items": {
                 "type": "object",
@@ -67,10 +67,6 @@
                     "type": "string",
                     "description": "Display name for the folder"
                   },
-                  "folderPath": {
-                    "type": "string",
-                    "description": "Hierarchical folder path for organizing folders in the tree view (e.g., 'animals' or 'animals.dogs'). Delimiters can be dots (.) or slashes (/)."
-                  },
                   "icon": {
                     "type": "string",
                     "description": "Path to a custom icon for the folder. If not provided, a default folder icon will be used."
@@ -78,43 +74,44 @@
                   "hide": {
                     "type": "boolean",
                     "description": "Whether to hide this folder in the tree view. Hidden folders are still part of the hierarchy but not shown in the UI."
+                  },
+                  "folders": {
+                    "type": "array",
+                    "description": "Sub-folders within this folder",
+                    "items": {
+                      "$ref": "#/contributes/configuration/properties/codebook-md.treeView/properties/folders/items"
+                    }
+                  },
+                  "files": {
+                    "type": "array",
+                    "description": "Markdown files in this folder",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Display name for the markdown file"
+                        },
+                        "path": {
+                          "type": "string",
+                          "description": "Path to the markdown file (absolute or relative to workspace root)"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "path"
+                      ]
+                    }
                   }
                 },
                 "required": [
-                  "name",
-                  "folderPath"
-                ]
-              }
-            },
-            "files": {
-              "description": "List of markdown files to show in the tree view. Can be organized hierarchically with the folderPath property.",
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "Display name for the markdown file"
-                  },
-                  "path": {
-                    "type": "string",
-                    "description": "Path to the markdown file (absolute or relative to workspace root)"
-                  },
-                  "folderPath": {
-                    "type": "string",
-                    "description": "Hierarchical folder path for organizing files in the tree view (e.g., 'favorites' or 'animals.dogs.labradors'). Delimiters can be dots (.) or slashes (/)."
-                  }
-                },
-                "required": [
-                  "name",
-                  "path"
+                  "name"
                 ]
               }
             }
           },
           "default": {
-            "folders": [],
-            "files": []
+            "folders": []
           }
         },
         "codebook-md.permalinkPrefix": {

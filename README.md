@@ -138,16 +138,42 @@ You can customize the Tree View through the `codebook-md.treeView` settings in y
     "folders": [
       {
         "name": "Projects",
-        "folderPath": "projects",
-        "files": []
+        "icon": "path/to/custom/icon.png",
+        "folders": [
+          {
+            "name": "SubProject1",
+            "files": [
+              {
+                "name": "Overview",
+                "path": "projects/subproject1/overview.md"
+              }
+            ]
+          }
+        ],
+        "files": [
+          {
+            "name": "Project Plan",
+            "path": "projects/project-plan.md"
+          }
+        ]
       },
       {
         "name": "Documentation",
-        "folderPath": "projects.documentation",
+        "folders": [
+          {
+            "name": "Guides",
+            "files": [
+              {
+                "name": "Getting Started",
+                "path": "docs/guides/getting-started.md"
+              }
+            ]
+          }
+        ],
         "files": [
           {
-            "name": "Getting Started",
-            "path": "docs/getting-started.md"
+            "name": "Readme",
+            "path": "docs/readme.md"
           }
         ]
       }
