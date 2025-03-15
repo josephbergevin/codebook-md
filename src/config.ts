@@ -98,27 +98,6 @@ export function getTreeViewFolders(): TreeViewFolderEntry[] {
   return mergedFolders;
 }
 
-// normalizeFolderPath standardizes the folderPath format by converting slashes to dots
-// and ensuring there's no leading/trailing separator
-export function normalizeFolderPath(folderPath?: string): string {
-  if (!folderPath) {
-    return 'root';
-  }
-
-  // Replace slashes with dots and remove any leading/trailing separators
-  const normalized = folderPath.replace(/\//g, '.').replace(/^\.+|\.+$/g, '');
-  return normalized || 'root';
-}
-
-// parseFolderPath splits a folderPath into its path segments
-export function parseFolderPath(folderPath?: string): string[] {
-  const normalized = normalizeFolderPath(folderPath);
-  if (normalized === 'root') {
-    return [];
-  }
-  return normalized.split('.');
-}
-
 export function fullTempPath(tempPath: string, currentFile: string, workspacePath: string): string {
   if (tempPath === '' && workspacePath !== '') {
     return workspacePath;
