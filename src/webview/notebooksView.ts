@@ -107,8 +107,6 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
       foldersHtml = '<p class="no-data">No notebooks found. Add folders and files in the Tree View above.</p>';
     }
 
-    // const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
-
     // Full HTML with CSS and JavaScript
     return `<!DOCTYPE html>
     <html lang="en">
@@ -147,8 +145,9 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
         .folder-icon {
           width: 16px;
           height: 16px;
-          display: inline-block;
-          background-size: contain;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
         .folder-content {
           padding-left: 20px;
@@ -167,8 +166,9 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
         .file-icon {
           width: 16px;
           height: 16px;
-          display: inline-block;
-          background-size: contain;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
         .file-name {
           margin-left: 5px;
@@ -194,6 +194,11 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
         }
         .refresh-button:hover {
           background-color: var(--vscode-button-hoverBackground);
+        }
+        .icon-svg {
+          fill: currentColor;
+          width: 16px;
+          height: 16px;
         }
       </style>
     </head>
@@ -261,7 +266,11 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
     let html = `
       <div class="folder ${level > 0 ? 'subfolder' : ''}">
         <div class="folder-header">
-          <span class="folder-icon">📁</span>
+          <span class="folder-icon">
+            <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+              <path d="M14.5 3H7.71l-2-2H1.5l-.5.5v11l.5.5h13l.5-.5v-9l-.5-.5zM14 13H2V4h5.71l2 2H14v7z"/>
+            </svg>
+          </span>
           <span class="folder-name">${this._escapeHtml(folder.name)}</span>
         </div>
         <div class="folder-content ${level > 0 ? 'hidden' : ''}">
@@ -280,9 +289,40 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
         const filePath = config.getFullPath(file.path, workspacePath);
         const fileExists = fs.existsSync(filePath);
 
+        // Check if it's a markdown file
+        const isMarkdownFile = filePath.toLowerCase().endsWith('.md') || filePath.toLowerCase().endsWith('.markdown');
+
+        // Use appropriate SVG icon based on file type and existence
+        let fileIconSvg;
+
+        if (!fileExists) {
+          // Warning icon for non-existent files
+          fileIconSvg = `
+            <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 1l7 14H1L8 1zm0 3L3.5 13h9L8 4z"/>
+              <path d="M7.5 6h1v5h-1V6z"/>
+              <path d="M7.5 12h1v1h-1v-1z"/>
+            </svg>
+          `;
+        } else if (isMarkdownFile) {
+          // Markdown-specific icon
+          fileIconSvg = `
+            <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+              <path d="M14.85 3c.63 0 1.15.52 1.14 1.15v7.7c0 .63-.51 1.15-1.15 1.15H1.15C.52 13 0 12.48 0 11.84V4.15C0 3.52.52 3 1.15 3H14.85zM7 12.75L10.25 8 7 8v4.75zm-1.5 0L2.25 8h3.25v4.75zm6 0L15.75 8h-3.25v4.75z"/>
+            </svg>
+          `;
+        } else {
+          // Generic file icon
+          fileIconSvg = `
+            <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13.71 4.29l-3-3L10 1H4L3 2v12l1 1h9l1-1V5l-.29-.71zM13 14H4V2h5v4h4v8z"/>
+            </svg>
+          `;
+        }
+
         html += `
           <div class="file" data-path="${this._escapeHtml(filePath)}" title="${this._escapeHtml(fileExists ? filePath : 'File not found: ' + filePath)}">
-            <span class="file-icon">${fileExists ? '📄' : '⚠️'}</span>
+            <span class="file-icon">${fileIconSvg}</span>
             <span class="file-name">${this._escapeHtml(file.name)}</span>
           </div>
         `;
