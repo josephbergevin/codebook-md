@@ -553,6 +553,12 @@
           "id": "codebook-md-view",
           "name": "Codebook MD",
           "icon": "extension/src/img/icon_logo_v1.svg"
+        },
+        {
+          "id": "codebook-md-notebooks-view",
+          "name": "My Notebooks",
+          "icon": "extension/src/img/icon_logo_v1.svg",
+          "type": "webview"
         }
       ]
     },

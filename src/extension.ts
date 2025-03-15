@@ -11,6 +11,7 @@ import * as fs from 'fs';
 import * as config from './config';
 import * as path from 'path';
 import { ThemeIcon } from 'vscode';
+import { NotebooksViewProvider } from './webview/notebooksView';
 
 const kernel = new Kernel();
 
@@ -21,6 +22,12 @@ export function activate(context: ExtensionContext) {
   const treeDataProvider = new MarkdownFileTreeDataProvider();
   const treeView = window.createTreeView('codebook-md-view', { treeDataProvider });
   context.subscriptions.push(treeView);
+
+  // Register the Notebooks webview provider
+  const notebooksViewProvider = new NotebooksViewProvider(context);
+  context.subscriptions.push(
+    window.registerWebviewViewProvider(NotebooksViewProvider.viewType, notebooksViewProvider)
+  );
 
   const controller = notebooks.createNotebookController('codebook-md', 'codebook-md', 'codebook-md');
   controller.supportedLanguages = [];
