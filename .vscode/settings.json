@@ -71,17 +71,26 @@
     "folders": [
       {
         "name": "Docs",
-        "folderPath": "docs",
         "files": [
           {
             "name": "ReadMe",
             "path": "/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/README.md"
           }
+        ],
+        "folders": [
+          {
+            "name": "Releases",
+            "files": [
+              {
+                "name": "Changelog",
+                "path": "/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/CHANGELOG.md"
+              }
+            ]
+          }
         ]
       },
       {
         "name": "Ci-Cd",
-        "folderPath": "ci-cd",
         "files": [
           {
             "name": "Tooling",
@@ -91,26 +100,27 @@
       },
       {
         "name": "Features",
-        "folderPath": "features",
         "files": [
           {
-            "name": "Tree View Top Display",
-            "path": "/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/tooling/apiplayground/feature-updates/tree_view_top_display.md"
+            "name": "Tree View",
+            "path": "/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/tooling/apiplayground/feature-updates/tree_view.md"
           }
         ]
       },
       {
         "name": "Bugs",
-        "folderPath": "bugs",
         "files": [
           {
             "name": "Bug Fixes",
             "path": "/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/tooling/apiplayground/feature-updates/bug_fixes.md"
           }
         ]
+      },
+      {
+        "name": "Something Else",
+        "files": []
       }
-    ],
-    "files": []
+    ]
   },
 	"notebook.experimental.cellChat": true,
 	"notebook.output.scrolling": true,
