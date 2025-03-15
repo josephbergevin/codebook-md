@@ -324,6 +324,365 @@ export function activate(context: ExtensionContext) {
     treeDataProvider.refresh();
   });
   context.subscriptions.push(disposable);
+
+  // Command: Rename folder in My Notebooks webview
+  disposable = commands.registerCommand('codebook-md.renameFolderInMyNotebooks', async (folderName: string) => {
+    try {
+      // Get new display name from user
+      const newName = await window.showInputBox({
+        placeHolder: folderName,
+        prompt: 'Enter a new display name for this folder',
+        value: folderName
+      });
+
+      if (!newName || newName === folderName) {
+        return; // User canceled or no change
+      }
+
+      // Get current folders from configuration
+      const treeViewFolders = config.getTreeViewFolders();
+
+      // Find the folder entry by its name
+      const findFolder = (folders: config.TreeViewFolderEntry[], name: string): config.TreeViewFolderEntry | undefined => {
+        for (const folder of folders) {
+          if (folder.name === name) {
+            return folder;
+          }
+          if (folder.folders) {
+            const found = findFolder(folder.folders, name);
+            if (found) {
+              return found;
+            }
+          }
+        }
+        return undefined;
+      };
+
+      const folder = findFolder(treeViewFolders, folderName);
+      if (!folder) {
+        window.showErrorMessage(`Folder ${folderName} not found`);
+        return;
+      }
+
+      // Update the folder's display name
+      folder.name = newName;
+
+      // Update settings
+      config.updateTreeViewSettings(treeViewFolders);
+      window.showInformationMessage(`Renamed folder to: ${newName}`);
+    } catch (error) {
+      console.error('Error renaming folder:', error);
+      window.showErrorMessage(`Failed to rename folder: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  });
+  context.subscriptions.push(disposable);
+
+  // Command: Add subfolder to folder in My Notebooks webview
+  disposable = commands.registerCommand('codebook-md.addSubFolderToMyNotebooksFolder', async (folderName: string) => {
+    try {
+      // Get the display name for the new sub-folder from user
+      const subFolderName = await window.showInputBox({
+        placeHolder: 'Sub-folder name',
+        prompt: 'Enter a name for the new sub-folder',
+        value: ''
+      });
+
+      if (!subFolderName) {
+        return; // User canceled
+      }
+
+      // Get current folders from configuration
+      const treeViewFolders = config.getTreeViewFolders();
+
+      // Find the parent folder by name
+      const findFolder = (folders: config.TreeViewFolderEntry[], name: string): config.TreeViewFolderEntry | undefined => {
+        for (const folder of folders) {
+          if (folder.name === name) {
+            return folder;
+          }
+          if (folder.folders) {
+            const found = findFolder(folder.folders, name);
+            if (found) {
+              return found;
+            }
+          }
+        }
+        return undefined;
+      };
+
+      const parentFolder = findFolder(treeViewFolders, folderName);
+      if (!parentFolder) {
+        window.showErrorMessage(`Folder ${folderName} not found`);
+        return;
+      }
+
+      // Initialize folders array if it doesn't exist
+      if (!parentFolder.folders) {
+        parentFolder.folders = [];
+      }
+
+      // Add new subfolder
+      parentFolder.folders.push({
+        name: subFolderName,
+        files: []
+      });
+
+      // Update settings
+      config.updateTreeViewSettings(treeViewFolders);
+      window.showInformationMessage(`Added sub-folder "${subFolderName}" to "${folderName}"`);
+    } catch (error) {
+      console.error('Error adding sub-folder:', error);
+      window.showErrorMessage(`Failed to add sub-folder: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  });
+  context.subscriptions.push(disposable);
+
+  // Command: Add file to folder in My Notebooks webview
+  disposable = commands.registerCommand('codebook-md.addFileToMyNotebooksFolder', async (folderName: string) => {
+    try {
+      // Show file picker
+      const uris = await window.showOpenDialog({
+        canSelectFiles: true,
+        canSelectFolders: false,
+        canSelectMany: false,
+        filters: {
+          Markdown: ['md', 'markdown']
+        },
+        title: 'Select Markdown File to Add'
+      });
+
+      if (!uris || uris.length === 0) {
+        return; // User canceled
+      }
+
+      const filePath = uris[0].fsPath;
+      const fileName = path.basename(filePath);
+
+      // Get display name from user
+      const displayName = await window.showInputBox({
+        placeHolder: fileName,
+        prompt: 'Enter a display name for this markdown file',
+        value: fileName
+          .replace(/\.\w+$/, '') // Remove extension
+          .split(/[_\-\s]/) // Split by underscore, dash, or space
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize first letter of each word
+          .join(' ') // Join with spaces
+      });
+
+      if (!displayName) {
+        return; // User canceled
+      }
+
+      // Get current folders from configuration
+      const treeViewFolders = config.getTreeViewFolders();
+
+      // Find the target folder by name
+      const findFolder = (folders: config.TreeViewFolderEntry[], name: string): config.TreeViewFolderEntry | undefined => {
+        for (const folder of folders) {
+          if (folder.name === name) {
+            return folder;
+          }
+          if (folder.folders) {
+            const found = findFolder(folder.folders, name);
+            if (found) {
+              return found;
+            }
+          }
+        }
+        return undefined;
+      };
+
+      const targetFolder = findFolder(treeViewFolders, folderName);
+      if (!targetFolder) {
+        window.showErrorMessage(`Folder ${folderName} not found`);
+        return;
+      }
+
+      // Initialize files array if it doesn't exist
+      if (!targetFolder.files) {
+        targetFolder.files = [];
+      }
+
+      // Convert to relative path if possible
+      const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
+      let relativePath = filePath;
+      if (workspacePath && filePath.startsWith(workspacePath)) {
+        relativePath = path.relative(workspacePath, filePath);
+      }
+
+      // Add new file entry
+      targetFolder.files.push({
+        name: displayName,
+        path: relativePath
+      });
+
+      // Update settings
+      config.updateTreeViewSettings(treeViewFolders);
+      window.showInformationMessage(`Added file "${displayName}" to folder "${folderName}"`);
+    } catch (error) {
+      console.error('Error adding file to folder:', error);
+      window.showErrorMessage(`Failed to add file to folder: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  });
+  context.subscriptions.push(disposable);
+
+  // Command: Remove folder from My Notebooks webview
+  disposable = commands.registerCommand('codebook-md.removeFolderFromMyNotebooksFolder', async (folderName: string) => {
+    try {
+      // Ask for confirmation
+      const answer = await window.showWarningMessage(
+        `Are you sure you want to remove the folder "${folderName}" and all its contents?`,
+        { modal: true },
+        'Yes',
+        'No'
+      );
+
+      if (answer !== 'Yes') {
+        return; // User canceled
+      }
+
+      // Get current folders from configuration
+      const treeViewFolders = config.getTreeViewFolders();
+
+      // Find and remove the folder and any sub-folders
+      const removeFolder = (folders: config.TreeViewFolderEntry[]): boolean => {
+        for (let i = 0; i < folders.length; i++) {
+          if (folders[i].name === folderName) {
+            folders.splice(i, 1);
+            return true;
+          }
+          const subFolders = folders[i].folders;
+          if (subFolders && subFolders.length > 0) {
+            if (removeFolder(subFolders)) {
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+
+      if (!removeFolder(treeViewFolders)) {
+        window.showErrorMessage(`Folder "${folderName}" not found`);
+        return;
+      }
+
+      // Update settings
+      config.updateTreeViewSettings(treeViewFolders);
+      window.showInformationMessage(`Removed folder "${folderName}" and its contents`);
+    } catch (error) {
+      console.error('Error removing folder:', error);
+      window.showErrorMessage(`Failed to remove folder: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  });
+  context.subscriptions.push(disposable);
+
+  // Command: Remove file from My Notebooks folder
+  disposable = commands.registerCommand('codebook-md.removeFileFromMyNotebooksFolder', async (entry: config.TreeViewFileEntry) => {
+    try {
+      // Get current folders from configuration
+      const treeViewFolders = config.getTreeViewFolders();
+      const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
+      let fileRemoved = false;
+
+      // Find and remove the file from its folder
+      const removeFile = (folders: config.TreeViewFolderEntry[]): boolean => {
+        for (const folder of folders) {
+          if (folder.files) {
+            const fileIndex = folder.files.findIndex(f =>
+              f.name === entry.name && config.getFullPath(f.path, workspacePath) === config.getFullPath(entry.path, workspacePath) && f.path === entry.path);
+
+            if (fileIndex !== -1) {
+              folder.files.splice(fileIndex, 1);
+              fileRemoved = true;
+              return true;
+            }
+          }
+          if (folder.folders) {
+            if (removeFile(folder.folders)) {
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+
+      removeFile(treeViewFolders);
+
+      if (!fileRemoved) {
+        window.showWarningMessage('File not found');
+        return;
+      }
+
+      // Update settings
+      config.updateTreeViewSettings(treeViewFolders);
+      window.showInformationMessage(`Removed "${entry.name}" from My Notebooks`);
+    } catch (error) {
+      console.error('Error removing file:', error);
+      window.showErrorMessage(`Failed to remove file: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  });
+  context.subscriptions.push(disposable);
+
+  // Command: Rename file in My Notebooks webview
+  disposable = commands.registerCommand('codebook-md.renameFileInMyNotebooks', async (entry: config.TreeViewFileEntry) => {
+    try {
+      // Get new name from user
+      const newName = await window.showInputBox({
+        placeHolder: entry.name,
+        prompt: 'Enter a new name for this file',
+        value: entry.name
+      });
+
+      if (!newName || newName === entry.name) {
+        return; // User canceled or no change
+      }
+
+      // Get current folders from configuration
+      const treeViewFolders = config.getTreeViewFolders();
+      const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
+      let fileRenamed = false;
+
+      // Find and rename the file in its folder
+      const renameFile = (folders: config.TreeViewFolderEntry[]): boolean => {
+        for (const folder of folders) {
+          if (folder.files) {
+            const fileIndex = folder.files.findIndex(f =>
+              f.name === entry.name && config.getFullPath(f.path, workspacePath) === config.getFullPath(entry.path, workspacePath));
+
+            if (fileIndex !== -1) {
+              folder.files[fileIndex] = {
+                ...folder.files[fileIndex],
+                name: newName
+              };
+              fileRenamed = true;
+              return true;
+            }
+          }
+          if (folder.folders) {
+            if (renameFile(folder.folders)) {
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+
+      renameFile(treeViewFolders);
+
+      if (!fileRenamed) {
+        window.showWarningMessage('File not found');
+        return;
+      }
+
+      // Update settings
+      config.updateTreeViewSettings(treeViewFolders);
+      window.showInformationMessage(`Renamed file to: ${newName}`);
+    } catch (error) {
+      console.error('Error renaming file:', error);
+      window.showErrorMessage(`Failed to rename file: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  });
+  context.subscriptions.push(disposable);
 }
 
 // Remove the `folderPath` property from the `addFileToTreeViewFolder` function
@@ -611,7 +970,7 @@ async function removeFileFromTreeView(entry: config.TreeViewFileEntry): Promise<
       for (const folder of folders) {
         if (folder.files) {
           const fileIndex = folder.files.findIndex(f =>
-            f.name === entry.name && config.getFullPath(f.path, workspacePath) === config.getFullPath(entry.path, workspacePath));
+            f.name === entry.name && config.getFullPath(f.path, workspacePath) === config.getFullPath(entry.path, workspacePath) && f.path === entry.path);
 
           if (fileIndex !== -1) {
             folder.files.splice(fileIndex, 1);
