@@ -102,6 +102,11 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
             commands.executeCommand('codebook-md.renameFolderInMyNotebooks', data.folderName);
           }
           break;
+        case 'removeObjectFromTreeView':
+          if (data.objectId) {
+            commands.executeCommand('codebook-md.removeObjectFromTreeView', data.objectId);
+          }
+          break;
       }
     });
 
@@ -142,8 +147,9 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
 
     // Build HTML for the folders and files
     let foldersHtml = '';
-    treeData.forEach(folder => {
-      foldersHtml += this._buildFolderHtml(folder);
+    treeData.forEach((folder, index) => {
+      const folderIndex = index.toString();
+      foldersHtml += this._buildFolderHtml(folder, 0, folderIndex);
     });
 
     if (!foldersHtml) {
@@ -401,6 +407,20 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
             return false; // Prevent default action
           };
           
+          window.removeObject = function(objectId, event) {
+            // Stop event propagation immediately
+            if (event) {
+              event.stopPropagation();
+              event.preventDefault();
+            }
+            
+            vscode.postMessage({
+              command: 'removeObjectFromTreeView',
+              objectId: objectId
+            });
+            return false; // Prevent default action
+          };
+          
           window.renameFile = function(name, path) {
             vscode.postMessage({
               command: 'renameFile',
@@ -424,15 +444,18 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
   /**
    * Build HTML for a folder and its contents
    */
-  private _buildFolderHtml(folder: config.TreeViewFolderEntry, level: number = 0): string {
+  private _buildFolderHtml(folder: config.TreeViewFolderEntry, level: number = 0, folderIndex: string): string {
     if (folder.hide) {
       return '';
     }
 
     const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
 
+    // The ID for the folder in the format of 'folderIndex'
+    const folderId = folderIndex;
+
     let html = `
-      <div class="folder ${level > 0 ? 'subfolder' : ''}">
+      <div class="folder ${level > 0 ? 'subfolder' : ''}" id="folder-${this._escapeHtml(folderId)}">
         <div class="folder-header" onclick="event.stopPropagation(); toggleFolder(this)">
           <span class="folder-icon">
             <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
@@ -452,7 +475,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
                 <path d="M8 4v3.5h-3.5v1h3.5v3.5h1v-3.5h3.5v-1h-3.5v-3.5z"/>
               </svg>
             </button>
-            <button class="action-button" title="Remove Folder" onclick="event.stopPropagation(); return removeFolder('${this._escapeHtml(folder.name)}', event);">
+            <button class="action-button" title="Remove Folder" onclick="event.stopPropagation(); return removeObject('${this._escapeHtml(folderId)}', event);">
               <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                 <path d="M3 8v1h10V8H3z"/>
               </svg>
@@ -469,16 +492,21 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
 
     // Add sub-folders
     if (folder.folders && folder.folders.length > 0) {
-      folder.folders.forEach(subFolder => {
-        html += this._buildFolderHtml(subFolder, level + 1);
+      folder.folders.forEach((subFolder, subIndex) => {
+        // Create a unique index for the subfolder
+        const subFolderIndex = `${folderIndex}.${subIndex}`;
+        html += this._buildFolderHtml(subFolder, level + 1, subFolderIndex);
       });
     }
 
     // Add files
     if (folder.files && folder.files.length > 0) {
-      folder.files.forEach(file => {
+      folder.files.forEach((file, fileIndex) => {
         const filePath = config.getFullPath(file.path, workspacePath);
         const fileExists = fs.existsSync(filePath);
+
+        // Create a unique index for the file in the format of 'folderIndex[fileIndex]'
+        const fileId = `${folderIndex}[${fileIndex}]`;
 
         // Check if it's a markdown file
         const isMarkdownFile = filePath.toLowerCase().endsWith('.md') || filePath.toLowerCase().endsWith('.markdown');
@@ -512,11 +540,11 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
         }
 
         html += `
-          <div class="file" onclick="openFile('${this._escapeHtml(filePath)}')" data-path="${this._escapeHtml(filePath)}" data-item-path="${this._escapeHtml(file.path)}">
+          <div class="file" onclick="openFile('${this._escapeHtml(filePath)}')" data-path="${this._escapeHtml(filePath)}" data-item-path="${this._escapeHtml(file.path)}" id="file-${this._escapeHtml(fileId)}">
             <span class="file-icon">${fileIconSvg}</span>
             <span class="file-name">${this._escapeHtml(file.name)}</span>
             <div class="actions">
-              <button class="action-button" title="Remove from My Notebooks" onclick="event.stopPropagation(); return removeFile('${this._escapeHtml(file.name)}', '${this._escapeHtml(file.path)}', event);">
+              <button class="action-button" title="Remove from My Notebooks" onclick="event.stopPropagation(); return removeObject('${this._escapeHtml(fileId)}', event);">
                 <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                   <path d="M3 8v1h10V8H3z"/>
                 </svg>

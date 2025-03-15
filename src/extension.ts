@@ -683,6 +683,136 @@ export function activate(context: ExtensionContext) {
     }
   });
   context.subscriptions.push(disposable);
+
+  // Command: Remove object (file or folder) from tree view based on index ID
+  disposable = commands.registerCommand('codebook-md.removeObjectFromTreeView', async (objectId: string) => {
+    try {
+      console.log(`Removing object with ID: ${objectId} from tree view`);
+
+      // Ask for confirmation
+      const answer = await window.showWarningMessage(
+        `Are you sure you want to remove this item from My Notebooks?`,
+        { modal: true },
+        'Yes',
+        'No'
+      );
+      if (answer !== 'Yes') {
+        return; // User canceled
+      }
+
+      // Get current folders from configuration
+      const treeViewFolders = config.getTreeViewFolders();
+
+      // Determine if this is a file or folder ID
+      // File IDs contain square brackets, e.g., "0.1[2]"
+      // Folder IDs are dot-separated numbers, e.g., "0.1.2"
+      const isFile = objectId.includes('[');
+
+      if (isFile) {
+        // Handle file removal
+        // Extract folder path and file index from the objectId
+        // Format: "folderIndex[fileIndex]", e.g., "0.1[2]"
+        const matches = objectId.match(/(.+)\[(\d+)\]/);
+        if (!matches || matches.length !== 3) {
+          window.showErrorMessage(`Invalid file ID format: ${objectId}`);
+          return;
+        }
+
+        const folderPath = matches[1]; // "0.1"
+        const fileIndex = parseInt(matches[2], 10); // 2
+
+        // Navigate to the folder using the folderPath
+        let currentFolders = treeViewFolders;
+        const folderIndices = folderPath.split('.').map(index => parseInt(index, 10));
+        let targetFolder: config.TreeViewFolderEntry | undefined;
+
+        // Navigate to the target folder
+        try {
+          for (const index of folderIndices) {
+            if (index >= currentFolders.length) {
+              throw new Error(`Folder index out of bounds: ${index}`);
+            }
+            targetFolder = currentFolders[index];
+            if (!targetFolder) {
+              throw new Error(`Folder not found at index: ${index}`);
+            }
+            currentFolders = targetFolder.folders || [];
+          }
+        } catch (error) {
+          window.showErrorMessage(`Failed to find folder: ${error instanceof Error ? error.message : String(error)}`);
+          return;
+        }
+
+        // Remove the file at the specified index
+        if (targetFolder && targetFolder.files && fileIndex < targetFolder.files.length) {
+          const fileName = targetFolder.files[fileIndex].name;
+          targetFolder.files.splice(fileIndex, 1);
+          window.showInformationMessage(`Removed "${fileName}" from My Notebooks`);
+        } else {
+          window.showErrorMessage(`File not found at index ${fileIndex}`);
+          return;
+        }
+      } else {
+        // Handle folder removal
+        // The objectId is the folder path, e.g., "0.1.2"
+        const folderIndices = objectId.split('.').map(index => parseInt(index, 10));
+
+        // Special case for top-level folder
+        if (folderIndices.length === 1) {
+          const index = folderIndices[0];
+          if (index >= treeViewFolders.length) {
+            window.showErrorMessage(`Folder index out of bounds: ${index}`);
+            return;
+          }
+          const folderName = treeViewFolders[index].name;
+          treeViewFolders.splice(index, 1);
+          window.showInformationMessage(`Removed folder "${folderName}" and its contents`);
+        } else {
+          // For nested folders, we need to find the parent folder
+          const parentFolderIndices = folderIndices.slice(0, -1);
+          const folderIndex = folderIndices[folderIndices.length - 1];
+
+          // Navigate to the parent folder
+          let currentFolders = treeViewFolders;
+          let parentFolder: config.TreeViewFolderEntry | undefined;
+
+          try {
+            for (const index of parentFolderIndices) {
+              if (index >= currentFolders.length) {
+                throw new Error(`Folder index out of bounds: ${index}`);
+              }
+              parentFolder = currentFolders[index];
+              if (!parentFolder) {
+                throw new Error(`Folder not found at index: ${index}`);
+              }
+              currentFolders = parentFolder.folders || [];
+            }
+          } catch (error) {
+            window.showErrorMessage(`Failed to find parent folder: ${error instanceof Error ? error.message : String(error)}`);
+            return;
+          }
+
+          // Remove the folder at the specified index
+          if (parentFolder && parentFolder.folders && folderIndex < parentFolder.folders.length) {
+            const folderName = parentFolder.folders[folderIndex].name;
+            parentFolder.folders.splice(folderIndex, 1);
+            window.showInformationMessage(`Removed folder "${folderName}" and its contents`);
+          } else {
+            window.showErrorMessage(`Folder not found at index ${folderIndex}`);
+            return;
+          }
+        }
+      }
+
+      // Update settings
+      config.updateTreeViewSettings(treeViewFolders);
+      treeDataProvider.refresh();
+    } catch (error) {
+      console.error('Error removing object from tree view:', error);
+      window.showErrorMessage(`Failed to remove object: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  });
+  context.subscriptions.push(disposable);
 }
 
 // Remove the `folderPath` property from the `addFileToTreeViewFolder` function
