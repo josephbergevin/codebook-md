@@ -107,6 +107,16 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
             commands.executeCommand('codebook-md.removeObjectFromTreeView', data.objectId);
           }
           break;
+        case 'moveItemUp':
+          if (data.objectId) {
+            commands.executeCommand('codebook-md.moveTreeViewItemUp', data.objectId);
+          }
+          break;
+        case 'moveItemDown':
+          if (data.objectId) {
+            commands.executeCommand('codebook-md.moveTreeViewItemDown', data.objectId);
+          }
+          break;
       }
     });
 
@@ -435,6 +445,34 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
               currentName: currentName
             });
           };
+          
+          window.moveItemUp = function(objectId, event) {
+            // Stop event propagation immediately
+            if (event) {
+              event.stopPropagation();
+              event.preventDefault();
+            }
+            
+            vscode.postMessage({
+              command: 'moveItemUp',
+              objectId: objectId
+            });
+            return false; // Prevent default action
+          };
+          
+          window.moveItemDown = function(objectId, event) {
+            // Stop event propagation immediately
+            if (event) {
+              event.stopPropagation();
+              event.preventDefault();
+            }
+            
+            vscode.postMessage({
+              command: 'moveItemDown',
+              objectId: objectId
+            });
+            return false; // Prevent default action
+          };
         })();
       </script>
     </body>
@@ -464,6 +502,16 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
           </span>
           <span class="folder-name">${this._escapeHtml(folder.name)}</span>
           <div class="actions">
+            <button class="action-button" title="Move Up" onclick="event.stopPropagation(); return moveItemUp('${this._escapeHtml(folderId)}', event);">
+              <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 4.5l-5 5h3V12h4V9.5h3L8 4.5z"/>
+              </svg>
+            </button>
+            <button class="action-button" title="Move Down" onclick="event.stopPropagation(); return moveItemDown('${this._escapeHtml(folderId)}', event);">
+              <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 11.5l5-5H10V4H6v2.5H3L8 11.5z"/>
+              </svg>
+            </button>
             <button class="action-button" title="Add Sub-folder" onclick="event.stopPropagation(); addSubFolder('${this._escapeHtml(folder.name)}')">
               <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                 <path d="M14.5 3H7.71l-2-2H1.5l-.5.5v11l.5.5h13l.5-.5v-9l-.5-.5zM14 13H2V4h5.5l2 2H14v7z"/>
@@ -544,6 +592,16 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
             <span class="file-icon">${fileIconSvg}</span>
             <span class="file-name">${this._escapeHtml(file.name)}</span>
             <div class="actions">
+              <button class="action-button" title="Move Up" onclick="event.stopPropagation(); return moveItemUp('${this._escapeHtml(fileId)}', event);">
+                <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 4.5l-5 5h3V12h4V9.5h3L8 4.5z"/>
+                </svg>
+              </button>
+              <button class="action-button" title="Move Down" onclick="event.stopPropagation(); return moveItemDown('${this._escapeHtml(fileId)}', event);">
+                <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 11.5l5-5H10V4H6v2.5H3L8 11.5z"/>
+                </svg>
+              </button>
               <button class="action-button" title="Remove from My Notebooks" onclick="event.stopPropagation(); return removeObject('${this._escapeHtml(fileId)}', event);">
                 <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                   <path d="M3 8v1h10V8H3z"/>
