@@ -157,7 +157,25 @@ export class Cell implements codebook.ExecutableCell {
       // Initialize go.mod if it doesn't exist
       const goModPath = path.join(this.config.execDir, 'go.mod');
       if (!existsSync(goModPath)) {
-        io.spawnSyncSafe('go', ['mod', 'init', 'example.com/codebook'], { cwd: this.config.execDir });
+        try {
+          // Use writeFileSync to create a basic go.mod file immediately rather than using spawn
+          // This ensures the file exists before proceeding with execution
+          const moduleName = "example.com/codebook";
+          const goModContent = `module ${moduleName}\n\ngo 1.18\n`;
+          writeFileSync(goModPath, goModContent);
+          console.log(`Created go.mod at ${goModPath}`);
+
+          // Still run go mod tidy to ensure dependencies are correctly set up
+          try {
+            io.spawnSyncSafe('go', ['mod', 'tidy'], { cwd: this.config.execDir });
+            console.log("Successfully ran go mod tidy");
+          } catch (error) {
+            console.warn(`Warning: go mod tidy execution failed: ${error}`);
+          }
+        } catch (error) {
+          console.error(`Error initializing go.mod: ${error}`);
+          window.showErrorMessage(`Failed to initialize Go module: ${error}`);
+        }
       }
 
       // run goimports on the file
