@@ -3,6 +3,16 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.1] - 2024-06-01
+### Added
+- New "Welcome" section in the Activity Bar with introduction and usage guide
+- Enhanced documentation for Virtual Folders feature directly in the UI
+
+### Changed
+- Replaced Tree View implementation with a WebView-based Activity Bar interface
+- Improved UI for notebook organization with more intuitive controls
+- Better visual hierarchy for folders and files in the My Notebooks view
+
 ## [0.10.2] - 2024-03-14
 ### Fixed
 - Fixed sequential shell command execution to prevent race conditions (e.g. brew update/upgrade)
