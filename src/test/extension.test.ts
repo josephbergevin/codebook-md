@@ -105,13 +105,6 @@ jest.mock('../webview/notebooksView', () => ({
   }))
 }));
 
-// Mock treeViewPanel module
-jest.mock('../webview/treeViewPanel', () => ({
-  TreeViewPanel: jest.fn().mockImplementation(() => ({
-    dispose: jest.fn()
-  }))
-}));
-
 // Get the mocked window module
 const mockedVscode = jest.requireMock('vscode');
 const mockedWindow = mockedVscode.window;
