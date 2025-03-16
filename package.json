@@ -494,6 +494,12 @@
     "views": {
       "codebook-md-activitybar": [
         {
+          "id": "codebook-md-welcome-view",
+          "name": "Welcome",
+          "icon": "extension/src/img/icon_logo_v1.svg",
+          "type": "webview"
+        },
+        {
           "id": "codebook-md-notebooks-view",
           "name": "My Notebooks",
           "icon": "extension/src/img/icon_logo_v1.svg",

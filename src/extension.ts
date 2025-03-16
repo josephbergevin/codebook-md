@@ -11,12 +11,19 @@ import * as fs from 'fs';
 import * as config from './config';
 import * as path from 'path';
 import { NotebooksViewProvider } from './webview/notebooksView';
+import { WelcomeViewProvider } from './webview/welcomeView';
 
 const kernel = new Kernel();
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: ExtensionContext) {
+  // Register the Welcome webview provider (should be first to appear at the top)
+  const welcomeViewProvider = new WelcomeViewProvider(context);
+  context.subscriptions.push(
+    window.registerWebviewViewProvider(WelcomeViewProvider.viewType, welcomeViewProvider)
+  );
+
   // Register the Notebooks webview provider
   const notebooksViewProvider = new NotebooksViewProvider(context);
   context.subscriptions.push(
