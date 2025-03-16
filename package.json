@@ -448,15 +448,6 @@
         "icon": "$(new-folder)"
       },
       {
-        "command": "codebook-md.removeFromFavorites",
-        "title": "Remove from Tree View"
-      },
-      {
-        "command": "codebook-md.refreshTreeView",
-        "title": "Refresh Tree View",
-        "icon": "$(refresh)"
-      },
-      {
         "command": "codebook-md.renameTreeViewFile",
         "title": "Rename"
       },
@@ -481,55 +472,8 @@
       }
     ],
     "menus": {
-      "view/title": [
-        {
-          "command": "codebook-md.refreshTreeView",
-          "when": "view == codebook-md-view",
-          "group": "navigation"
-        },
-        {
-          "command": "codebook-md.addFileToChosenFolder",
-          "when": "view == codebook-md-view",
-          "group": "navigation"
-        },
-        {
-          "command": "codebook-md.addFolderToTreeView",
-          "when": "view == codebook-md-view",
-          "group": "navigation"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "codebook-md.removeFromFavorites",
-          "when": "view == codebook-md-view && viewItem == markdownFile",
-          "group": "1_modification"
-        },
-        {
-          "command": "codebook-md.renameTreeViewFile",
-          "when": "view == codebook-md-view && viewItem == markdownFile",
-          "group": "1_modification"
-        },
-        {
-          "command": "codebook-md.addFileToFolder",
-          "when": "view == codebook-md-view && viewItem == folder",
-          "group": "inline"
-        },
-        {
-          "command": "codebook-md.addSubFolder",
-          "when": "view == codebook-md-view && viewItem == folder",
-          "group": "1_modification"
-        },
-        {
-          "command": "codebook-md.renameFolderDisplay",
-          "when": "view == codebook-md-view && viewItem == folder",
-          "group": "1_modification"
-        },
-        {
-          "command": "codebook-md.removeFolderFromTreeView",
-          "when": "view == codebook-md-view && viewItem == folder",
-          "group": "1_modification"
-        }
-      ],
+      "view/title": [],
+      "view/item/context": [],
       "editor/context": [
         {
           "command": "codebook-md.addCurrentFileToFavorites",
@@ -549,11 +493,6 @@
     },
     "views": {
       "codebook-md-activitybar": [
-        {
-          "id": "codebook-md-view",
-          "name": "Codebook MD",
-          "icon": "extension/src/img/icon_logo_v1.svg"
-        },
         {
           "id": "codebook-md-notebooks-view",
           "name": "My Notebooks",
