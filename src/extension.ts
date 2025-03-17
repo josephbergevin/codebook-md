@@ -1,7 +1,7 @@
 import {
   languages, commands, window, notebooks, workspace,
-  ExtensionContext, StatusBarAlignment,
-  NotebookSerializer, NotebookData, NotebookCellData, CancellationToken,
+  ExtensionContext, StatusBarAlignment, NotebookCell,
+  NotebookSerializer, NotebookData, NotebookCellData, NotebookCellKind, CancellationToken,
   Uri,
 } from 'vscode';
 
@@ -12,6 +12,7 @@ import * as config from './config';
 import * as path from 'path';
 import { NotebooksViewProvider } from './webview/notebooksView';
 import { WelcomeViewProvider } from './webview/welcomeView';
+import * as configModal from './configModal';
 
 const kernel = new Kernel();
 
@@ -54,12 +55,80 @@ export function activate(context: ExtensionContext) {
 
   context.subscriptions.push(workspace.registerNotebookSerializer('codebook-md', new MarkdownProvider(), notebookSettings));
 
+  // Create an instance of a notebook editor provider, for setting up toolbar icons
+  const notebookCellStatusBarItemProvider = notebooks.registerNotebookCellStatusBarItemProvider(
+    'codebook-md',
+    {
+      provideCellStatusBarItems: (cell: NotebookCell) => {
+        if (cell.document.languageId) {
+          // Use undefined for alignment as a workaround
+          // VS Code API will handle it correctly
+          return [{
+            text: '$(gear) Config',
+            tooltip: 'Configure Code Block',
+            command: {
+              title: 'Configure Code Block',
+              command: 'codebook-md.openCodeBlockConfig',
+              arguments: [cell]
+            },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            alignment: undefined as any // This forces TypeScript to accept our object shape
+          }];
+        }
+        return [];
+      }
+    }
+  );
+  context.subscriptions.push(notebookCellStatusBarItemProvider);
+
+  // Register command to open config modal
+  let disposable = commands.registerCommand('codebook-md.openCodeBlockConfig', async (cell) => {
+    console.log('Opening code block configuration');
+    if (!cell) {
+      cell = window.activeNotebookEditor?.notebook.cellAt(window.activeNotebookEditor.selection.start);
+      if (!cell) {
+        window.showWarningMessage('No active code block selected.');
+        return;
+      }
+    }
+
+    // Get the current cell's output configuration
+    let configData = {};
+    if (cell.kind === NotebookCellKind.Code) {
+      try {
+        const execCell = codebook.NewExecutableCell(cell);
+        const cellConfig = execCell.contentCellConfig();
+        configData = {
+          showExecutableCodeInOutput: cellConfig.output.showExecutableCodeInOutput,
+          showOutputOnRun: cellConfig.output.showOutputOnRun,
+          replaceOutputCell: cellConfig.output.replaceOutputCell,
+          showTimestamp: cellConfig.output.showTimestamp,
+          timestampTimezone: cellConfig.output.timestampTimezone
+        };
+      } catch (error) {
+        console.error('Error getting cell configuration:', error);
+        configData = {
+          showExecutableCodeInOutput: false,
+          showOutputOnRun: false,
+          replaceOutputCell: true,
+          showTimestamp: false,
+          timestampTimezone: 'UTC'
+        };
+      }
+    }
+
+    // Open config modal with the current configuration
+    configModal.openConfigModal(configData, context);
+  });
+
+  context.subscriptions.push(disposable);
+
   // hoverProvider will fire-off for any language, but will automatically return if the document.fileName 
   // is not a markdown file
   context.subscriptions.push(languages.registerHoverProvider({ scheme: 'vscode-notebook-cell' }, new codebook.CellHover()));
 
   // add the codebook-md.openFileAtLine command
-  let disposable = commands.registerCommand('codebook-md.openFileAtLine', async (fileLoc: string, currentFileLoc: string) => {
+  disposable = commands.registerCommand('codebook-md.openFileAtLine', async (fileLoc: string, currentFileLoc: string) => {
     console.log(`called codebook-md.openFileAtLine | fileLoc: ${fileLoc} | currentFileLoc: ${currentFileLoc}`);
     const doc = codebook.newCodeDocumentFromFileLoc(fileLoc, currentFileLoc);
     if (!fs.existsSync(doc.fileLoc)) {
