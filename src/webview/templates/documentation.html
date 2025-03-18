@@ -141,9 +141,83 @@
         <h4>Language-Specific Examples</h4>
         <ul>
           <li><strong>Go:</strong>
-            <pre><code>fmt.Println("Hello")
-// [>].output.showExecutableCodeInOutput(true)
-// Your regular comments here</code></pre>
+            <p>Basic configuration:</p>
+            <pre><code>// [>].output.showExecutableCodeInOutput(true)
+// [>].execFrom:./path/to/main.go
+fmt.Println("Hello")</code></pre>
+            
+            <p>Go-specific configuration options:</p>
+            <ul>
+              <li><h4>Execution Type (<code>execType</code>)</h4>
+                <ul>
+                  <li>Run Mode (<code>execType: run</code>):
+                    <pre><code>// Execute in main.go (default)
+fmt.Println("Hello")
+
+// Specify custom filename
+// [>].execTypeRunFilename("main_temp.go")
+
+// Code is automatically wrapped in main function if needed:
+package main
+
+func main() {
+    fmt.Println("Hello")
+}</code></pre>
+                  </li>
+                  <li>Test Mode (<code>execType: test</code>):
+                    <pre><code>// Execute in test file
+// [>].execTypeTestFilename("custom_test.go")
+// [>].execTypeTestBuildTag("playground")
+
+// Automatically wrapped in test function:
+// +build playground
+
+package mypackage
+
+func TestExecNotebook(t *testing.T) {
+    // your test code
+}</code></pre>
+                  </li>
+                </ul>
+              </li>
+
+              <li><h4>Code Import Management</h4>
+                <ul>
+                  <li>goimports Command:
+                    <pre><code>// Use faster goimports instead of gopls
+// [>].goimportsCmd("goimports")
+
+// Default uses gopls (slower but more reliable)
+// [>].goimportsCmd("gopls imports")</code></pre>
+                  </li>
+                  <li>Imports are automatically managed and formatted before execution</li>
+                </ul>
+              </li>
+
+              <li><h4>Output Filtering</h4>
+                <pre><code>// Filter unwanted output prefixes
+// [>].excludeOutputPrefixes(["mysql: ", "W0626 ", "DEBUG: ", "INFO: "])</code></pre>
+              </li>
+
+              <li><h4>Configuration Properties Summary</h4>
+                <ul>
+                  <li><code>execTypeRunFilename</code>: Name of the file for run mode (default: "main.go")</li>
+                  <li><code>execTypeTestFilename</code>: Name of the test file (default: "codebook_md_exec_test.go")</li>
+                  <li><code>execTypeTestBuildTag</code>: Build tag for test isolation (default: "playground")</li>
+                  <li><code>goimportsCmd</code>: Command for import formatting ("gopls imports" or "goimports")</li>
+                  <li><code>excludeOutputPrefixes</code>: Array of prefixes to filter from output</li>
+                </ul>
+              </li>
+
+              <li><h4>Best Practices</h4>
+                <ul>
+                  <li>Add test files to .gitignore to prevent test pollution</li>
+                  <li>Use build tags to isolate notebook tests from package tests</li>
+                  <li>Consider using goimports for faster import resolution</li>
+                  <li>Use output filtering for cleaner execution results</li>
+                </ul>
+              </li>
+            </ul>
           </li>
           <li><strong>JavaScript/TypeScript:</strong>
             <pre><code>console.log("Hello");
