@@ -30,15 +30,10 @@ export class Kernel {
     const outputConfig = codebookCell.contentCellConfig().output;
 
     // if the executables length is more than 1, then we'll need to ensure the output is replaced
-    // otherwise, we're allowed to append to the output
-    if (codebookCell.executables().length > 1 && !outputConfig.replaceOutputCell) {
+    console.log(`executables length: ${codebookCell.executables().length} | replaceOutputCell: ${outputConfig.replaceOutputCell}`);
+    if (!outputConfig.replaceOutputCell && !codebookCell.allowKeepOutput()) {
       outputConfig.replaceOutputCell = true;
       console.warn("executables length is more than 1 - overriding replaceOutputCell value - setting to true");
-    }
-
-    if (outputConfig.replaceOutputCell) {
-      // clear the output of the cell
-      cellExec.clearOutput(notebookCell);
     }
 
     // displayOutput will be the output that is displayed in the cell and will be appended
@@ -64,18 +59,20 @@ export class Kernel {
     // this will be appended to as the cell runs
     const cellOutput = new NotebookCellOutput([NotebookCellOutputItem.text(displayOutput)]);
 
+    // Only clear the output if we're replacing it
     if (outputConfig.replaceOutputCell) {
-      console.log("replacing output cell");
+      console.log("clearing previous output");
+      cellExec.clearOutput(notebookCell);
       cellExec.replaceOutput([cellOutput]);
     }
 
     for (const executable of codebookCell.executables()) {
       try {
-        displayOutput = await runExecutable(token, executable, displayOutput, outputConfig.showExecutableCodeInOutput, cellExec);
+        displayOutput = await runExecutable(token, executable, displayOutput, outputConfig.showExecutableCodeInOutput, cellExec, outputConfig.replaceOutputCell);
         displayOutput += "\n";
       } catch (error) {
         console.error(`error running executable: ${error}`);
-        await displayOutputAsync(cellExec, displayOutput + error, true);
+        await displayOutputAsync(cellExec, displayOutput + error, outputConfig.replaceOutputCell);
         break;
       }
     }
@@ -101,12 +98,13 @@ async function runExecutable(
   executable: codebook.Executable,
   displayOutput: string,
   showExecutableCodeInOutput: boolean,
-  cellExec: NotebookCellExecution
+  cellExec: NotebookCellExecution,
+  replaceOutputCell: boolean = true
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     if (showExecutableCodeInOutput) {
       displayOutput += executable.toString() + "\n";
-      displayOutputAsync(cellExec, displayOutput, true);
+      displayOutputAsync(cellExec, displayOutput, replaceOutputCell);
     }
 
     const output = executable.execute();
@@ -125,7 +123,7 @@ async function runExecutable(
       errorText += text;
       // Show stderr in real-time too
       fullOutput += text;
-      displayOutputAsync(cellExec, fullOutput, true);
+      displayOutputAsync(cellExec, fullOutput, replaceOutputCell);
     });
 
     output.stdout.on("data", (data: Uint8Array) => {
@@ -148,14 +146,14 @@ async function runExecutable(
       }
 
       // Update output in real-time
-      displayOutputAsync(cellExec, fullOutput, true);
+      displayOutputAsync(cellExec, fullOutput, replaceOutputCell);
     });
 
     output.on("close", (code) => {
       // Add any final error text if there was a non-zero exit code
       if (code !== 0 && errorText) {
         fullOutput += errorText;
-        displayOutputAsync(cellExec, fullOutput, true);
+        displayOutputAsync(cellExec, fullOutput, replaceOutputCell);
       }
       resolve(fullOutput);
     });

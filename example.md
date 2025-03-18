@@ -88,12 +88,12 @@ echo "sleeping 5 seconds"
 sleep 5
 
 echo hello, zsh 2 - end
-# [>].output.replaceOutputCell(true)
+# [>].output.replaceOutputCell(false)
 # [>].output.showExecutableCodeInOutput(false)
 ```
 
 ```shellscript
-# [v].exec.from()
+# [>].output.replaceOutputCell(true)
 echo "hello, bash 3"
 ```
 

@@ -217,6 +217,10 @@ export class Cell implements codebook.ExecutableCell {
     }
   }
 
+  allowKeepOutput(): boolean {
+    return this.executables().length <= 1;
+  }
+
   contentCellConfig(): codebook.CellContentConfig {
     return this.config.contentConfig;
   }
@@ -298,53 +302,53 @@ export class Config {
     // use any specified config settings to override the defaults
     this.contentConfig.codebookCommands.forEach((command) => {
       // Parse configuration comments
-        if (command.startsWith('.execFrom:')) {
-          this.execFrom = command;
-        } else if (command.startsWith('.execTypeRunFilename(')) {
-          const match = command.match(/\.execTypeRunFilename\("([^"]+)"\)/);
-          if (match) {
-            this.execTypeRunFilename = match[1];
-            if (this.execTypeRun) {
-              this.execFilename = match[1];
-              this.execFile = path.join(this.execDir, match[1]);
-            }
-          }
-        } else if (command.startsWith('.execTypeTestFilename(')) {
-          const match = command.match(/\.execTypeTestFilename\("([^"]+)"\)/);
-          if (match) {
-            this.execTypeTestFilename = match[1];
-            if (this.execTypeTest) {
-              this.execFilename = match[1];
-              this.execFile = path.join(this.execDir, match[1]);
-            }
-          }
-        } else if (command.startsWith('.execTypeTestBuildTag(')) {
-          const match = command.match(/\.execTypeTestBuildTag\("([^"]+)"\)/);
-          if (match) {
-            this.execTypeTestBuildTag = match[1];
-            if (this.execTypeTest) {
-              const tagIndex = this.execArgs.findIndex(arg => arg.startsWith('-tags='));
-              if (tagIndex !== -1) {
-                this.execArgs[tagIndex] = `-tags=${match[1]}`;
-              }
-            }
-          }
-        } else if (command.startsWith('.goimportsCmd(')) {
-          const match = command.match(/\.goimportsCmd\("([^"]+)"\)/);
-          if (match) {
-            this.goimportsCmd = match[1];
-            this.useGoimports = match[1] === 'goimports';
-          }
-        } else if (command.startsWith('.excludeOutputPrefixes(')) {
-          try {
-            const match = command.match(/\.excludeOutputPrefixes\((.*)\)/);
-            if (match) {
-              this.excludeOutputPrefixes = JSON.parse(match[1]);
-            }
-          } catch (error) {
-            console.error('Failed to parse excludeOutputPrefixes:', error);
+      if (command.startsWith('.execFrom:')) {
+        this.execFrom = command;
+      } else if (command.startsWith('.execTypeRunFilename(')) {
+        const match = command.match(/\.execTypeRunFilename\("([^"]+)"\)/);
+        if (match) {
+          this.execTypeRunFilename = match[1];
+          if (this.execTypeRun) {
+            this.execFilename = match[1];
+            this.execFile = path.join(this.execDir, match[1]);
           }
         }
+      } else if (command.startsWith('.execTypeTestFilename(')) {
+        const match = command.match(/\.execTypeTestFilename\("([^"]+)"\)/);
+        if (match) {
+          this.execTypeTestFilename = match[1];
+          if (this.execTypeTest) {
+            this.execFilename = match[1];
+            this.execFile = path.join(this.execDir, match[1]);
+          }
+        }
+      } else if (command.startsWith('.execTypeTestBuildTag(')) {
+        const match = command.match(/\.execTypeTestBuildTag\("([^"]+)"\)/);
+        if (match) {
+          this.execTypeTestBuildTag = match[1];
+          if (this.execTypeTest) {
+            const tagIndex = this.execArgs.findIndex(arg => arg.startsWith('-tags='));
+            if (tagIndex !== -1) {
+              this.execArgs[tagIndex] = `-tags=${match[1]}`;
+            }
+          }
+        }
+      } else if (command.startsWith('.goimportsCmd(')) {
+        const match = command.match(/\.goimportsCmd\("([^"]+)"\)/);
+        if (match) {
+          this.goimportsCmd = match[1];
+          this.useGoimports = match[1] === 'goimports';
+        }
+      } else if (command.startsWith('.excludeOutputPrefixes(')) {
+        try {
+          const match = command.match(/\.excludeOutputPrefixes\((.*)\)/);
+          if (match) {
+            this.excludeOutputPrefixes = JSON.parse(match[1]);
+          }
+        } catch (error) {
+          console.error('Failed to parse excludeOutputPrefixes:', error);
+        }
+      }
     });
     if (this.execTypeTest) {
       const currentFile = window.activeTextEditor?.document.fileName;

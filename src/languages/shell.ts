@@ -10,6 +10,7 @@ export class Cell implements codebook.ExecutableCell {
   executableCode: string;
   mainExecutable: codebook.Command;
   postExecutables: codebook.Executable[] = [];
+  commandCount: number = 0;
   config: Config;
 
   constructor(notebookCell: NotebookCell | undefined) {
@@ -25,8 +26,9 @@ export class Cell implements codebook.ExecutableCell {
     // Get all commands from the inner scope
     const cmds = codebook.parseCommands(this.innerScope, this.config.execDir);
 
+    this.commandCount = cmds.length;
     // no commands found: notify a warning and return
-    if (cmds.length === 0) {
+    if (this.commandCount === 0) {
       this.mainExecutable = new codebook.Command("echo", ["No commands found in cell"], ".");
       return;
     }
@@ -55,6 +57,10 @@ export class Cell implements codebook.ExecutableCell {
         this.config.execDir
       );
     }
+  }
+
+  allowKeepOutput(): boolean {
+    return this.commandCount === 1;
   }
 
   contentCellConfig(): codebook.CellContentConfig {
