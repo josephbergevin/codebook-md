@@ -1,12 +1,19 @@
+import * as vscode from 'vscode';
 import {
   WebviewView,
   WebviewViewProvider,
   ExtensionContext,
   Uri,
-  Disposable
+  Disposable,
+  Webview
 } from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+
+interface WebviewMessage {
+  command: string;
+  view?: 'documentation' | 'notebooks';
+}
 
 /**
  * Provider for the Welcome webview view.
@@ -44,6 +51,7 @@ export class WelcomeViewProvider implements WebviewViewProvider, Disposable {
 
     // Set the HTML content
     this._updateWebview();
+    this._setWebviewMessageListener(webviewView.webview);
   }
 
   /**
@@ -73,5 +81,23 @@ export class WelcomeViewProvider implements WebviewViewProvider, Disposable {
     htmlContent = htmlContent.replace('{{logoUri}}', logoUri?.toString() || '');
 
     return htmlContent;
+  }
+
+  private _setWebviewMessageListener(webview: Webview) {
+    webview.onDidReceiveMessage(
+      async (message: WebviewMessage) => {
+        switch (message.command) {
+          case 'openWebview':
+            if (message.view === 'documentation') {
+              await vscode.commands.executeCommand('codebook-md.openDocumentation');
+            } else if (message.view === 'notebooks') {
+              await vscode.commands.executeCommand('codebook-md.openNotebooks');
+            }
+            return;
+        }
+      },
+      undefined,
+      this._disposables
+    );
   }
 }

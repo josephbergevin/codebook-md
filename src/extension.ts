@@ -38,6 +38,23 @@ export function activate(context: ExtensionContext) {
     window.registerWebviewViewProvider(NotebooksViewProvider.viewType, notebooksViewProvider)
   );
 
+  // Add commands to show and focus webviews
+  let disposable = commands.registerCommand('codebook-md.openDocumentation', async () => {
+    // First show the activity bar view container
+    await commands.executeCommand('workbench.view.extension.codebook-md-activitybar');
+    // Then focus the documentation view
+    await commands.executeCommand('codebook-md-documentation-view.focus');
+  });
+  context.subscriptions.push(disposable);
+
+  disposable = commands.registerCommand('codebook-md.openNotebooks', async () => {
+    // First show the activity bar view container
+    await commands.executeCommand('workbench.view.extension.codebook-md-activitybar');
+    // Then focus the notebooks view
+    await commands.executeCommand('codebook-md-notebooks-view.focus');
+  });
+  context.subscriptions.push(disposable);
+
   const controller = notebooks.createNotebookController('codebook-md', 'codebook-md', 'codebook-md');
   controller.supportedLanguages = [];
   controller.executeHandler = async (cells, doc, ctrl) => {
@@ -89,7 +106,7 @@ export function activate(context: ExtensionContext) {
   context.subscriptions.push(notebookCellStatusBarItemProvider);
 
   // Register command to open config modal
-  let disposable = commands.registerCommand('codebook-md.openCodeBlockConfig', async (cell) => {
+  disposable = commands.registerCommand('codebook-md.openCodeBlockConfig', async (cell) => {
     console.log('Opening code block configuration');
     if (!cell) {
       cell = window.activeNotebookEditor?.notebook.cellAt(window.activeNotebookEditor.selection.start);
