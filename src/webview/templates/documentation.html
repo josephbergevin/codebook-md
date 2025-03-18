@@ -76,6 +76,7 @@
         <li><a href="#virtual-folders">Virtual Folders (My Notebooks)</a></li>
         <li><a href="#executable-code">Executable Code Blocks</a></li>
         <li><a href="#file-links">File Links &amp; Hover Preview</a></li>
+        <li><a href="#codeblock-config">CodeBlock Configuration</a></li>
         <li><a href="#output-config">Output Configuration</a></li>
         <li><a href="#custom-settings">Custom Settings</a></li>
         <li><a href="#recent-updates">Recent Updates</a></li>
@@ -128,6 +129,53 @@
           <li>With line number: <code>[open](./file.md:5)</code></li>
           <li>Line range: <code>[open](./file.md:5-8)</code></li>
         </ul>
+      </section>
+
+      <section id="codeblock-config">
+        <h2>CodeBlock Configuration</h2>
+        <p>Configure individual code blocks using special comment syntax. Each language supports its own comment style while maintaining consistent configuration options.</p>
+
+        <h4>Configuration Syntax</h4>
+        <p>Add configuration using comments with the <code>[>]</code> prefix followed by the configuration command:</p>
+
+        <h4>Language-Specific Examples</h4>
+        <ul>
+          <li><strong>Go:</strong>
+            <pre><code>fmt.Println("Hello")
+// [>].output.showExecutableCodeInOutput(true)
+// Your regular comments here</code></pre>
+          </li>
+          <li><strong>JavaScript/TypeScript:</strong>
+            <pre><code>console.log("Hello");
+// [>].output.replaceOutputCell(false)
+// Your regular comments here</code></pre>
+          </li>
+          <li><strong>Python:</strong>
+            <pre><code>print("Hello")
+# [>].output.showOutputOnRun(true)
+# Your regular comments here</code></pre>
+          </li>
+          <li><strong>Bash/Shell:</strong>
+            <pre><code>echo "Hello"
+# [>].output.showTimestamp(true)
+# Your regular comments here</code></pre>
+          </li>
+          <li><strong>SQL:</strong>
+            <pre><code>SELECT * FROM users;
+-- [>].output.showExecutableCodeInOutput(true)
+-- Your regular comments here</code></pre>
+          </li>
+        </ul>
+
+        <h4>Available Configuration Options</h4>
+        <ul>
+          <li><code>showExecutableCodeInOutput(boolean)</code>: Show/hide the executed code in output</li>
+          <li><code>showOutputOnRun(boolean)</code>: Control whether output is shown after execution</li>
+          <li><code>replaceOutputCell(boolean)</code>: Replace existing output or append new output</li>
+          <li><code>showTimestamp(boolean)</code>: Show/hide execution timestamp in output</li>
+        </ul>
+
+        <p>These configurations can be set per code block, overriding the global settings for that specific block.</p>
       </section>
 
       <section id="output-config">
