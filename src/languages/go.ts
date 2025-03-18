@@ -73,7 +73,7 @@ export class Cell implements codebook.ExecutableCell {
       } else if (line.startsWith("import")) {
         this.importNumber++;
         this.imports.push(line);
-      } else if (line.startsWith("// [>].exec_from:")) {
+      } else if (line.startsWith("// [>].execFrom:")) {
         // set the execFrom value to the line so we can use it later
         this.config.execFrom = line;
         continue;
@@ -295,15 +295,14 @@ export class Config {
       this.execCmd = 'run';
     }
   }
-
 }
 
 // getDirAndMainFile takes the string to search (main string) and returns the directory and main file path for the go code using the 
-// '// [>]exec_from:[/dir/to/main.go]' keyword in a comment in the given string using one of 2 formats:
+// '// [>]execFrom:[/dir/to/main.go]' keyword in a comment in the given string using one of 2 formats:
 // 1. absolute path to the directory and main.go file (/path/to/dir/main.go)
 // 2. relative path to the directory and main.go file (./dir/main.go)
 export const getDirAndExecFile = (execFrom: string): [string, string] => {
-  // [>]exec_from:./apiplayground/main_temp.go
+  // [>]execFrom:./apiplayground/main_temp.go
   // split on the colon
   const parts = execFrom.split(':');
   console.log(`getDirAndExecFile parts: ${parts} | execFrom: ${execFrom}`);
