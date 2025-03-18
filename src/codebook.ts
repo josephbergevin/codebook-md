@@ -38,6 +38,7 @@ export interface RawNotebookCell {
 export interface ExecutableCell {
   execute(): ChildProcessWithoutNullStreams;
   executables(): Executable[];
+  allowKeepOutput(): boolean;
   contentCellConfig(): CellContentConfig;
   toString(): string;
   // commentPrefixes(): string[];

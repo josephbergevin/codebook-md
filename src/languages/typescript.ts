@@ -35,6 +35,10 @@ export class Cell implements codebook.ExecutableCell {
     return this.config.contentConfig;
   }
 
+  allowKeepOutput(): boolean {
+    return this.executables().length <= 1;
+  }
+
   toString(): string {
     return this.innerScope;
   }

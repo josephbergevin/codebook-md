@@ -47,6 +47,10 @@ export class Cell implements codebook.ExecutableCell {
   executables(): codebook.Executable[] {
     return [this.mainExecutable, ...this.postExecutables];
   }
+
+  allowKeepOutput(): boolean {
+    return this.executables().length <= 1;
+  }
 }
 
 export class Config {

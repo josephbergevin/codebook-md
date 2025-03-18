@@ -60,6 +60,10 @@ export class Cell implements codebook.ExecutableCell {
     }
   }
 
+  allowKeepOutput(): boolean {
+    return this.executables.length == 1;
+  }
+
   toString(): string {
     return this.innerScope;
   }
