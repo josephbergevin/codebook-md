@@ -1,4 +1,5 @@
 import * as codebook from '../codebook';
+import { NotebookCell, WorkspaceConfiguration } from 'vscode';
 
 jest.mock('vscode', () => ({
   window: {
@@ -149,5 +150,235 @@ describe('parseCommands', () => {
     expect(commands[1].command).toBe('ls');
     expect(commands[1].args).toEqual(['-la']);
     expect(commands[1].cwd).toBe(cwd);
+  });
+});
+
+describe('CellContentConfig', () => {
+  it('should create correct config when called from Go', () => {
+    // Mock NotebookCell with Go code
+    const mockNotebookCell = {
+      document: {
+        getText: jest.fn().mockReturnValue('fmt.Println("Hello")\n// [>].output.showExecutableCodeInOutput(true)\n// This is a comment\n'),
+        languageId: 'go'
+      } as unknown
+    } as NotebookCell;
+
+    // Mock workspace configuration with all required methods
+    const mockConfig = {
+      get: jest.fn().mockImplementation((key: string) => {
+        switch (key) {
+          case 'showExecutableCodeInOutput': return false;
+          case 'showOutputOnRun': return false;
+          case 'replaceOutputCell': return true;
+          case 'showTimestamp': return false;
+          case 'timestampTimezone': return '';
+          default: return undefined;
+        }
+      }),
+      has: jest.fn().mockReturnValue(true),
+      inspect: jest.fn(),
+      update: jest.fn().mockResolvedValue(undefined)
+    } as WorkspaceConfiguration;
+
+    const cellConfig = new codebook.CellContentConfig(mockNotebookCell, mockConfig, "//");
+
+    // Verify the configuration was parsed correctly
+    expect(cellConfig.innerScope).toBe('fmt.Println("Hello")');
+    expect(cellConfig.comments).toEqual(['// This is a comment']);
+    expect(cellConfig.codebookCommands).toEqual(['.output.showExecutableCodeInOutput(true)']);
+    expect(cellConfig.execFrom).toBe('');
+    expect(cellConfig.output.showExecutableCodeInOutput).toBe(true);
+  });
+
+  it('should create correct config when called from Bash', () => {
+    const mockNotebookCell = {
+      document: {
+        getText: jest.fn().mockReturnValue('echo "Hello"\n# [>].output.showTimestamp(true)\n# This is a comment\n'),
+        languageId: 'bash'
+      } as unknown
+    } as NotebookCell;
+
+    const mockConfig = {
+      get: jest.fn().mockImplementation((key: string) => {
+        switch (key) {
+          case 'showExecutableCodeInOutput': return false;
+          case 'showOutputOnRun': return false;
+          case 'replaceOutputCell': return true;
+          case 'showTimestamp': return false;
+          case 'timestampTimezone': return '';
+          default: return undefined;
+        }
+      }),
+      has: jest.fn().mockReturnValue(true),
+      inspect: jest.fn(),
+      update: jest.fn().mockResolvedValue(undefined)
+    } as WorkspaceConfiguration;
+
+    const cellConfig = new codebook.CellContentConfig(mockNotebookCell, mockConfig, "#");
+
+    expect(cellConfig.innerScope).toBe('echo "Hello"');
+    expect(cellConfig.comments).toEqual(['# This is a comment']);
+    expect(cellConfig.codebookCommands).toEqual(['.output.showTimestamp(true)']);
+    expect(cellConfig.output.showTimestamp).toBe(true);
+  });
+
+  it('should create correct config when called from JavaScript', () => {
+    const mockNotebookCell = {
+      document: {
+        getText: jest.fn().mockReturnValue('console.log("Hello");\n// [>].output.replaceOutputCell(false)\n// This is a comment\n'),
+        languageId: 'javascript'
+      } as unknown
+    } as NotebookCell;
+
+    const mockConfig = {
+      get: jest.fn().mockImplementation((key: string) => {
+        switch (key) {
+          case 'showExecutableCodeInOutput': return false;
+          case 'showOutputOnRun': return false;
+          case 'replaceOutputCell': return true;
+          case 'showTimestamp': return false;
+          case 'timestampTimezone': return '';
+          default: return undefined;
+        }
+      }),
+      has: jest.fn().mockReturnValue(true),
+      inspect: jest.fn(),
+      update: jest.fn().mockResolvedValue(undefined)
+    } as WorkspaceConfiguration;
+
+    const cellConfig = new codebook.CellContentConfig(mockNotebookCell, mockConfig, "//");
+
+    expect(cellConfig.innerScope).toBe('console.log("Hello");');
+    expect(cellConfig.comments).toEqual(['// This is a comment']);
+    expect(cellConfig.codebookCommands).toEqual(['.output.replaceOutputCell(false)']);
+    expect(cellConfig.output.replaceOutputCell).toBe(false);
+  });
+
+  it('should create correct config when called from Python', () => {
+    const mockNotebookCell = {
+      document: {
+        getText: jest.fn().mockReturnValue('print("Hello")\n# [>].output.showOutputOnRun(true)\n# This is a comment\n'),
+        languageId: 'python'
+      } as unknown
+    } as NotebookCell;
+
+    const mockConfig = {
+      get: jest.fn().mockImplementation((key: string) => {
+        switch (key) {
+          case 'showExecutableCodeInOutput': return false;
+          case 'showOutputOnRun': return false;
+          case 'replaceOutputCell': return true;
+          case 'showTimestamp': return false;
+          case 'timestampTimezone': return '';
+          default: return undefined;
+        }
+      }),
+      has: jest.fn().mockReturnValue(true),
+      inspect: jest.fn(),
+      update: jest.fn().mockResolvedValue(undefined)
+    } as WorkspaceConfiguration;
+
+    const cellConfig = new codebook.CellContentConfig(mockNotebookCell, mockConfig, "#");
+
+    expect(cellConfig.innerScope).toBe('print("Hello")');
+    expect(cellConfig.comments).toEqual(['# This is a comment']);
+    expect(cellConfig.codebookCommands).toEqual(['.output.showOutputOnRun(true)']);
+    expect(cellConfig.output.showOutputOnRun).toBe(true);
+  });
+
+  it('should create correct config when called from Shell', () => {
+    const mockNotebookCell = {
+      document: {
+        getText: jest.fn().mockReturnValue('ls -la\n# [>].output.showTimestamp(true)\n# This is a comment\n'),
+        languageId: 'shell'
+      } as unknown
+    } as NotebookCell;
+
+    const mockConfig = {
+      get: jest.fn().mockImplementation((key: string) => {
+        switch (key) {
+          case 'showExecutableCodeInOutput': return false;
+          case 'showOutputOnRun': return false;
+          case 'replaceOutputCell': return true;
+          case 'showTimestamp': return false;
+          case 'timestampTimezone': return '';
+          default: return undefined;
+        }
+      }),
+      has: jest.fn().mockReturnValue(true),
+      inspect: jest.fn(),
+      update: jest.fn().mockResolvedValue(undefined)
+    } as WorkspaceConfiguration;
+
+    const cellConfig = new codebook.CellContentConfig(mockNotebookCell, mockConfig, "#");
+
+    expect(cellConfig.innerScope).toBe('ls -la');
+    expect(cellConfig.comments).toEqual(['# This is a comment']);
+    expect(cellConfig.codebookCommands).toEqual(['.output.showTimestamp(true)']);
+    expect(cellConfig.output.showTimestamp).toBe(true);
+  });
+
+  it('should create correct config when called from SQL', () => {
+    const mockNotebookCell = {
+      document: {
+        getText: jest.fn().mockReturnValue('SELECT * FROM users;\n-- [>].output.showExecutableCodeInOutput(true)\n-- This is a comment\n'),
+        languageId: 'sql'
+      } as unknown
+    } as NotebookCell;
+
+    const mockConfig = {
+      get: jest.fn().mockImplementation((key: string) => {
+        switch (key) {
+          case 'showExecutableCodeInOutput': return false;
+          case 'showOutputOnRun': return false;
+          case 'replaceOutputCell': return true;
+          case 'showTimestamp': return false;
+          case 'timestampTimezone': return '';
+          default: return undefined;
+        }
+      }),
+      has: jest.fn().mockReturnValue(true),
+      inspect: jest.fn(),
+      update: jest.fn().mockResolvedValue(undefined)
+    } as WorkspaceConfiguration;
+
+    const cellConfig = new codebook.CellContentConfig(mockNotebookCell, mockConfig, "--");
+
+    expect(cellConfig.innerScope).toBe('SELECT * FROM users;');
+    expect(cellConfig.comments).toEqual(['-- This is a comment']);
+    expect(cellConfig.codebookCommands).toEqual(['.output.showExecutableCodeInOutput(true)']);
+    expect(cellConfig.output.showExecutableCodeInOutput).toBe(true);
+  });
+
+  it('should create correct config when called from TypeScript', () => {
+    const mockNotebookCell = {
+      document: {
+        getText: jest.fn().mockReturnValue('console.log("Hello");\n// [>].output.showExecutableCodeInOutput(true)\n// This is a comment\n'),
+        languageId: 'typescript'
+      } as unknown
+    } as NotebookCell;
+
+    const mockConfig = {
+      get: jest.fn().mockImplementation((key: string) => {
+        switch (key) {
+          case 'showExecutableCodeInOutput': return false;
+          case 'showOutputOnRun': return false;
+          case 'replaceOutputCell': return true;
+          case 'showTimestamp': return false;
+          case 'timestampTimezone': return '';
+          default: return undefined;
+        }
+      }),
+      has: jest.fn().mockReturnValue(true),
+      inspect: jest.fn(),
+      update: jest.fn().mockResolvedValue(undefined)
+    } as WorkspaceConfiguration;
+
+    const cellConfig = new codebook.CellContentConfig(mockNotebookCell, mockConfig, "//");
+
+    expect(cellConfig.innerScope).toBe('console.log("Hello");');
+    expect(cellConfig.comments).toEqual(['// This is a comment']);
+    expect(cellConfig.codebookCommands).toEqual(['.output.showExecutableCodeInOutput(true)']);
+    expect(cellConfig.output.showExecutableCodeInOutput).toBe(true);
   });
 });

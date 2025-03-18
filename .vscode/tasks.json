@@ -16,6 +16,14 @@
 				"kind": "build",
 				"isDefault": true
 			}
+    },
+    {
+			"label": "npm test",
+			"detail": "Calls npm test",
+			"type": "shell",
+			"command": "npm",
+			"args": ["test"],
+			"problemMatcher": ["$tsc"]
 		},
 		{
 			"type": "npm",
@@ -51,6 +59,6 @@
 			"command": "npm",
 			"args": ["update"],
 			"problemMatcher": []
-		},
+		}
 	]
 }
