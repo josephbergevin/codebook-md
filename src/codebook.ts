@@ -10,7 +10,8 @@ import {
   WorkspaceConfiguration,
 } from 'vscode';
 import { TextDecoder, TextEncoder } from 'util';
-import { ChildProcessWithoutNullStreams } from "child_process";
+import { ChildProcessWithoutNullStreams, spawn } from "child_process";
+import { Transform } from 'stream';
 import * as path from 'path';
 import { existsSync, readFileSync } from 'fs';
 import * as fs from 'fs';
@@ -49,17 +50,17 @@ export interface Executable {
   execute(): ChildProcessWithoutNullStreams;
   toString(): string;
   jsonStringify(): string;
-
-  beforeExecuteFuncs: (() => void)[];
+  beforeExecuteFuncs?: Array<() => void>;
 }
 
 // Command is class for a command and its arguments
 export class Command implements Executable {
-  // beforeExecuteFuncs is a list of functions (with promises) to execute before the command is executed
-  beforeExecuteFuncs: (() => void)[] = [];
   command: string;
   args: string[];
   cwd: string;
+  childProcess?: ChildProcessWithoutNullStreams;
+  beforeExecuteFuncs: Array<() => void> = [];
+  outputTransformers: Array<(output: string) => string> = [];
   commandToDisplay: string = "";
 
   constructor(command: string, args: string[], cwd: string) {
@@ -71,6 +72,11 @@ export class Command implements Executable {
   // addBeforeExecuteFunc adds a function to be executed before the command is executed
   addBeforeExecuteFunc(func: () => void): void {
     this.beforeExecuteFuncs.push(func);
+  }
+
+  // addOutputTransformer adds a transformer function to be applied to the command output
+  addOutputTransformer(transformer: (output: string) => string) {
+    this.outputTransformers.push(transformer);
   }
 
   // setDisplayCommand sets command string to display in the output
@@ -100,7 +106,26 @@ export class Command implements Executable {
     }
 
     try {
-      return io.spawnSafe(this.command, this.args, { cwd: this.cwd });
+      this.childProcess = spawn(this.command, this.args, { cwd: this.cwd });
+
+      // Apply output transformers if any exist
+      if (this.outputTransformers.length > 0) {
+        const originalStdout = this.childProcess.stdout;
+        const transformStream = new Transform({
+          transform: (chunk: Buffer, encoding: BufferEncoding, callback: (error?: Error | null, data?: Buffer) => void) => {
+            let output = chunk.toString();
+            // Apply each transformer in sequence
+            for (const transformer of this.outputTransformers) {
+              output = transformer(output);
+            }
+            callback(null, Buffer.from(output));
+          }
+        });
+        originalStdout.pipe(transformStream);
+        this.childProcess.stdout = transformStream as any; // Type assertion needed for compatibility
+      }
+
+      return this.childProcess;
     } catch (error) {
       console.error(`Error executing command: ${error}`);
       window.showErrorMessage(`Error executing command: ${error}`);

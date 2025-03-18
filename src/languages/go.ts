@@ -202,6 +202,19 @@ export class Cell implements codebook.ExecutableCell {
         });
       });
     }
+
+    // Add output filtering if prefixes are configured
+    if (this.config.excludeOutputPrefixes.length > 0) {
+      this.mainExecutable.addOutputTransformer((output: string) => {
+        let filteredOutput = output;
+        for (const prefix of this.config.excludeOutputPrefixes) {
+          filteredOutput = filteredOutput.split('\n')
+            .filter(line => !line.startsWith(prefix))
+            .join('\n');
+        }
+        return filteredOutput;
+      });
+    }
   }
 
   contentCellConfig(): codebook.CellContentConfig {
@@ -257,29 +270,83 @@ export class Config {
   execFilename: string;
   execPkg: string;
   useGoimports: boolean;
+  goimportsCmd: string;
   execCmd: string;
   execArgs: string[];
+  excludeOutputPrefixes: string[];
 
   constructor(goConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
     this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-md.go.output'), "//");
     const execType = goConfig?.get<string>('execType') ?? 'run';
     this.execFrom = '';
     this.execTypeRun = execType === 'run';
-    this.execTypeRunFilename = goConfig?.get<string>('execTypeRunFilename') ?? 'main.go'; // defalut value is in package.json
+    this.execTypeRunFilename = goConfig?.get<string>('execTypeRunFilename') ?? 'main.go';
     this.execTypeTest = execType === 'test';
-    this.execTypeTestFilename = goConfig?.get<string>('execTypeTestFilename') ?? 'codebook_md_exec_test.go'; // defalut value is in package.json
-    this.execTypeTestBuildTag = goConfig?.get<string>('execTypeTestBuildTag') ?? 'playground'; // defalut value is in package.json
+    this.execTypeTestFilename = goConfig?.get<string>('execTypeTestFilename') ?? 'codebook_md_exec_test.go';
+    this.execTypeTestBuildTag = goConfig?.get<string>('execTypeTestBuildTag') ?? 'playground';
     this.execDir = "";
     this.execFile = "";
     this.execFilename = "";
     this.execPkg = "";
-    const goimportsCmd = goConfig?.get<string>('goimportsCmd') ?? 'gopls imports';
-    this.useGoimports = goimportsCmd === 'goimports';
+    this.goimportsCmd = goConfig?.get<string>('goimportsCmd') ?? 'gopls imports';
+    this.useGoimports = this.goimportsCmd === 'goimports';
     this.execCmd = "";
     this.execArgs = [];
+    this.excludeOutputPrefixes = goConfig?.get<string[]>('excludeOutputPrefixes') ?? [];
+
+    // loop through the codebook commands - these have been cleaned up (trimmed off the // [>] prefix)
+    // use any specified config settings to override the defaults
+    this.contentConfig.codebookCommands.forEach((command) => {
+      // Parse configuration comments
+        if (command.startsWith('.execFrom:')) {
+          this.execFrom = command;
+        } else if (command.startsWith('.execTypeRunFilename(')) {
+          const match = command.match(/\.execTypeRunFilename\("([^"]+)"\)/);
+          if (match) {
+            this.execTypeRunFilename = match[1];
+            if (this.execTypeRun) {
+              this.execFilename = match[1];
+              this.execFile = path.join(this.execDir, match[1]);
+            }
+          }
+        } else if (command.startsWith('.execTypeTestFilename(')) {
+          const match = command.match(/\.execTypeTestFilename\("([^"]+)"\)/);
+          if (match) {
+            this.execTypeTestFilename = match[1];
+            if (this.execTypeTest) {
+              this.execFilename = match[1];
+              this.execFile = path.join(this.execDir, match[1]);
+            }
+          }
+        } else if (command.startsWith('.execTypeTestBuildTag(')) {
+          const match = command.match(/\.execTypeTestBuildTag\("([^"]+)"\)/);
+          if (match) {
+            this.execTypeTestBuildTag = match[1];
+            if (this.execTypeTest) {
+              const tagIndex = this.execArgs.findIndex(arg => arg.startsWith('-tags='));
+              if (tagIndex !== -1) {
+                this.execArgs[tagIndex] = `-tags=${match[1]}`;
+              }
+            }
+          }
+        } else if (command.startsWith('.goimportsCmd(')) {
+          const match = command.match(/\.goimportsCmd\("([^"]+)"\)/);
+          if (match) {
+            this.goimportsCmd = match[1];
+            this.useGoimports = match[1] === 'goimports';
+          }
+        } else if (command.startsWith('.excludeOutputPrefixes(')) {
+          try {
+            const match = command.match(/\.excludeOutputPrefixes\((.*)\)/);
+            if (match) {
+              this.excludeOutputPrefixes = JSON.parse(match[1]);
+            }
+          } catch (error) {
+            console.error('Failed to parse excludeOutputPrefixes:', error);
+          }
+        }
+    });
     if (this.execTypeTest) {
-      // if goConfig.execType is set and the value is 'test`, then create the file in the current package
-      // set the execDir to the current directory
       const currentFile = window.activeTextEditor?.document.fileName;
       const currentPath = path.dirname(currentFile ?? '');
       this.execPkg = path.basename(currentPath);
