@@ -12,7 +12,7 @@ import * as config from './config';
 import * as path from 'path';
 import { NotebooksViewProvider } from './webview/notebooksView';
 import { WelcomeViewProvider } from './webview/welcomeView';
-import * as configModal from './configModal';
+import * as configModal from './webview/configModal';
 
 const kernel = new Kernel();
 
