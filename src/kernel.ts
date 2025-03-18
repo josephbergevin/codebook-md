@@ -118,6 +118,7 @@ async function runExecutable(
 
     let errorText = "";
     let fullOutput = displayOutput;
+    let isCapturingOutput = true; // Default to capturing all output if no StartOutput marker is found
 
     output.stderr.on("data", (data: Uint8Array) => {
       const text = data.toString();
@@ -129,7 +130,23 @@ async function runExecutable(
 
     output.stdout.on("data", (data: Uint8Array) => {
       const text = data.toString();
-      fullOutput += text;
+      const lines = text.split('\n');
+
+      // Process each line to handle StartOutput/EndOutput markers
+      for (const line of lines) {
+        if (line.includes(codebook.StartOutput)) {
+          isCapturingOutput = true;
+          continue; // Skip the marker line
+        }
+        if (line.includes(codebook.EndOutput)) {
+          isCapturingOutput = false;
+          continue; // Skip the marker line
+        }
+        if (isCapturingOutput) {
+          fullOutput += line + '\n';
+        }
+      }
+
       // Update output in real-time
       displayOutputAsync(cellExec, fullOutput, true);
     });
