@@ -108,6 +108,10 @@
           {
             "name": "Code Block Config",
             "path": "/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/tooling/apiplayground/feature-updates/code_block_config.md"
+          },
+          {
+            "name": "Documentation Webview",
+            "path": "/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/tooling/apiplayground/feature-updates/documentation_webview.md"
           }
         ]
       },

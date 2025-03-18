@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodebookMD Documentation</title>
+  <style>
+    body {
+      font-family: var(--vscode-font-family);
+      font-size: var(--vscode-font-size);
+      color: var(--vscode-foreground);
+      padding: 0;
+      margin: 0;
+    }
+    .container {
+      padding: 20px;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    .index {
+      background: var(--vscode-sideBar-background);
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      border: 1px solid var(--vscode-panel-border);
+    }
+    .index ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .index li {
+      margin: 5px 0;
+    }
+    .index a {
+      color: var(--vscode-textLink-foreground);
+      text-decoration: none;
+    }
+    .index a:hover {
+      text-decoration: underline;
+    }
+    h1, h2, h3, h4 {
+      color: var(--vscode-editor-foreground);
+      margin-top: 1.5em;
+      margin-bottom: 0.5em;
+    }
+    h1:first-child {
+      margin-top: 0;
+    }
+    code {
+      background: var(--vscode-textCodeBlock-background);
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-family: var(--vscode-editor-font-family);
+    }
+    .feature-highlight {
+      color: var(--vscode-textLink-activeForeground);
+      font-weight: 500;
+    }
+    pre {
+      background: var(--vscode-textCodeBlock-background);
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .content section {
+      margin-bottom: 2em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav class="index">
+      <h3>Documentation Index</h3>
+      <ul>
+        <li><a href="#virtual-folders">Virtual Folders (My Notebooks)</a></li>
+        <li><a href="#executable-code">Executable Code Blocks</a></li>
+        <li><a href="#file-links">File Links &amp; Hover Preview</a></li>
+        <li><a href="#output-config">Output Configuration</a></li>
+        <li><a href="#custom-settings">Custom Settings</a></li>
+        <li><a href="#recent-updates">Recent Updates</a></li>
+      </ul>
+    </nav>
+
+    <div class="content">
+      <section id="virtual-folders">
+        <h2>Virtual Folders (My Notebooks)</h2>
+        <h3>Overview</h3>
+        <p>The "My Notebooks" tree-view feature allows you to organize markdown files into a customizable hierarchical structure for easy access and navigation.</p>
+        
+        <h4>Key Features</h4>
+        <ul>
+          <li><span class="feature-highlight">Virtual Folders:</span> Create custom folder hierarchies</li>
+          <li><span class="feature-highlight">Custom Display Names:</span> Rename files and folders</li>
+          <li><span class="feature-highlight">Hierarchical Structure:</span> Create nested folders</li>
+          <li><span class="feature-highlight">Quick Access:</span> Access documents with one click</li>
+        </ul>
+        
+        <h4>Adding Virtual Folders</h4>
+        <ol>
+          <li>Click on the <span class="feature-highlight">New Folder</span> icon</li>
+          <li>Enter the folder name</li>
+          <li>Add files to the folder</li>
+        </ol>
+      </section>
+
+      <section id="executable-code">
+        <h2>Executable Code Blocks</h2>
+        <p>Execute code blocks directly in your markdown files.</p>
+
+        <h4>Supported Languages</h4>
+        <ul>
+          <li><strong>Go:</strong> Run as main.go or test files</li>
+          <li><strong>Shell/Bash:</strong> Execute shell commands</li>
+          <li><strong>JavaScript/TypeScript:</strong> Run JS/TS code</li>
+          <li><strong>SQL:</strong> Execute database queries</li>
+          <li><strong>HTTP:</strong> Make API requests (with REST Client extension)</li>
+        </ul>
+      </section>
+
+      <section id="file-links">
+        <h2>File Links &amp; Hover Preview</h2>
+        <p>Hover over file links in markdown to preview contents.</p>
+        
+        <h4>Link Formats</h4>
+        <ul>
+          <li>Basic file link: <code>[open](./file.md)</code></li>
+          <li>With line number: <code>[open](./file.md:5)</code></li>
+          <li>Line range: <code>[open](./file.md:5-8)</code></li>
+        </ul>
+      </section>
+
+      <section id="output-config">
+        <h2>Output Configuration</h2>
+        <p>Configure how code execution results are displayed.</p>
+
+        <h4>Output Options</h4>
+        <ul>
+          <li>Below code block (default)</li>
+          <li>Show/hide executable code</li>
+          <li>Show/hide timestamps</li>
+          <li>Replace or append output</li>
+        </ul>
+      </section>
+
+      <section id="custom-settings">
+        <h2>Custom Settings</h2>
+        <p>Configure CodebookMD through VS Code settings.</p>
+
+        <h4>Configuration Levels</h4>
+        <ul>
+          <li>Workspace settings</li>
+          <li>User settings</li>
+          <li>Folder-level settings</li>
+        </ul>
+      </section>
+
+      <section id="recent-updates">
+        <h2>Recent Updates</h2>
+        <h4>Version 0.11.2</h4>
+        <ul>
+          <li>Move Up/Down functionality for folders and files</li>
+          <li>Visual indicators for reordering items</li>
+          <li>Enhanced tree view interaction</li>
+        </ul>
+
+        <h4>Version 0.11.1</h4>
+        <ul>
+          <li>New "Welcome" section in Activity Bar</li>
+          <li>Enhanced Virtual Folders documentation</li>
+          <li>Improved UI for notebook organization</li>
+        </ul>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const vscode = acquireVsCodeApi();
+      
+      // Add smooth scrolling for anchor links
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          document.querySelector(this.getAttribute('href')).scrollIntoView({
+            behavior: 'smooth'
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

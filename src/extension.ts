@@ -12,6 +12,7 @@ import * as config from './config';
 import * as path from 'path';
 import { NotebooksViewProvider } from './webview/notebooksView';
 import { WelcomeViewProvider } from './webview/welcomeView';
+import { DocumentationViewProvider } from './webview/documentationView';
 import * as configModal from './webview/configModal';
 
 const kernel = new Kernel();
@@ -23,6 +24,12 @@ export function activate(context: ExtensionContext) {
   const welcomeViewProvider = new WelcomeViewProvider(context);
   context.subscriptions.push(
     window.registerWebviewViewProvider(WelcomeViewProvider.viewType, welcomeViewProvider)
+  );
+
+  // Register the Documentation webview provider
+  const documentationViewProvider = new DocumentationViewProvider(context);
+  context.subscriptions.push(
+    window.registerWebviewViewProvider(DocumentationViewProvider.viewType, documentationViewProvider)
   );
 
   // Register the Notebooks webview provider
