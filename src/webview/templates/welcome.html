@@ -81,6 +81,14 @@
       border-top: 1px solid var(--vscode-panel-border);
       margin: 1.5em 0;
     }
+    .webview-link {
+      color: var(--vscode-textLink-foreground);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .webview-link:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -107,8 +115,21 @@
     </ul>
     
     <p>
-      Check out Documentation and My Notebooks in the sidebar for more details on how to get started using these features.
+      Check out <a class="webview-link" onclick="openWebview('documentation')">Documentation</a> and <a class="webview-link" onclick="openWebview('notebooks')">My Notebooks</a> in the sidebar for more details on how to get started using these features.
     </p>
   </div>
+
+  <script>
+    (function() {
+      const vscode = acquireVsCodeApi();
+      
+      window.openWebview = function(view) {
+        vscode.postMessage({
+          command: 'openWebview',
+          view: view
+        });
+      };
+    })();
+  </script>
 </body>
 </html>
