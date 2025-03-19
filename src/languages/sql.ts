@@ -92,6 +92,14 @@ export class Cell implements codebook.ExecutableCell {
   allowKeepOutput(): boolean {
     return this.executables().length <= 1;
   }
+
+  commentPrefixes(): string[] {
+    return ["--", "#"];
+  }
+
+  defaultCommentPrefix(): string {
+    return "--";
+  }
 }
 
 export class Config {

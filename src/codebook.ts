@@ -41,7 +41,8 @@ export interface ExecutableCell {
   allowKeepOutput(): boolean;
   codeBlockConfig(): CodeBlockConfig;
   toString(): string;
-  // commentPrefixes(): string[];
+  commentPrefixes(): string[];
+  defaultCommentPrefix(): string;
   // parseImports(): string[];
   // resolveImports(): Promise<void>;
 }
