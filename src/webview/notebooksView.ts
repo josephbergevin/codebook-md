@@ -193,7 +193,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
       <div class="folder ${level > 0 ? 'subfolder' : ''}" id="folder-${this._escapeHtml(folderId)}">
         <div class="folder-header" onclick="event.stopPropagation(); toggleFolder(this)">
           <span class="folder-icon">
-            <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <svg class="icon-svg icon-folder" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
               <path d="M14.5 3H7.71l-2-2H1.5l-.5.5v11l.5.5h13l.5-.5v-9l-.5-.5zM14 13H2V4h5.71l2 2H14v7z"/>
             </svg>
           </span>
@@ -210,22 +210,22 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
               </svg>
             </button>
             <button class="action-button" title="Add Sub-folder" onclick="event.stopPropagation(); addSubFolder('${this._escapeHtml(folder.name)}')">
-              <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+              <svg class="icon-svg icon-folder" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                 <path d="M14.5 3H7.71l-2-2H1.5l-.5.5v11l.5.5h13l.5-.5v-9l-.5-.5zM14 13H2V4h5.5l2 2H14v7z"/>
                 <path d="M8.5 8v-1h-1v1h-1v1h1v1h1v-1h1v-1h-1z"/>
               </svg>
             </button>
-            <button class="action-button" title="Add File" onclick="event.stopPropagation(); addFileToFolder('${this._escapeHtml(folder.name)}')">
+            <button class="action-button icon-file" title="Add File" onclick="event.stopPropagation(); addFileToFolder('${this._escapeHtml(folder.name)}')">
               <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                 <path d="M8 4v3.5h-3.5v1h3.5v3.5h1v-3.5h3.5v-1h-3.5v-3.5z"/>
               </svg>
             </button>
-            <button class="action-button" title="Remove Folder" onclick="event.stopPropagation(); return removeObject('${this._escapeHtml(folderId)}', event);">
+            <button class="action-button icon-folder" title="Remove Folder" onclick="event.stopPropagation(); return removeObject('${this._escapeHtml(folderId)}', event);">
               <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                 <path d="M3 8v1h10V8H3z"/>
               </svg>
             </button>
-            <button class="action-button" title="Rename Folder" onclick="event.stopPropagation(); renameFolder('${this._escapeHtml(folder.name)}', '${this._escapeHtml(folder.name)}')">
+            <button class="action-button icon-folder" title="Rename Folder" onclick="event.stopPropagation(); renameFolder('${this._escapeHtml(folder.name)}', '${this._escapeHtml(folder.name)}')">
               <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                 <path d="M13.23 1h-1.46L3.52 9.25l-.16.22L1 13.59 2.41 15l4.12-2.36.22-.16L15 4.23V2.77L13.23 1zM2.41 13.59l1.51-3 1.45 1.45-2.96 1.55zm3.83-2.06L4.47 9.76l8-8 1.77 1.77-8 8z"/>
               </svg>
