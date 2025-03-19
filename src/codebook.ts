@@ -796,11 +796,32 @@ export class CodeBlockConfig {
     const outputConfig = workspace.getConfiguration('codebook-md.output');
     const outputConfigJson = JSON.stringify(outputConfig);
     const outputConfigKeys = Object.keys(JSON.parse(outputConfigJson));
+
+    // add "execFrom" to the outputConfigKeys
+    outputConfigKeys.push(`execFrom("")`);
+
+    // if this.languageId is 'go', add the go specific commands
+    if (this.languageId === languageGo.nameId) {
+      outputConfigKeys.push(`execTypeRunFilename("")`);
+      outputConfigKeys.push(`execTypeTestFilename("")`);
+      outputConfigKeys.push(`execTypeTestBuildTag("")`);
+      outputConfigKeys.push(`goimportsCmd("")`);
+      outputConfigKeys.push(`excludeOutputPrefixes([])`);
+    }
+
     const availableCommands: string[] = [];
     // loop through the outputConfigKeys, if not found in this.commands, add to availableCommands with prefix with // [>].out.
     for (const key of outputConfigKeys) {
       if (this.commands.find(command => command.startsWith(key)) === undefined) {
-        availableCommands.push(`.${key}(${outputConfig[key]})`);
+        // add the command to the availableCommands
+        // if the command is missing the () at the end, we'll add it with true
+        if (key.endsWith(")")) {
+          availableCommands.push(`.${key}`);
+        } else if (key.endsWith("timestampTimezone")) {
+          availableCommands.push(`.${key}("UTC")`);
+        } else {
+          availableCommands.push(`.${key}(true)`);
+        }
       }
     }
 
