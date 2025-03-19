@@ -258,6 +258,14 @@ export class Cell implements codebook.ExecutableCell {
     }
     return imports;
   }
+
+  commentPrefixes(): string[] {
+    return ["//"];
+  }
+
+  defaultCommentPrefix(): string {
+    return "//";
+  }
 }
 
 // Config is a class that contains the configuration settings for executing go code from Cells

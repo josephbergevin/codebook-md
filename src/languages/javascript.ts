@@ -35,6 +35,14 @@ export class Cell implements codebook.ExecutableCell {
     return this.config.contentConfig;
   }
 
+  commentPrefixes(): string[] {
+    return ["//", "/*", "*/"];
+  }
+
+  defaultCommentPrefix(): string {
+    return "//";
+  }
+
   toString(): string {
     return this.innerScope;
   }
