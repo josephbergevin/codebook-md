@@ -31,7 +31,7 @@ export class Cell implements codebook.ExecutableCell {
     });
   }
 
-  contentCellConfig(): codebook.CellContentConfig {
+  codeBlockConfig(): codebook.CodeBlockConfig {
     return this.config.contentConfig;
   }
 
@@ -54,13 +54,13 @@ export class Cell implements codebook.ExecutableCell {
 }
 
 export class Config {
-  contentConfig: codebook.CellContentConfig;
+  contentConfig: codebook.CodeBlockConfig;
   execDir: string;
   execFile: string;
 
   constructor(javascriptConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
     this.execDir = config.getTempPath();
     this.execFile = path.join(this.execDir, javascriptConfig?.get('execFilename') || 'codebook_md_exec.js');
-    this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-javascript.bash.output'), "//");
+    this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-javascript.bash.output'), "//");
   }
 }

@@ -1,7 +1,7 @@
 import {
   languages, commands, window, notebooks, workspace,
   ExtensionContext, StatusBarAlignment, NotebookCell,
-  NotebookSerializer, NotebookData, NotebookCellData, NotebookCellKind, CancellationToken,
+  NotebookSerializer, NotebookData, NotebookCellData, CancellationToken,
   Uri,
 } from 'vscode';
 
@@ -117,32 +117,13 @@ export function activate(context: ExtensionContext) {
     }
 
     // Get the current cell's output configuration
-    let configData = {};
-    if (cell.kind === NotebookCellKind.Code) {
-      try {
-        const execCell = codebook.NewExecutableCell(cell);
-        const cellConfig = execCell.contentCellConfig();
-        configData = {
-          showExecutableCodeInOutput: cellConfig.output.showExecutableCodeInOutput,
-          showOutputOnRun: cellConfig.output.showOutputOnRun,
-          replaceOutputCell: cellConfig.output.replaceOutputCell,
-          showTimestamp: cellConfig.output.showTimestamp,
-          timestampTimezone: cellConfig.output.timestampTimezone
-        };
-      } catch (error) {
-        console.error('Error getting cell configuration:', error);
-        configData = {
-          showExecutableCodeInOutput: false,
-          showOutputOnRun: false,
-          replaceOutputCell: true,
-          showTimestamp: false,
-          timestampTimezone: 'UTC'
-        };
-      }
+    const execCell = codebook.NewExecutableCell(cell);
+    if (!execCell) {
+      window.showWarningMessage('No executable cell found.');
+      return;
     }
-
     // Open config modal with the current configuration
-    configModal.openConfigModal(configData, context);
+    configModal.openConfigModal(execCell, context);
   });
 
   context.subscriptions.push(disposable);

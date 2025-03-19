@@ -63,7 +63,7 @@ export class Cell implements codebook.ExecutableCell {
     return this.commandCount === 1;
   }
 
-  contentCellConfig(): codebook.CellContentConfig {
+  codeBlockConfig(): codebook.CodeBlockConfig {
     return this.config.contentConfig;
   }
 
@@ -82,11 +82,11 @@ export class Cell implements codebook.ExecutableCell {
 }
 
 export class Config {
-  contentConfig: codebook.CellContentConfig;
+  contentConfig: codebook.CodeBlockConfig;
   execDir: string;
 
   constructor(shellConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell | undefined) {
-    this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-md.shell.output'), "#");
+    this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.shell.output'), "#");
     // First try to get the configured root path, then fall back to workspace folder
     const rootPath = workspace.getConfiguration('codebook-md').get<string>('rootPath');
     const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath;

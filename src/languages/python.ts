@@ -31,7 +31,7 @@ export class Cell implements codebook.ExecutableCell {
     });
   }
 
-  contentCellConfig(): codebook.CellContentConfig {
+  codeBlockConfig(): codebook.CodeBlockConfig {
     return this.config.contentConfig;
   }
 
@@ -54,13 +54,13 @@ export class Cell implements codebook.ExecutableCell {
 }
 
 export class Config {
-  contentConfig: codebook.CellContentConfig;
+  contentConfig: codebook.CodeBlockConfig;
   execDir: string;
   execFile: string;
   execCmd: string;
 
   constructor(pythonConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
-    this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-md.python.output'), "#");
+    this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.python.output'), "#");
     this.execDir = config.getTempPath();
     this.execFile = path.join(this.execDir, pythonConfig?.get('execFilename') || 'codebook_md_exec.py');
     this.execCmd = pythonConfig?.get('execCmd') || 'python3';

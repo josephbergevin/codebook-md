@@ -39,7 +39,7 @@ export interface ExecutableCell {
   execute(): ChildProcessWithoutNullStreams;
   executables(): Executable[];
   allowKeepOutput(): boolean;
-  contentCellConfig(): CellContentConfig;
+  codeBlockConfig(): CodeBlockConfig;
   toString(): string;
   // commentPrefixes(): string[];
   // parseImports(): string[];
@@ -744,8 +744,8 @@ export function ProcessNotebookCell(cell: NotebookCell, ...prefixes: string[]): 
   return innerScope;
 }
 
-// CellContentConfig is a class that contains the configuration for the content of a cell
-export class CellContentConfig {
+// CodeBlockConfig is a class that contains the configuration for the content of a cell
+export class CodeBlockConfig {
   notebookCell: NotebookCell | undefined; // the notebook cell
 
   codebookCommands: string[]; // lines from the cell that are commands - prefixed with a commentPrefix followed by [>]
