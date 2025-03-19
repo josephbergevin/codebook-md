@@ -43,8 +43,6 @@ export interface ExecutableCell {
   toString(): string;
   commentPrefixes(): string[];
   defaultCommentPrefix(): string;
-  // parseImports(): string[];
-  // resolveImports(): Promise<void>;
 }
 
 // Executable is an interface that defines the methods that an executable object must implement
@@ -749,7 +747,8 @@ export function ProcessNotebookCell(cell: NotebookCell, ...prefixes: string[]): 
 export class CodeBlockConfig {
   notebookCell: NotebookCell | undefined; // the notebook cell
 
-  codebookCommands: string[]; // lines from the cell that are commands - prefixed with a commentPrefix followed by [>]
+  languageId: string; // the language id of the cell
+  commands: string[]; // lines from the cell that are commands - prefixed with a commentPrefix followed by [>]
   comments: string[]; // lines from the cell that are comments - prefixed with a commentPrefix
   innerScope: string; // the rest of the cell content
 
@@ -758,8 +757,9 @@ export class CodeBlockConfig {
 
   constructor(notebookCell: NotebookCell | undefined, languageOutputConfig: WorkspaceConfiguration | undefined, ...commentPrefixes: string[]) {
     if (!notebookCell) {
+      this.languageId = "";
       this.notebookCell = undefined;
-      this.codebookCommands = [];
+      this.commands = [];
       this.comments = [];
       this.innerScope = "";
       this.execFrom = "";
@@ -767,15 +767,16 @@ export class CodeBlockConfig {
       return;
     }
     this.notebookCell = notebookCell;
+    this.languageId = notebookCell.document.languageId;
     const lines = notebookCell.document.getText().split("\n");
     const commandPrefixes = commentPrefixes.map(prefix => prefix.trim() + " [>]");
-    this.codebookCommands = [];
+    this.commands = [];
     this.comments = [];
     this.innerScope = "";
     for (const line of lines) {
       if (commandPrefixes.some(commandPrefix => line.startsWith(commandPrefix))) {
         // remove the comment prefix and [>] by splitting on [>] and taking the second part
-        this.codebookCommands.push(line.split("[>]").pop() || "");
+        this.commands.push(line.split("[>]").pop() || "");
       } else if (commentPrefixes.some(prefix => line.startsWith(prefix))) {
         this.comments.push(line);
       } else {
@@ -785,14 +786,29 @@ export class CodeBlockConfig {
 
     this.innerScope = this.innerScope.trim();
 
-    this.execFrom = this.codebookCommands.find(command => command.startsWith(".execFrom"))?.split(" ").pop() || "";
-    this.output = new OutputConfig(languageOutputConfig, this.codebookCommands);
+    this.execFrom = this.commands.find(command => command.startsWith(".execFrom"))?.split(" ").pop() || "";
+    this.output = new OutputConfig(languageOutputConfig, this.commands);
+  }
+
+  // availableCommands returns the available commands for the command based on the given languageId
+  // and the commands in the configuration
+  availableCommands(commentPrefix: string): string[] {
+    const outputConfig = workspace.getConfiguration('codebook-md.output');
+    const availableCommands: string[] = [];
+    // loop through the outputConfig keys, if not found in this.commands, add to availableCommands with prefix with // [>].out.
+    for (const key in outputConfig) {
+      if (this.commands.find(command => command.startsWith(key)) === undefined) {
+        availableCommands.push(`${commentPrefix} [>] ${key}(${outputConfig[key]})`);
+      }
+    }
+
+    return availableCommands;
   }
 
   // jsonStringify returns the JSON string representation of the CellContentConfig object, excluding the notebookCell
   jsonStringify(): string {
     return JSON.stringify({
-      commands: this.codebookCommands,
+      commands: this.commands,
       comments: this.comments,
       innerScope: this.innerScope,
       execFrom: this.execFrom,
