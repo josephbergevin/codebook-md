@@ -180,7 +180,7 @@ describe('CellContentConfig', () => {
       update: jest.fn().mockResolvedValue(undefined)
     } as WorkspaceConfiguration;
 
-    const cellConfig = new codebook.CellContentConfig(mockNotebookCell, mockConfig, "//");
+    const cellConfig = new codebook.CodeBlockConfig(mockNotebookCell, mockConfig, "//");
 
     // Verify the configuration was parsed correctly
     expect(cellConfig.innerScope).toBe('fmt.Println("Hello")');
@@ -214,7 +214,7 @@ describe('CellContentConfig', () => {
       update: jest.fn().mockResolvedValue(undefined)
     } as WorkspaceConfiguration;
 
-    const cellConfig = new codebook.CellContentConfig(mockNotebookCell, mockConfig, "#");
+    const cellConfig = new codebook.CodeBlockConfig(mockNotebookCell, mockConfig, "#");
 
     expect(cellConfig.innerScope).toBe('echo "Hello"');
     expect(cellConfig.comments).toEqual(['# This is a comment']);
@@ -246,7 +246,7 @@ describe('CellContentConfig', () => {
       update: jest.fn().mockResolvedValue(undefined)
     } as WorkspaceConfiguration;
 
-    const cellConfig = new codebook.CellContentConfig(mockNotebookCell, mockConfig, "//");
+    const cellConfig = new codebook.CodeBlockConfig(mockNotebookCell, mockConfig, "//");
 
     expect(cellConfig.innerScope).toBe('console.log("Hello");');
     expect(cellConfig.comments).toEqual(['// This is a comment']);
@@ -278,7 +278,7 @@ describe('CellContentConfig', () => {
       update: jest.fn().mockResolvedValue(undefined)
     } as WorkspaceConfiguration;
 
-    const cellConfig = new codebook.CellContentConfig(mockNotebookCell, mockConfig, "#");
+    const cellConfig = new codebook.CodeBlockConfig(mockNotebookCell, mockConfig, "#");
 
     expect(cellConfig.innerScope).toBe('print("Hello")');
     expect(cellConfig.comments).toEqual(['# This is a comment']);
@@ -310,7 +310,7 @@ describe('CellContentConfig', () => {
       update: jest.fn().mockResolvedValue(undefined)
     } as WorkspaceConfiguration;
 
-    const cellConfig = new codebook.CellContentConfig(mockNotebookCell, mockConfig, "#");
+    const cellConfig = new codebook.CodeBlockConfig(mockNotebookCell, mockConfig, "#");
 
     expect(cellConfig.innerScope).toBe('ls -la');
     expect(cellConfig.comments).toEqual(['# This is a comment']);
@@ -342,7 +342,7 @@ describe('CellContentConfig', () => {
       update: jest.fn().mockResolvedValue(undefined)
     } as WorkspaceConfiguration;
 
-    const cellConfig = new codebook.CellContentConfig(mockNotebookCell, mockConfig, "--");
+    const cellConfig = new codebook.CodeBlockConfig(mockNotebookCell, mockConfig, "--");
 
     expect(cellConfig.innerScope).toBe('SELECT * FROM users;');
     expect(cellConfig.comments).toEqual(['-- This is a comment']);
@@ -374,7 +374,7 @@ describe('CellContentConfig', () => {
       update: jest.fn().mockResolvedValue(undefined)
     } as WorkspaceConfiguration;
 
-    const cellConfig = new codebook.CellContentConfig(mockNotebookCell, mockConfig, "//");
+    const cellConfig = new codebook.CodeBlockConfig(mockNotebookCell, mockConfig, "//");
 
     expect(cellConfig.innerScope).toBe('console.log("Hello");');
     expect(cellConfig.comments).toEqual(['// This is a comment']);

@@ -1,13 +1,10 @@
 import { window, WebviewPanel, ViewColumn, Uri, ExtensionContext } from 'vscode';
 import * as path from 'path';
+import * as codebook from '../codebook';
 
 let currentPanel: WebviewPanel | undefined = undefined;
 
-interface ConfigData {
-  [key: string]: string | boolean;
-}
-
-export function openConfigModal(configData: ConfigData, context?: ExtensionContext) {
+export function openConfigModal(execCell: codebook.ExecutableCell, context?: ExtensionContext) {
   if (currentPanel) {
     currentPanel.reveal(ViewColumn.One);
   } else {
@@ -44,12 +41,20 @@ export function openConfigModal(configData: ConfigData, context?: ExtensionConte
       }
     );
 
-    currentPanel.webview.html = getWebviewContent(configData, currentPanel, context);
+    currentPanel.webview.html = getWebviewContent(execCell, currentPanel, context);
   }
 }
 
-function getWebviewContent(configData: ConfigData, panel: WebviewPanel, context?: ExtensionContext): string {
-  const configJson = JSON.stringify(configData);
+function getWebviewContent(execCell: codebook.ExecutableCell, panel: WebviewPanel, context?: ExtensionContext): string {
+  const cellConfig = execCell.codeBlockConfig();;
+  const configJson = JSON.stringify({
+    showExecutableCodeInOutput: cellConfig.output.showExecutableCodeInOutput,
+    showOutputOnRun: cellConfig.output.showOutputOnRun,
+    replaceOutputCell: cellConfig.output.replaceOutputCell,
+    showTimestamp: cellConfig.output.showTimestamp,
+    timestampTimezone: cellConfig.output.timestampTimezone,
+    codebookCommands: cellConfig.codebookCommands,
+  });
 
   // Create gear icon URI if context is available (only using this for reference in this function)
   let gearIconSrc = '';
@@ -183,15 +188,4 @@ function getWebviewContent(configData: ConfigData, panel: WebviewPanel, context?
     </body>
     </html>
   `;
-}
-
-// Export a function to add the gear icon to the toolbar via the VS Code API
-export function registerCodeBlockToolbarIntegration(context: ExtensionContext) {
-  // This will be called from extension.ts
-  console.log('Registering code block toolbar integration');
-  return {
-    configureCodeBlock: (configData: ConfigData) => {
-      openConfigModal(configData, context);
-    }
-  };
 }

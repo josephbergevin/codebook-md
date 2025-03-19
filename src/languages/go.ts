@@ -221,7 +221,7 @@ export class Cell implements codebook.ExecutableCell {
     return this.executables().length <= 1;
   }
 
-  contentCellConfig(): codebook.CellContentConfig {
+  codeBlockConfig(): codebook.CodeBlockConfig {
     return this.config.contentConfig;
   }
 
@@ -262,7 +262,7 @@ export class Cell implements codebook.ExecutableCell {
 
 // Config is a class that contains the configuration settings for executing go code from Cells
 export class Config {
-  contentConfig: codebook.CellContentConfig;
+  contentConfig: codebook.CodeBlockConfig;
   execFrom: string;
   execTypeRun: boolean;
   execTypeRunFilename: string;
@@ -280,7 +280,7 @@ export class Config {
   excludeOutputPrefixes: string[];
 
   constructor(goConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
-    this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-md.go.output'), "//");
+    this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.go.output'), "//");
     const execType = goConfig?.get<string>('execType') ?? 'run';
     this.execFrom = '';
     this.execTypeRun = execType === 'run';

@@ -28,7 +28,7 @@ export class Cell implements codebook.ExecutableCell {
     this.mainExecutable = new codebook.Command(`echo "Unsupported language '${this.language}'"`, [], config.getTempPath());
   }
 
-  contentCellConfig(): codebook.CellContentConfig {
+  codeBlockConfig(): codebook.CodeBlockConfig {
     return this.config.contentConfig;
   };
 
@@ -53,11 +53,11 @@ export class Cell implements codebook.ExecutableCell {
 
 // Config implements the configuration for unsupported languages
 export class Config {
-  contentConfig: codebook.CellContentConfig;
+  contentConfig: codebook.CodeBlockConfig;
 
   constructor(notebookCell: NotebookCell) {
     // set the contentConfig to the CellContentConfig for the notebookCell - using all common comment characters since we 
     // don't know the language comment character(s) for unsupported languages
-    this.contentConfig = new codebook.CellContentConfig(notebookCell, undefined, "#", "//", "#!/bin/bash", "--");
+    this.contentConfig = new codebook.CodeBlockConfig(notebookCell, undefined, "#", "//", "#!/bin/bash", "--");
   }
 }

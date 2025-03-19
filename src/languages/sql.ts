@@ -72,7 +72,7 @@ export class Cell implements codebook.ExecutableCell {
     }
   }
 
-  contentCellConfig(): codebook.CellContentConfig {
+  codeBlockConfig(): codebook.CodeBlockConfig {
     return this.config.contentConfig;
   }
 
@@ -95,7 +95,7 @@ export class Cell implements codebook.ExecutableCell {
 }
 
 export class Config {
-  contentConfig: codebook.CellContentConfig;
+  contentConfig: codebook.CodeBlockConfig;
   execDir: string;
   execFile: string;
   execFilename: string;
@@ -103,7 +103,7 @@ export class Config {
   execOptions: string[];
 
   constructor(sqlConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
-    this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-md.sql.output'), "--");
+    this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.sql.output'), "--");
     this.execDir = config.getTempPath();
     this.execFilename = sqlConfig?.get('execFilename') || 'codebook_md_exec.sql';
     this.execFile = path.join(this.execDir, this.execFilename);

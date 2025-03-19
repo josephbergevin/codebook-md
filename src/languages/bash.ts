@@ -52,11 +52,11 @@ export class Cell implements codebook.ExecutableCell {
     });
   }
 
-  contentCellConfig(): codebook.CellContentConfig {
+  codeBlockConfig(): codebook.CodeBlockConfig {
     if (this.config.contentConfig) {
       return this.config.contentConfig;
     } else {
-      return new codebook.CellContentConfig(undefined, workspace.getConfiguration('codebook-md.bash.output'), "#");
+      return new codebook.CodeBlockConfig(undefined, workspace.getConfiguration('codebook-md.bash.output'), "#");
     }
   }
 
@@ -79,13 +79,13 @@ export class Cell implements codebook.ExecutableCell {
 }
 
 export class Config {
-  contentConfig: codebook.CellContentConfig;
+  contentConfig: codebook.CodeBlockConfig;
   execDir: string;
   execFile: string;
   execSingleLineAsCommand: boolean;
 
   constructor(bashConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell | undefined) {
-    this.contentConfig = new codebook.CellContentConfig(notebookCell, workspace.getConfiguration('codebook-md.bash.output'), "#");
+    this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.bash.output'), "#");
     // First try to get the configured root path, then fall back to workspace folder
     const rootPath = workspace.getConfiguration('codebook-md').get<string>('rootPath');
     const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath;
