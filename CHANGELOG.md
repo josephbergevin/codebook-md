@@ -4,6 +4,13 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.1] - 2024-07-15
+
+### Fixed
+
+- Patch fix for WebViews to resolve rendering issues in certain environments
+- Improved stability and performance of WebView-based Activity Bar interface
+
 ## [0.12.0] - 2024-07-01
 
 ### Added
