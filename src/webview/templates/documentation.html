@@ -133,11 +133,32 @@
 
       <section id="codeblock-config">
         <h2>CodeBlock Configuration</h2>
-        <p>Configure individual code blocks using special comment syntax. Each language supports its own comment style while maintaining consistent configuration options.</p>
+        <p>Configure individual code blocks using special comment syntax or through the configuration modal. Each language supports its own comment style while maintaining consistent configuration options.</p>
+        
+        <h4>Configuration Methods</h4>
+        <ul>
+          <li><strong>Comment Syntax:</strong> Add configuration commands directly in code block comments</li>
+          <li><strong>Configuration Modal:</strong> Click the gear icon (<svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align: middle;"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>) in the code block toolbar</li>
+        </ul>
+
+        <h4>Using the Configuration Modal</h4>
+        <p>The configuration modal provides a user-friendly interface to manage code block settings:</p>
+        <ul>
+          <li><strong>Available Commands:</strong> List of configuration commands you can add to your code block</li>
+          <li><strong>Code Block Commands:</strong> Commands already configured in your code block</li>
+          <li><strong>Command Actions:</strong>
+            <ul>
+              <li>Add (+): Move a command from available to code block commands (only moves in modal)</li>
+              <li>Remove (-): Remove a command from your code block (only moves in modal)</li>
+              <li>Copy (📋): Copy command syntax to clipboard for manual insertion</li>
+            </ul>
+          </li>
+        </ul>
+        <p>Changes made in the configuration modal are automatically reflected in your code block as comment commands.</p>
 
         <h4>Configuration Syntax</h4>
         <p>Add configuration using comments with the <code>[>]</code> prefix followed by the configuration command:</p>
-
+        
         <h4>Language-Specific Examples</h4>
         <ul>
           <li><strong>Go:</strong>
@@ -180,7 +201,6 @@ func TestExecNotebook(t *testing.T) {
                   </li>
                 </ul>
               </li>
-
               <li><h4>Code Import Management</h4>
                 <ul>
                   <li>goimports Command:
@@ -193,12 +213,10 @@ func TestExecNotebook(t *testing.T) {
                   <li>Imports are automatically managed and formatted before execution</li>
                 </ul>
               </li>
-
               <li><h4>Output Filtering</h4>
                 <pre><code>// Filter unwanted output prefixes
 // [>].excludeOutputPrefixes(["mysql: ", "W0626 ", "DEBUG: ", "INFO: "])</code></pre>
               </li>
-
               <li><h4>Configuration Properties Summary</h4>
                 <ul>
                   <li><code>execTypeRunFilename</code>: Name of the file for run mode (default: "main.go")</li>
@@ -208,7 +226,6 @@ func TestExecNotebook(t *testing.T) {
                   <li><code>excludeOutputPrefixes</code>: Array of prefixes to filter from output</li>
                 </ul>
               </li>
-
               <li><h4>Best Practices</h4>
                 <ul>
                   <li>Add test files to .gitignore to prevent test pollution</li>
@@ -240,7 +257,6 @@ func TestExecNotebook(t *testing.T) {
 -- Your regular comments here</code></pre>
           </li>
         </ul>
-
         <h4>Available Configuration Options</h4>
         <ul>
           <li><code>showExecutableCodeInOutput(boolean)</code>: Show/hide the executed code in output</li>
@@ -248,7 +264,6 @@ func TestExecNotebook(t *testing.T) {
           <li><code>replaceOutputCell(boolean)</code>: Replace existing output or append new output</li>
           <li><code>showTimestamp(boolean)</code>: Show/hide execution timestamp in output</li>
         </ul>
-
         <p>These configurations can be set per code block, overriding the global settings for that specific block.</p>
       </section>
 
