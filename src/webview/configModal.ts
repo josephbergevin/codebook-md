@@ -48,12 +48,9 @@ export function openConfigModal(execCell: codebook.ExecutableCell, context?: Ext
 function getWebviewContent(execCell: codebook.ExecutableCell, panel: WebviewPanel, context?: ExtensionContext): string {
   const cellConfig = execCell.codeBlockConfig();;
   const configJson = JSON.stringify({
-    showExecutableCodeInOutput: cellConfig.output.showExecutableCodeInOutput,
-    showOutputOnRun: cellConfig.output.showOutputOnRun,
-    replaceOutputCell: cellConfig.output.replaceOutputCell,
-    showTimestamp: cellConfig.output.showTimestamp,
-    timestampTimezone: cellConfig.output.timestampTimezone,
-    codebookCommands: cellConfig.codebookCommands,
+    languageId: cellConfig.languageId,
+    availableCommands: cellConfig.availableCommands(execCell.defaultCommentPrefix()),
+    codeBlockCommands: cellConfig.commands,
   });
 
   // Create gear icon URI if context is available (only using this for reference in this function)

@@ -308,7 +308,7 @@ export class Config {
 
     // loop through the codebook commands - these have been cleaned up (trimmed off the // [>] prefix)
     // use any specified config settings to override the defaults
-    this.contentConfig.codebookCommands.forEach((command) => {
+    this.contentConfig.commands.forEach((command) => {
       // Parse configuration comments
       if (command.startsWith('.execFrom:')) {
         this.execFrom = command;

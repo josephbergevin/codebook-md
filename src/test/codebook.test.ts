@@ -185,7 +185,7 @@ describe('CellContentConfig', () => {
     // Verify the configuration was parsed correctly
     expect(cellConfig.innerScope).toBe('fmt.Println("Hello")');
     expect(cellConfig.comments).toEqual(['// This is a comment']);
-    expect(cellConfig.codebookCommands).toEqual(['.output.showExecutableCodeInOutput(true)']);
+    expect(cellConfig.commands).toEqual(['.output.showExecutableCodeInOutput(true)']);
     expect(cellConfig.execFrom).toBe('');
     expect(cellConfig.output.showExecutableCodeInOutput).toBe(true);
   });
@@ -218,7 +218,7 @@ describe('CellContentConfig', () => {
 
     expect(cellConfig.innerScope).toBe('echo "Hello"');
     expect(cellConfig.comments).toEqual(['# This is a comment']);
-    expect(cellConfig.codebookCommands).toEqual(['.output.showTimestamp(true)']);
+    expect(cellConfig.commands).toEqual(['.output.showTimestamp(true)']);
     expect(cellConfig.output.showTimestamp).toBe(true);
   });
 
@@ -250,7 +250,7 @@ describe('CellContentConfig', () => {
 
     expect(cellConfig.innerScope).toBe('console.log("Hello");');
     expect(cellConfig.comments).toEqual(['// This is a comment']);
-    expect(cellConfig.codebookCommands).toEqual(['.output.replaceOutputCell(false)']);
+    expect(cellConfig.commands).toEqual(['.output.replaceOutputCell(false)']);
     expect(cellConfig.output.replaceOutputCell).toBe(false);
   });
 
@@ -282,7 +282,7 @@ describe('CellContentConfig', () => {
 
     expect(cellConfig.innerScope).toBe('print("Hello")');
     expect(cellConfig.comments).toEqual(['# This is a comment']);
-    expect(cellConfig.codebookCommands).toEqual(['.output.showOutputOnRun(true)']);
+    expect(cellConfig.commands).toEqual(['.output.showOutputOnRun(true)']);
     expect(cellConfig.output.showOutputOnRun).toBe(true);
   });
 
@@ -314,7 +314,7 @@ describe('CellContentConfig', () => {
 
     expect(cellConfig.innerScope).toBe('ls -la');
     expect(cellConfig.comments).toEqual(['# This is a comment']);
-    expect(cellConfig.codebookCommands).toEqual(['.output.showTimestamp(true)']);
+    expect(cellConfig.commands).toEqual(['.output.showTimestamp(true)']);
     expect(cellConfig.output.showTimestamp).toBe(true);
   });
 
@@ -346,7 +346,7 @@ describe('CellContentConfig', () => {
 
     expect(cellConfig.innerScope).toBe('SELECT * FROM users;');
     expect(cellConfig.comments).toEqual(['-- This is a comment']);
-    expect(cellConfig.codebookCommands).toEqual(['.output.showExecutableCodeInOutput(true)']);
+    expect(cellConfig.commands).toEqual(['.output.showExecutableCodeInOutput(true)']);
     expect(cellConfig.output.showExecutableCodeInOutput).toBe(true);
   });
 
@@ -378,7 +378,7 @@ describe('CellContentConfig', () => {
 
     expect(cellConfig.innerScope).toBe('console.log("Hello");');
     expect(cellConfig.comments).toEqual(['// This is a comment']);
-    expect(cellConfig.codebookCommands).toEqual(['.output.showExecutableCodeInOutput(true)']);
+    expect(cellConfig.commands).toEqual(['.output.showExecutableCodeInOutput(true)']);
     expect(cellConfig.output.showExecutableCodeInOutput).toBe(true);
   });
 });
