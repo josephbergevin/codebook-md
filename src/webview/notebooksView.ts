@@ -167,7 +167,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
     }
 
     // Read the HTML template
-    const templatePath = path.join(this._extensionContext.extensionPath, 'src/webview/templates/notebooks.html');
+    const templatePath = path.join(this._extensionContext.extensionPath, 'dist', 'templates', 'notebooks.html');
     let htmlContent = fs.readFileSync(templatePath, 'utf8');
 
     // Replace placeholder with folders HTML

@@ -61,7 +61,7 @@ export class DocumentationViewProvider implements WebviewViewProvider, Disposabl
    */
   private _getWebviewContent() {
     // Read the HTML template
-    const templatePath = path.join(this._extensionContext.extensionPath, 'src/webview/templates/documentation.html');
+    const templatePath = path.join(this._extensionContext.extensionPath, 'dist', 'templates', 'documentation.html');
     const htmlContent = fs.readFileSync(templatePath, 'utf8');
 
     return htmlContent;

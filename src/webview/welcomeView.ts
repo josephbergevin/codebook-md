@@ -74,7 +74,7 @@ export class WelcomeViewProvider implements WebviewViewProvider, Disposable {
     const logoUri = this._view?.webview.asWebviewUri(Uri.file(logoPath));
 
     // Read the HTML template
-    const templatePath = path.join(this._extensionContext.extensionPath, 'src/webview/templates/welcome.html');
+    const templatePath = path.join(this._extensionContext.extensionPath, 'dist', 'templates', 'welcome.html');
     let htmlContent = fs.readFileSync(templatePath, 'utf8');
 
     // Replace placeholder with actual logo URI
