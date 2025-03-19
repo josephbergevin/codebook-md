@@ -792,13 +792,15 @@ export class CodeBlockConfig {
 
   // availableCommands returns the available commands for the command based on the given languageId
   // and the commands in the configuration
-  availableCommands(commentPrefix: string): string[] {
+  availableCommands(): string[] {
     const outputConfig = workspace.getConfiguration('codebook-md.output');
+    const outputConfigJson = JSON.stringify(outputConfig);
+    const outputConfigKeys = Object.keys(JSON.parse(outputConfigJson));
     const availableCommands: string[] = [];
-    // loop through the outputConfig keys, if not found in this.commands, add to availableCommands with prefix with // [>].out.
-    for (const key in outputConfig) {
+    // loop through the outputConfigKeys, if not found in this.commands, add to availableCommands with prefix with // [>].out.
+    for (const key of outputConfigKeys) {
       if (this.commands.find(command => command.startsWith(key)) === undefined) {
-        availableCommands.push(`${commentPrefix} [>] ${key}(${outputConfig[key]})`);
+        availableCommands.push(`.${key}(${outputConfig[key]})`);
       }
     }
 

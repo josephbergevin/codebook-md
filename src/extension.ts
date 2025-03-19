@@ -88,7 +88,7 @@ export function activate(context: ExtensionContext) {
           // Use undefined for alignment as a workaround
           // VS Code API will handle it correctly
           return [{
-            text: '$(gear) Config',
+            text: '$(gear)',
             tooltip: 'Configure Code Block',
             command: {
               title: 'Configure Code Block',
