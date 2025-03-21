@@ -28,12 +28,16 @@ CodebookMD is a VS Code extension that brings Jupyter-like notebook functionalit
 ### Testing
 
 - Test files should mirror the structure of their implementation files
+  - Test Folder Location: src/test/
+  - Test File Naming: <filename>.test.ts
+  - Tests are written in TypeScript
+- Use Jest for unit testing
 - Each test should focus on a single piece of functionality
 - Use descriptive test names that explain the scenario being tested
 - Mock VS Code APIs using jest.mock
 - Organize tests using describe blocks for logical grouping
 - Include tests for both success and error cases
-- When fixing a failing test, use the task 'npm test' to run all tests
+- When fixing a failing test, use the task 'npm test' (vscode task or cli) to run all tests
 
 ### Code Organization
 
