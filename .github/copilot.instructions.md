@@ -19,7 +19,7 @@ CodebookMD is a VS Code extension that brings Jupyter-like notebook functionalit
 - Ensure all code adheres to the established coding standards and practices
   
 #### Code Quality Checks:
-  - Ensure all generated code passes the following checks
+  - Ensure all generated code passes the following checks (vscode tasks)
     - `npm run compile` for building the extension
     - `npm install` for installing dependencies
     - `npm run lint` for linting

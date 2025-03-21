@@ -25,6 +25,30 @@
 			"args": ["test"],
 			"problemMatcher": ["$tsc"]
 		},
+    {
+			"label": "npm run compile",
+			"detail": "Calls npm run compile",
+			"type": "shell",
+			"command": "npm",
+			"args": ["run", "compile"],
+			"problemMatcher": ["$tsc"]
+		},
+    {
+			"label": "npm run lint",
+			"detail": "Calls npm run lint",
+			"type": "shell",
+			"command": "npm",
+			"args": ["run", "lint"],
+			"problemMatcher": ["$tsc"]
+		},
+    {
+			"label": "npm install",
+			"detail": "Calls npm install",
+			"type": "shell",
+			"command": "npm",
+			"args": ["install"],
+			"problemMatcher": ["$tsc"]
+		},
 		{
 			"type": "npm",
 			"script": "watch-tests",
