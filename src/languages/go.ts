@@ -139,7 +139,7 @@ export class Cell implements codebook.ExecutableCell {
     }
 
     // add the beforeExecuteFunc to the mainExecutable
-    this.mainExecutable.addBeforeExecuteFunc(() => {
+    this.mainExecutable.addBeforeExecuteFunc(async () => {
       // define dir and mainFile as empty strings
       if (this.config.execFrom !== "") {
         // notify in vscode with the execFrom val
@@ -157,24 +157,114 @@ export class Cell implements codebook.ExecutableCell {
       // Initialize go.mod if it doesn't exist
       const goModPath = path.join(this.config.execDir, 'go.mod');
       if (!existsSync(goModPath)) {
-        try {
-          // Use writeFileSync to create a basic go.mod file immediately rather than using spawn
-          // This ensures the file exists before proceeding with execution
-          const moduleName = "example.com/codebook";
-          const goModContent = `module ${moduleName}\n\ngo 1.18\n`;
-          writeFileSync(goModPath, goModContent);
-          console.log(`Created go.mod at ${goModPath}`);
+        const maxRetries = 5; // Increased from 3 to 5
+        const initialRetryDelay = 500; // Reduced initial delay (milliseconds)
+        let attempt = 0;
+        let retryDelay = initialRetryDelay;
 
-          // Still run go mod tidy to ensure dependencies are correctly set up
+        // Try to check file system status before attempting to write
+        const checkDirectoryAccess = async (): Promise<boolean> => {
           try {
-            io.spawnSyncSafe('go', ['mod', 'tidy'], { cwd: this.config.execDir });
-            console.log("Successfully ran go mod tidy");
+            // Attempt to write a test file to see if the directory is writable
+            const testFilePath = path.join(this.config.execDir, '.test_write_access');
+            writeFileSync(testFilePath, 'test');
+
+            // If we get here, we can write to the directory
+            try {
+              // Clean up the test file
+              io.spawnSyncSafe('rm', [testFilePath], { cwd: this.config.execDir });
+            } catch (cleanupError) {
+              console.warn(`Warning: Failed to clean up test file: ${cleanupError}`);
+              // Not being able to clean up isn't a blocker
+            }
+            return true;
           } catch (error) {
-            console.warn(`Warning: go mod tidy execution failed: ${error}`);
+            return false;
           }
-        } catch (error) {
-          console.error(`Error initializing go.mod: ${error}`);
-          window.showErrorMessage(`Failed to initialize Go module: ${error}`);
+        };
+
+        while (attempt < maxRetries) {
+          attempt++;
+
+          // Check if the directory is writable before attempting to create go.mod
+          const canWrite = await checkDirectoryAccess();
+          if (!canWrite) {
+            console.log(`Directory not writable, waiting ${retryDelay}ms before retry ${attempt}/${maxRetries}`);
+            window.setStatusBarMessage(`Go module initialization: Retry ${attempt}/${maxRetries}`, 2000);
+
+            // Wait before next retry with exponential backoff
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+
+            // Exponential backoff: double the delay for next retry, up to 4 seconds
+            retryDelay = Math.min(retryDelay * 2, 4000);
+            continue;
+          }
+
+          try {
+            // Use writeFileSync to create a basic go.mod file immediately rather than using spawn
+            const moduleName = "example.com/codebook";
+            const goModContent = `module ${moduleName}\n\ngo 1.18\n`;
+
+            // Create the file
+            writeFileSync(goModPath, goModContent);
+            console.log(`Created go.mod at ${goModPath} (attempt ${attempt})`);
+
+            // Report success to the user
+            window.setStatusBarMessage(`Go module initialized successfully (attempt ${attempt})`, 3000);
+
+            // Run go mod tidy to ensure dependencies are correctly set up
+            try {
+              io.spawnSyncSafe('go', ['mod', 'tidy'], { cwd: this.config.execDir });
+              console.log("Successfully ran go mod tidy");
+              break; // Success - exit the retry loop
+            } catch (tidyError) {
+              console.warn(`Warning: go mod tidy execution failed (attempt ${attempt}): ${tidyError}`);
+              if (attempt === maxRetries) {
+                // This was our last attempt
+                window.showWarningMessage(`Warning: Go module initialization succeeded but 'go mod tidy' failed after ${maxRetries} attempts. Your code may still execute correctly.`);
+              }
+            }
+
+            // If we got here without errors, we succeeded in creating go.mod
+            break;
+
+          } catch (error: unknown) {
+            console.error(`Error initializing go.mod (attempt ${attempt}/${maxRetries}): ${error}`);
+
+            // Check if we should retry based on error type
+            const shouldRetry =
+              error &&
+              typeof error === 'object' &&
+              (
+                // File system errors
+                ('code' in error && (error.code === 'EROFS' || error.code === 'EACCES' || error.code === 'EBUSY' || error.code === 'EAGAIN')) ||
+                // Message-based errors
+                ('message' in error && typeof error.message === 'string' &&
+                  (error.message.includes('go.mod') || error.message.includes('permission denied') ||
+                    error.message.includes('read-only') || error.message.includes('file system')))
+              );
+
+            if (shouldRetry && attempt < maxRetries) {
+              window.setStatusBarMessage(`Go module initialization: Retry ${attempt}/${maxRetries}`, 2000);
+
+              // Wait before next retry with exponential backoff
+              await new Promise(resolve => setTimeout(resolve, retryDelay));
+
+              // Exponential backoff: double the delay for next retry, up to 4 seconds
+              retryDelay = Math.min(retryDelay * 2, 4000);
+              continue;
+            }
+
+            // If we get here, either:
+            // 1. It's not a retryable error
+            // 2. We've exhausted our retries
+            if (attempt >= maxRetries) {
+              window.showErrorMessage(`Failed to initialize Go module after ${maxRetries} attempts. Error: ${error}`);
+            } else {
+              window.showErrorMessage(`Failed to initialize Go module: ${error}`);
+            }
+            break;
+          }
         }
       }
 
