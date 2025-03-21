@@ -366,11 +366,7 @@ export function activate(context: ExtensionContext) {
       const displayName = await window.showInputBox({
         placeHolder: fileName,
         prompt: 'Enter a display name for this markdown file',
-        value: fileName
-          .replace(/\.\w+$/, '') // Remove extension
-          .split(/[_\-\s]/) // Split by underscore, dash, or space
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize first letter of each word
-          .join(' ') // Join with spaces
+        value: config.suggestedDisplayName(fileName)
       });
 
       if (!displayName) {
@@ -976,11 +972,7 @@ async function addFileToTreeViewFolder(filePath: string, folderName: string): Pr
     const displayName = await window.showInputBox({
       placeHolder: fileName,
       prompt: 'Enter a display name for this markdown file',
-      value: fileName
-        .replace(/\.\w+$/, '') // Remove extension
-        .split(/[_\-\s]/) // Split by underscore, dash, or space
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize first letter of each word
-        .join(' ') // Join with spaces
+      value: config.suggestedDisplayName(fileName)
     });
 
     if (!displayName) {

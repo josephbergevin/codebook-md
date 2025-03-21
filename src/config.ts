@@ -275,3 +275,17 @@ export function updateTreeViewSettings(folders: TreeViewFolderEntry[]): void {
     window.showErrorMessage(`Failed to update tree view settings: ${(error as Error).message}`);
   }
 }
+
+// suggestedDisplayName generates a display name from a filename by:
+// 1. Removing the file extension
+// 2. Splitting on common word separators (underscore, dash, space, period) and camelCase boundaries
+// 3. Capitalizing first letter of each word
+// 4. Joining with spaces
+export function suggestedDisplayName(fileName: string): string {
+  return fileName
+    .replace(/\.\w+$/, '') // Remove extension
+    .replace(/([a-z])([A-Z])/g, '$1 $2') // Add space between camelCase words
+    .split(/[_\-\s.]/) // Split by underscore, dash, space, or period
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize first letter of each word
+    .join(' '); // Join with spaces
+}
