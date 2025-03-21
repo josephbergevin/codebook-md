@@ -99,12 +99,107 @@ export class Command implements Executable {
 
     // Ensure the working directory exists
     if (!fs.existsSync(this.cwd)) {
-      const error = `Error: directory does not exist: ${this.cwd}`;
-      console.error(error);
-      window.showErrorMessage(error);
-      return io.spawnSafe("echo", [error], { cwd: "." });
+      const process = io.spawnSafe("echo", ["Checking directory..."], { cwd: "." });
+
+      // Flag to track if we've handled the directory creation
+      let directoryHandled = false;
+
+      // Use an async IIFE to handle the directory creation
+      (async () => {
+        try {
+          // Wait for the "Checking directory..." message to be displayed before prompting
+          await new Promise(resolve => setTimeout(resolve, 100));
+
+          const answer = await window.showInformationMessage(
+            `Directory does not exist: ${this.cwd}. Would you like to create it?`,
+            'Yes', 'No'
+          );
+
+          if (answer === 'Yes') {
+            try {
+              directoryHandled = true;
+
+              // Ensure parent directories exist
+              const parentDir = path.dirname(this.cwd);
+              if (!fs.existsSync(parentDir)) {
+                fs.mkdirSync(parentDir, { recursive: true });
+              }
+
+              // Create the directory
+              fs.mkdirSync(this.cwd, { recursive: true });
+
+              // Double-check that the directory was created
+              if (fs.existsSync(this.cwd)) {
+                console.log(`Created directory: ${this.cwd}`);
+                process.stdout.emit('data', Buffer.from(`\nDirectory created successfully: ${this.cwd}\n\n`));
+
+                // Execute the command in the newly created directory
+                try {
+                  const childProcess = spawn(this.command, this.args, { cwd: this.cwd });
+
+                  // Pipe the output from the real command to our placeholder process
+                  childProcess.stdout.on('data', (data) => {
+                    process.stdout.emit('data', data);
+                  });
+
+                  childProcess.stderr.on('data', (data) => {
+                    process.stderr.emit('data', data);
+                  });
+
+                  childProcess.on('close', (code) => {
+                    console.log(`Command completed with code: ${code}`);
+                    if (code !== 0) {
+                      process.stderr.emit('data', Buffer.from(`\nProcess completed with exit code: ${code}`));
+                    }
+                    // Signal that the process is complete
+                    process.emit('close', code);
+                  });
+
+                  childProcess.on('error', (err) => {
+                    console.error(`Error in child process: ${err}`);
+                    process.stderr.emit('data', Buffer.from(`\nError executing command: ${err.message}`));
+                    process.emit('close', 1);
+                  });
+                } catch (execErr) {
+                  console.error(`Error executing command: ${execErr}`);
+                  process.stderr.emit('data', Buffer.from(`\nError executing command: ${execErr}`));
+                  process.emit('close', 1);
+                }
+              } else {
+                // If directory still doesn't exist after creation attempt
+                process.stderr.emit('data', Buffer.from(`Failed to verify directory creation: ${this.cwd}`));
+                process.emit('close', 1);
+              }
+            } catch (err: any) {
+              if (!directoryHandled) {
+                directoryHandled = true;
+                // Only log the error to console, don't show it to the user
+                console.error(`Error creating directory: ${err}`);
+                process.stderr.emit('data', Buffer.from(`Command execution aborted: could not create required directory: ${err.message}`));
+                process.emit('close', 1);
+              }
+            }
+          } else {
+            // User chose not to create the directory
+            const errorMessage = `Command execution cancelled: directory ${this.cwd} does not exist\n`;
+            process.stdout.emit('data', Buffer.from(errorMessage));
+            process.emit('close', 0);
+          }
+        } catch (err) {
+          console.error(`Error in directory creation prompt: ${err}`);
+          process.stderr.emit('data', Buffer.from(`Error in directory creation prompt: ${err}`));
+          process.emit('close', 1);
+        }
+      })();
+
+      return process;
     }
 
+    return this.executeCommand();
+  }
+
+  // Helper method to execute the command after directory checks
+  private executeCommand(): ChildProcessWithoutNullStreams {
     try {
       this.childProcess = spawn(this.command, this.args, { cwd: this.cwd });
 
