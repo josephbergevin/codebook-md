@@ -75,17 +75,20 @@
           {
             "name": "ReadMe",
             "path": "/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/README.md"
+          },
+          {
+            "name": "Changelog",
+            "path": "/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/CHANGELOG.md"
+          },
+          {
+            "name": "Copilot Instructions",
+            "path": "/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/.github/copilot.instructions.md"
           }
         ],
         "folders": [
           {
             "name": "Releases",
-            "files": [
-              {
-                "name": "Changelog",
-                "path": "/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/CHANGELOG.md"
-              }
-            ]
+            "files": []
           }
         ]
       },
@@ -125,8 +128,13 @@
         ]
       },
       {
-        "name": "Something Else",
-        "files": []
+        "name": "Examples",
+        "files": [
+          {
+            "name": "Example",
+            "path": "/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/example.md"
+          }
+        ]
       }
     ]
   },
