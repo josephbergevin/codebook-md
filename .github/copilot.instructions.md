@@ -6,7 +6,7 @@ This document contains instructions and preferences for GitHub Copilot when work
 
 CodebookMD is a VS Code extension that brings Jupyter-like notebook functionality to markdown files, allowing code execution and interactive documentation. The extension supports multiple languages and follows a modular architecture - but the core language support is implemented in TypeScript. The extension uses webviews for rendering interactive content and communicates with the VS Code API for various functionalities.
 
-## Code Style Preferences
+## Code Conventions
 
 ### TypeScript/JavaScript
 
@@ -17,11 +17,13 @@ CodebookMD is a VS Code extension that brings Jupyter-like notebook functionalit
 - Use meaningful descriptive names for functions and variables
 - Comments should be added for complex logic or non-obvious functionality
 - Ensure all code adheres to the established coding standards and practices
-- Ensure all generated code passes the following checks:
-  - `npm run build` for building the extension
-  - `npm install` for installing dependencies
-  - `npm run lint` for linting
-  - `npm test` for unit tests - all tests should pass
+  
+#### Code Quality Checks:
+  - Ensure all generated code passes the following checks
+    - `npm run compile` for building the extension
+    - `npm install` for installing dependencies
+    - `npm run lint` for linting
+    - `npm test` for unit tests - all tests should pass
 
 ### Testing
 
