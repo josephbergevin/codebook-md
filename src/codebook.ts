@@ -95,7 +95,8 @@ export class Command implements Executable {
       return io.spawnSafe("echo", [`Error preparing command execution: ${error}`], { cwd: "." });
     }
 
-    console.log(`executing command: ${this.command} ${this.args.join(' ')}`);
+    // Log the command being executed
+    console.log(`Executing command: ${this.command} ${this.args.join(' ')}`);
 
     // Ensure the working directory exists
     if (!fs.existsSync(this.cwd)) {
@@ -201,6 +202,9 @@ export class Command implements Executable {
   // Helper method to execute the command after directory checks
   private executeCommand(): ChildProcessWithoutNullStreams {
     try {
+      // Log with source map information before spawning the process
+      console.log(`Spawning process in ${this.cwd}: ${this.command} ${this.args.join(' ')}`);
+
       this.childProcess = spawn(this.command, this.args, { cwd: this.cwd });
 
       // Apply output transformers if any exist
@@ -222,7 +226,8 @@ export class Command implements Executable {
 
       return this.childProcess;
     } catch (error) {
-      console.error(`Error executing command: ${error}`);
+      // Use enhanced error logging
+      console.error(`Error executing command: ${this.command} ${this.args.join(' ')}`, error);
       window.showErrorMessage(`Error executing command: ${error}`);
       return io.spawnSafe("echo", [`Error executing command: ${error}`], { cwd: "." });
     }

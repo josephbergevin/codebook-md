@@ -20,6 +20,9 @@ const kernel = new Kernel();
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: ExtensionContext) {
+  // Add this line at the beginning of your activate function
+  console.log("Extension activated");
+
   // Register the Welcome webview provider (should be first to appear at the top)
   const welcomeViewProvider = new WelcomeViewProvider(context);
   context.subscriptions.push(
@@ -1142,6 +1145,9 @@ async function addSubFolder(parentFolderName: string): Promise<void> {
 // Remove the `folderPath` property from the `renameFolderDisplay` function
 async function renameFolderDisplay(folderName: string, currentDisplayName: string): Promise<void> {
   try {
+    // Add debug logging at the start of the function
+    console.log(`renaming folder ${folderName}`);
+
     // Get new display name from user
     const newName = await window.showInputBox({
       placeHolder: currentDisplayName,
