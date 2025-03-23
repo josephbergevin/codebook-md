@@ -148,8 +148,9 @@ export class Cell implements codebook.ExecutableCell {
         window.showInformationMessage('found execFrom: ' + this.config.execFrom, 'executing from: ' + this.config.execFile);
       }
 
-      console.log("execFile", this.config.execFile);
-      console.log("cell contents", this.executableCode);
+      // Use the new ConsoleLogger for source-mapped logs
+      console.log(`execFile: ${this.config.execFile}`);
+      console.log(`cell contents: ${this.executableCode}`);
 
       // create the directory and main file
       io.writeDirAndFileSyncSafe(this.config.execDir, this.config.execFile, this.executableCode);
@@ -474,7 +475,10 @@ export const getDirAndExecFile = (execFrom: string): [string, string] => {
   // [>]execFrom:./apiplayground/main_temp.go
   // split on the colon
   const parts = execFrom.split(':');
+
+  // Use the new ConsoleLogger for source-mapped logs
   console.log(`getDirAndExecFile parts: ${parts} | execFrom: ${execFrom}`);
+
   let execFile = execFrom;
   if (parts.length > 1) {
     execFile = parts[1].trim();
