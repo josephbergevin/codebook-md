@@ -14,7 +14,8 @@ const extensionConfig = {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'extension.js',
-    libraryTarget: 'commonjs2'
+    libraryTarget: 'commonjs2',
+    devtoolModuleFilenameTemplate: '../[resource-path]'
   },
   externals: {
     vscode: 'commonjs vscode'
@@ -29,7 +30,13 @@ const extensionConfig = {
         exclude: /node_modules/,
         use: [
           {
-            loader: 'ts-loader'
+            loader: 'ts-loader',
+            options: {
+              compilerOptions: {
+                sourceMap: true
+              },
+              transpileOnly: false
+            }
           }
         ]
       }
@@ -45,7 +52,11 @@ const extensionConfig = {
       ]
     })
   ],
-  devtool: 'nosources-source-map',
+  node: {
+    __dirname: false,
+    __filename: false
+  },
+  devtool: 'source-map',
   infrastructureLogging: {
     level: "log",
   },

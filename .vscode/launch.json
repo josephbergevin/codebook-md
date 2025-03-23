@@ -10,13 +10,27 @@
             "type": "extensionHost",
             "request": "launch",
             "args": [
-                "--extensionDevelopmentPath=/Users/tijoe/go/src/github.com/josephbergevin/codebook-md"
+                "--extensionDevelopmentPath=${workspaceFolder}"
             ],
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js"
             ],
-            "preLaunchTask": "${defaultBuildTask}",
-            "cwd": "/Users/tijoe/go/src/github.com/josephbergevin/codebook-md" // Set the current working directory
+            "preLaunchTask": "npm: watch",
+            "sourceMaps": true,
+            "resolveSourceMapLocations": [
+                "${workspaceFolder}/dist/**/*.js",
+                "${workspaceFolder}/dist/*.js"
+            ],
+            "smartStep": false,
+            "skipFiles": [
+                "<node_internals>/**",
+                "**/node_modules/**",
+                "**/resources/app/out/vs/**"
+            ],
+            "trace": true,
+            "env": {
+                "VSCODE_DEBUG_CONSOLE_SOURCE_MAPS": "true"
+            }
         }
 	]
 }

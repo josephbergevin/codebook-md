@@ -5,10 +5,12 @@
 		"outDir": "out",
 		"lib": ["es6", "dom"],
 		"sourceMap": true,
-		"rootDir": "src",
+		"inlineSourceMap": false,
+		"inlineSources": true,
+			"rootDir": "src",
 		"strict": true,
 		"skipLibCheck": true,
 		"esModuleInterop": true
-	  },
+	},
 	"exclude": ["node_modules/", ".vscode-test/", "apiplayground/", "dist/"]
 }
