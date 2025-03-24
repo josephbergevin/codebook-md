@@ -153,7 +153,8 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
    */
   private _getWebviewContent() {
     // Get the tree view folders data
-    const treeData = config.getTreeViewFolders();
+    const settingsPath = config.getVSCodeSettingsFilePath();
+    const treeData = config.getTreeViewFolders(settingsPath);
 
     // Build HTML for the folders and files
     let foldersHtml = '';
