@@ -247,7 +247,8 @@ export function activate(context: ExtensionContext) {
       }
 
       // Get current folders from configuration
-      const treeViewFolders = config.getTreeViewFolders();
+      const settingsPath = config.getVSCodeSettingsFilePath();
+      const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
       // Find the folder entry by its name
       const findFolder = (folders: config.TreeViewFolderEntry[], name: string): config.TreeViewFolderEntry | undefined => {
@@ -299,7 +300,8 @@ export function activate(context: ExtensionContext) {
       }
 
       // Get current folders from configuration
-      const treeViewFolders = config.getTreeViewFolders();
+      const settingsPath = config.getVSCodeSettingsFilePath();
+      const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
       // Find the parent folder by name
       const findFolder = (folders: config.TreeViewFolderEntry[], name: string): config.TreeViewFolderEntry | undefined => {
@@ -377,7 +379,8 @@ export function activate(context: ExtensionContext) {
       }
 
       // Get current folders from configuration
-      const treeViewFolders = config.getTreeViewFolders();
+      const settingsPath = config.getVSCodeSettingsFilePath();
+      const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
       // Find the target folder by name
       const findFolder = (folders: config.TreeViewFolderEntry[], name: string): config.TreeViewFolderEntry | undefined => {
@@ -445,7 +448,8 @@ export function activate(context: ExtensionContext) {
       }
 
       // Get current folders from configuration
-      const treeViewFolders = config.getTreeViewFolders();
+      const settingsPath = config.getVSCodeSettingsFilePath();
+      const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
       // Find and remove the folder and any sub-folders
       const removeFolder = (folders: config.TreeViewFolderEntry[]): boolean => {
@@ -483,7 +487,8 @@ export function activate(context: ExtensionContext) {
   disposable = commands.registerCommand('codebook-md.removeFileFromMyNotebooksFolder', async (entry: config.TreeViewFileEntry) => {
     try {
       // Get current folders from configuration
-      const treeViewFolders = config.getTreeViewFolders();
+      const settingsPath = config.getVSCodeSettingsFilePath();
+      const treeViewFolders = config.getTreeViewFolders(settingsPath);
       const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
       let fileRemoved = false;
 
@@ -541,7 +546,8 @@ export function activate(context: ExtensionContext) {
       }
 
       // Get current folders from configuration
-      const treeViewFolders = config.getTreeViewFolders();
+      const settingsPath = config.getVSCodeSettingsFilePath();
+      const treeViewFolders = config.getTreeViewFolders(settingsPath);
       const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
       let fileRenamed = false;
 
@@ -604,7 +610,8 @@ export function activate(context: ExtensionContext) {
       }
 
       // Get current folders from configuration
-      const treeViewFolders = config.getTreeViewFolders();
+      const settingsPath = config.getVSCodeSettingsFilePath();
+      const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
       // Determine if this is a file or folder ID
       // File IDs contain square brackets, e.g., "0.1[2]"
@@ -722,7 +729,8 @@ export function activate(context: ExtensionContext) {
       console.log(`Moving item with ID: ${objectId} up in tree view`);
 
       // Get current folders from configuration
-      const treeViewFolders = config.getTreeViewFolders();
+      const settingsPath = config.getVSCodeSettingsFilePath();
+      const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
       // Determine if this is a file or folder ID
       const isFile = objectId.includes('[');
@@ -846,7 +854,8 @@ export function activate(context: ExtensionContext) {
       console.log(`Moving item with ID: ${objectId} down in tree view`);
 
       // Get current folders from configuration
-      const treeViewFolders = config.getTreeViewFolders();
+      const settingsPath = config.getVSCodeSettingsFilePath();
+      const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
       // Determine if this is a file or folder ID
       const isFile = objectId.includes('[');
@@ -983,7 +992,8 @@ async function addFileToTreeViewFolder(filePath: string, folderName: string): Pr
     }
 
     // Get current folders from .vscode/settings.json
-    const treeViewFolders = config.getTreeViewFolders();
+    const settingsPath = config.getVSCodeSettingsFilePath();
+    const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
     // Find or create the target folder
     const findFolder = (folders: config.TreeViewFolderEntry[], name: string): config.TreeViewFolderEntry | undefined => {
@@ -1062,7 +1072,8 @@ async function addFolderToTreeView(): Promise<void> {
     }
 
     // Get current folders from .vscode/settings.json
-    const treeViewFolders = config.getTreeViewFolders();
+    const settingsPath = config.getVSCodeSettingsFilePath();
+    const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
     // Use folderName as both display name and path for top-level folder
     const newFolder: config.TreeViewFolderEntry = {
@@ -1096,7 +1107,8 @@ async function addSubFolder(parentFolderName: string): Promise<void> {
     }
 
     // Get current folders from .vscode/settings.json
-    const treeViewFolders = config.getTreeViewFolders();
+    const settingsPath = config.getVSCodeSettingsFilePath();
+    const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
     // Find the parent folder
     const findFolder = (folders: config.TreeViewFolderEntry[], name: string): config.TreeViewFolderEntry | undefined => {
@@ -1160,7 +1172,8 @@ async function renameFolderDisplay(folderName: string, currentDisplayName: strin
     }
 
     // Get current folders from .vscode/settings.json
-    const treeViewFolders = config.getTreeViewFolders();
+    const settingsPath = config.getVSCodeSettingsFilePath();
+    const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
     // Find the folder entry by its name
     const findFolder = (folders: config.TreeViewFolderEntry[], name: string): config.TreeViewFolderEntry | undefined => {
@@ -1202,7 +1215,8 @@ async function removeFolderFromTreeView(folderName: string): Promise<void> {
     console.log(`Removing folder ${folderName} from tree view`);
 
     // Get current folders from .vscode/settings.json
-    const treeViewFolders = config.getTreeViewFolders();
+    const settingsPath = config.getVSCodeSettingsFilePath();
+    const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
     // Find and remove the folder and any sub-folders
     const removeFolder = (folders: config.TreeViewFolderEntry[], name: string): config.TreeViewFolderEntry[] => {
@@ -1239,7 +1253,8 @@ async function removeFileFromTreeView(entry: config.TreeViewFileEntry): Promise<
     console.log(`Removing file ${entry.name} from tree view`);
 
     // Get current folders from .vscode/settings.json
-    const treeViewFolders = config.getTreeViewFolders();
+    const settingsPath = config.getVSCodeSettingsFilePath();
+    const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
     // Find the folder containing the file
     const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
@@ -1288,7 +1303,8 @@ async function renameTreeViewFile(entry: config.TreeViewFileEntry, newName: stri
     console.log(`Renaming file from "${entry.name}" to "${newName}"`);
 
     // Get current folders from .vscode/settings.json
-    const treeViewFolders = config.getTreeViewFolders();
+    const settingsPath = config.getVSCodeSettingsFilePath();
+    const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
     // Find the file in its folder and rename it
     const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';

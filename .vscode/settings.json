@@ -31,7 +31,7 @@
 		"lang/sql",
 		"lang/ts",
 		"io",
-		"tooling",
+		"tooling"
 	],
 	"codebook-md.rootPath": "${workspaceFolder}",
 	"codebook-md.tempPath": "./apiplayground/",
@@ -51,14 +51,14 @@
 	"codebook-md.sql": {
 		"execCmd": "mycli",
 		"execOptions": [
-			"-t",
+			"-t"
 		],
 		"output": {
 			"showExecutableCodeInOutput": true
 		}
 	},
 	"codebook-md.bash": {
-		"execSingleLineAsCommand": true,
+		"execSingleLineAsCommand": true
 	},
 	"codebook-md.shell": {
 		"output": {
@@ -140,5 +140,5 @@
   },
 	"notebook.experimental.cellChat": true,
 	"notebook.output.scrolling": true,
-	"editor.hover.delay": 700,
+	"editor.hover.delay": 700
 }

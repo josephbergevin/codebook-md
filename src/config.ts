@@ -65,8 +65,8 @@ export function getTempPath(): string {
 
 // getTreeViewFolders is a convenience function to get the tree view folders from the configuration
 // Merges settings from both user and workspace configurations
-export function getTreeViewFolders(): TreeViewFolderEntry[] {
-  const vscodeSettings = readVSCodeSettings();
+export function getTreeViewFolders(settingsPath: string): TreeViewFolderEntry[] {
+  const vscodeSettings = readVSCodeSettings(settingsPath);
   const vscodeFolders = vscodeSettings['codebook-md.treeView']?.folders || [];
   return vscodeFolders;
 }
@@ -127,21 +127,24 @@ function deepMerge<T extends Record<string, unknown>>(target: T, source: Partial
   return output;
 }
 
-// Helper function to read .vscode/settings.json
-export function readVSCodeSettings(): VSCodeSettings {
-  const vscodeSettingsPath = workspace.workspaceFolders?.[0]
+// Helper function to get the settings file path
+export function getVSCodeSettingsFilePath(): string {
+  return workspace.workspaceFolders?.[0]
     ? path.join(workspace.workspaceFolders[0].uri.fsPath, '.vscode', 'settings.json')
-    : null;
+    : '';
+}
 
-  if (!vscodeSettingsPath) {
+// Helper function to read .vscode/settings.json
+export function readVSCodeSettings(settingsPath: string): VSCodeSettings {
+  if (settingsPath === '') {
     return {};
   }
 
   try {
-    if (!fs.existsSync(vscodeSettingsPath)) {
+    if (!fs.existsSync(settingsPath)) {
       return {};
     }
-    return JSON.parse(fs.readFileSync(vscodeSettingsPath, 'utf8'));
+    return JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
   } catch (error) {
     console.error('Error reading .vscode/settings.json:', error);
     return {};
@@ -150,24 +153,22 @@ export function readVSCodeSettings(): VSCodeSettings {
 
 // Helper function to write to .vscode/settings.json
 export function writeVSCodeSettings(settings: VSCodeSettings): void {
-  const vscodeSettingsPath = workspace.workspaceFolders?.[0]
-    ? path.join(workspace.workspaceFolders[0].uri.fsPath, '.vscode', 'settings.json')
-    : null;
+  const settingsPath = getVSCodeSettingsFilePath();
 
-  if (!vscodeSettingsPath) {
+  if (!settingsPath) {
     throw new Error('No workspace folder found');
   }
 
   try {
     // Create .vscode directory if it doesn't exist
-    const vscodeDirPath = path.dirname(vscodeSettingsPath);
+    const vscodeDirPath = path.dirname(settingsPath);
     if (!fs.existsSync(vscodeDirPath)) {
       fs.mkdirSync(vscodeDirPath, { recursive: true });
     }
 
     let existingContent = '';
-    if (fs.existsSync(vscodeSettingsPath)) {
-      existingContent = fs.readFileSync(vscodeSettingsPath, 'utf8');
+    if (fs.existsSync(settingsPath)) {
+      existingContent = fs.readFileSync(settingsPath, 'utf8');
     }
 
     // If there's existing content, try to preserve comments and formatting
@@ -183,19 +184,19 @@ export function writeVSCodeSettings(settings: VSCodeSettings): void {
         const commentMatch = existingContent.match(/^([\s\S]*?)\{/);
         const leadingContent = commentMatch ? commentMatch[1] : '';
         const content = leadingContent + JSON.stringify(mergedSettings, null, indent);
-        fs.writeFileSync(vscodeSettingsPath, content, 'utf8');
+        fs.writeFileSync(settingsPath, content, 'utf8');
         console.log('writeVSCodeSettings: wrote merged settings.json with preserved formatting');
       } catch (parseError) {
         // If parsing fails, fall back to simple merge
         console.error('Error writeVSCodeSettings: parsing existing settings:', parseError);
         const content = JSON.stringify(settings, null, 2);
-        fs.writeFileSync(vscodeSettingsPath, content, 'utf8');
+        fs.writeFileSync(settingsPath, content, 'utf8');
         console.log('writeVSCodeSettings: wrote settings.json with standard formatting');
       }
     } else {
       // For new files, use standard formatting
       const content = JSON.stringify(settings, null, 2);
-      fs.writeFileSync(vscodeSettingsPath, content, 'utf8');
+      fs.writeFileSync(settingsPath, content, 'utf8');
       console.log('writeVSCodeSettings: wrote new settings.json with standard formatting');
     }
   } catch (error) {
@@ -207,7 +208,8 @@ export function writeVSCodeSettings(settings: VSCodeSettings): void {
 // Helper function to update tree view settings in .vscode/settings.json
 export function updateTreeViewSettings(folders: TreeViewFolderEntry[]): void {
   try {
-    const settings = readVSCodeSettings();
+    const settingsPath = getVSCodeSettingsFilePath();
+    const settings = readVSCodeSettings(settingsPath);
 
     if (!settings['codebook-md']) {
       settings['codebook-md'] = {};
