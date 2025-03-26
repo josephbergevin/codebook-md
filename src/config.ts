@@ -235,36 +235,11 @@ export function updateTreeViewSettings(folders: TreeViewFolderEntry[]): void {
     const settingsPath = getVSCodeSettingsFilePath();
     const settings = readVSCodeSettings(settingsPath);
 
-    if (!settings['codebook-md']) {
-      settings['codebook-md'] = {};
-    }
-
-    const codebookSettings = settings['codebook-md'] as {
-      treeView?: {
-        folders: TreeViewFolderEntry[];
-        [key: string]: unknown;
-      };
-      [key: string]: unknown;
+    // Only update the codebook-md.treeView format
+    settings['codebook-md.treeView'] = {
+      ...settings['codebook-md.treeView'],
+      folders: folders
     };
-
-    if (!codebookSettings.treeView) {
-      codebookSettings.treeView = { folders: [] };
-    } else {
-      codebookSettings.treeView = {
-        ...codebookSettings.treeView,
-        folders: folders
-      };
-    }
-
-    // Check for config in "codebook-md.treeView"
-    if (!settings['codebook-md.treeView']) {
-      settings['codebook-md.treeView'] = { folders: [] };
-    } else {
-      settings['codebook-md.treeView'] = {
-        ...settings['codebook-md.treeView'],
-        folders: folders
-      };
-    }
 
     writeVSCodeSettings(settings);
   } catch (error) {
