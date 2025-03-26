@@ -205,7 +205,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
   /**
    * Build HTML for a folder and its contents
    */
-  private _buildFolderHtml(folder: folders.TreeViewFolderEntry, level: number = 0, folderIndex: string): string {
+  private _buildFolderHtml(folder: folders.FolderGroupFolder, level: number = 0, folderIndex: string): string {
     if (folder.hide) {
       return '';
     }
