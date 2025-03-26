@@ -1,8 +1,8 @@
 import {
   languages, commands, window, notebooks, workspace,
   ExtensionContext, StatusBarAlignment, NotebookCell,
-  NotebookSerializer, NotebookData, NotebookCellData, CancellationToken,
-  Uri,
+  NotebookSerializer, NotebookData, NotebookCellData,
+  CancellationToken, Uri,
 } from 'vscode';
 
 import { Kernel } from './kernel';
@@ -390,6 +390,20 @@ async function renameTreeViewFile(entry: config.TreeViewFileEntry, newName: stri
   } catch (error) {
     console.error('Error renaming file in tree view:', error);
     window.showErrorMessage(`Failed to rename file: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// Function to refresh the notebooks webview
+async function refreshNotebooksView(): Promise<void> {
+  try {
+    // Focus the notebooks view first
+    await commands.executeCommand('workbench.view.extension.codebook-md-activitybar');
+    await commands.executeCommand('codebook-md-notebooks-view.focus');
+
+    // Execute the refresh command - this will trigger the refresh handler in the webview
+    await commands.executeCommand('codebook-md.refreshNotebooksView');
+  } catch (error) {
+    console.error('Error refreshing notebooks view:', error);
   }
 }
 
@@ -1087,6 +1101,9 @@ export function activate(context: ExtensionContext) {
 
       // Update settings
       config.updateTreeViewSettings(treeViewFolders);
+
+      // Force a refresh of the notebooks view
+      await refreshNotebooksView();
     } catch (error) {
       console.error('Error removing object from tree view:', error);
       window.showErrorMessage(`Failed to remove object: ${error instanceof Error ? error.message : String(error)}`);
@@ -1212,6 +1229,9 @@ export function activate(context: ExtensionContext) {
 
       // Update settings
       config.updateTreeViewSettings(treeViewFolders);
+
+      // Force a refresh of the notebooks view
+      await refreshNotebooksView();
     } catch (error) {
       console.error('Error moving item up in tree view:', error);
       window.showErrorMessage(`Failed to move item up: ${error instanceof Error ? error.message : String(error)}`);
@@ -1347,6 +1367,16 @@ export function activate(context: ExtensionContext) {
   // Command: Add folder to tree view
   disposable = commands.registerCommand('codebook-md.addFolderToTreeView', async () => {
     await addFolderToTreeView();
+  });
+  context.subscriptions.push(disposable);
+
+  // Register command to refresh the notebooks view
+  disposable = commands.registerCommand('codebook-md.refreshNotebooksView', () => {
+    // Find the notebooks view provider and trigger a refresh
+    if (notebooksViewProvider) {
+      console.log("Manually refreshing notebooks view");
+      notebooksViewProvider.updateWebview();
+    }
   });
   context.subscriptions.push(disposable);
 }
