@@ -4,6 +4,7 @@ import {
   NotebookSerializer, NotebookData, NotebookCellData,
   CancellationToken, Uri,
 } from 'vscode';
+import * as folders from './folders';
 
 import { Kernel } from './kernel';
 import * as codebook from './codebook';
@@ -27,7 +28,7 @@ async function addFileToTreeViewFolder(filePath: string, folderName: string): Pr
     const displayName = await window.showInputBox({
       placeHolder: fileName,
       prompt: 'Enter a display name for this markdown file',
-      value: config.suggestedDisplayName(fileName)
+      value: folders.suggestedDisplayName(fileName)
     });
 
     if (!displayName) {
@@ -36,10 +37,10 @@ async function addFileToTreeViewFolder(filePath: string, folderName: string): Pr
 
     // Get current folders from settings
     const settingsPath = config.getVSCodeSettingsFilePath();
-    const treeViewFolders = config.getTreeViewFolders(settingsPath);
+    const treeViewFolderGroup = folders.getTreeViewFolderGroup(settingsPath);
 
     // Find the target folder
-    const findFolder = (folders: config.TreeViewFolderEntry[], name: string): config.TreeViewFolderEntry | undefined => {
+    const findFolder = (folders: folders.TreeViewFolderEntry[], name: string): folders.TreeViewFolderEntry | undefined => {
       for (const folder of folders) {
         if (folder.name === name) {
           return folder;
@@ -54,7 +55,7 @@ async function addFileToTreeViewFolder(filePath: string, folderName: string): Pr
       return undefined;
     };
 
-    const targetFolder = findFolder(treeViewFolders, folderName);
+    const targetFolder = findFolder(treeViewFolderGroup.folders, folderName);
     if (!targetFolder) {
       window.showErrorMessage(`Folder ${folderName} not found`);
       return;
@@ -103,7 +104,7 @@ async function addFileToTreeViewFolder(filePath: string, folderName: string): Pr
     }
 
     // Update settings
-    config.updateTreeViewSettings(treeViewFolders, settingsPath);
+    folders.updateTreeViewSettings(treeViewFolderGroup);
   } catch (error) {
     console.error('Error adding file to folder:', error);
     window.showErrorMessage(`Failed to add file to folder: ${error instanceof Error ? error.message : String(error)}`);
@@ -125,19 +126,19 @@ async function addFolderToTreeView(): Promise<void> {
 
     // Get current folders from settings
     const settingsPath = config.getVSCodeSettingsFilePath();
-    const treeViewFolders = config.getTreeViewFolders(settingsPath);
+    const treeViewFolderGroup = folders.getTreeViewFolderGroup(settingsPath);
 
     // Use folderName as both display name and path for top-level folder
-    const newFolder: config.TreeViewFolderEntry = {
+    const newFolder: folders.TreeViewFolderEntry = {
       name: folderName,
       files: []
     };
 
-    treeViewFolders.push(newFolder);
+    treeViewFolderGroup.folders.push(newFolder);
     window.showInformationMessage(`Added folder to tree view: ${folderName}`);
 
     // Update settings
-    config.updateTreeViewSettings(treeViewFolders, settingsPath);
+    folders.updateTreeViewSettings(treeViewFolderGroup);
   } catch (error) {
     console.error('Error adding folder to tree view:', error);
     window.showErrorMessage(`Failed to add folder to tree view: ${error instanceof Error ? error.message : String(error)}`);
@@ -159,10 +160,10 @@ async function addSubFolder(parentFolderName: string): Promise<void> {
 
     // Get current folders from settings
     const settingsPath = config.getVSCodeSettingsFilePath();
-    const treeViewFolders = config.getTreeViewFolders(settingsPath);
+    const treeViewFolderGroup = folders.getTreeViewFolderGroup(settingsPath);
 
     // Find the parent folder
-    const findFolder = (folders: config.TreeViewFolderEntry[], name: string): config.TreeViewFolderEntry | undefined => {
+    const findFolder = (folders: folders.TreeViewFolderEntry[], name: string): folders.TreeViewFolderEntry | undefined => {
       for (const folder of folders) {
         if (folder.name === name) {
           return folder;
@@ -177,7 +178,7 @@ async function addSubFolder(parentFolderName: string): Promise<void> {
       return undefined;
     };
 
-    const parentFolder = findFolder(treeViewFolders, parentFolderName);
+    const parentFolder = findFolder(treeViewFolderGroup.folders, parentFolderName);
     if (!parentFolder) {
       window.showErrorMessage(`Parent folder ${parentFolderName} not found`);
       return;
@@ -189,7 +190,7 @@ async function addSubFolder(parentFolderName: string): Promise<void> {
     }
 
     // Add new sub-folder
-    const newFolder: config.TreeViewFolderEntry = {
+    const newFolder: folders.TreeViewFolderEntry = {
       name: folderName,
       files: []
     };
@@ -198,7 +199,7 @@ async function addSubFolder(parentFolderName: string): Promise<void> {
     window.showInformationMessage(`Added sub-folder ${folderName} to ${parentFolderName}`);
 
     // Update settings
-    config.updateTreeViewSettings(treeViewFolders, settingsPath);
+    folders.updateTreeViewSettings(treeViewFolderGroup);
   } catch (error) {
     console.error('Error adding sub-folder:', error);
     window.showErrorMessage(`Failed to add sub-folder: ${error instanceof Error ? error.message : String(error)}`);
@@ -223,10 +224,10 @@ async function renameFolderDisplay(folderName: string, currentDisplayName: strin
 
     // Get current folders from settings
     const settingsPath = config.getVSCodeSettingsFilePath();
-    const treeViewFolders = config.getTreeViewFolders(settingsPath);
+    const treeViewFolderGroup = folders.getTreeViewFolderGroup(settingsPath);
 
     // Find the folder entry by its name
-    const findFolder = (folders: config.TreeViewFolderEntry[], name: string): config.TreeViewFolderEntry | undefined => {
+    const findFolder = (folders: folders.TreeViewFolderEntry[], name: string): folders.TreeViewFolderEntry | undefined => {
       for (const folder of folders) {
         if (folder.name === name) {
           return folder;
@@ -241,7 +242,7 @@ async function renameFolderDisplay(folderName: string, currentDisplayName: strin
       return undefined;
     };
 
-    const folder = findFolder(treeViewFolders, folderName);
+    const folder = findFolder(treeViewFolderGroup.folders, folderName);
     if (!folder) {
       window.showErrorMessage(`Folder ${folderName} not found`);
       return;
@@ -252,7 +253,7 @@ async function renameFolderDisplay(folderName: string, currentDisplayName: strin
     window.showInformationMessage(`Renamed folder to: ${newName}`);
 
     // Update settings
-    config.updateTreeViewSettings(treeViewFolders, settingsPath);
+    folders.updateTreeViewSettings(treeViewFolderGroup);
   } catch (error) {
     console.error('Error renaming folder:', error);
     window.showErrorMessage(`Failed to rename folder: ${error instanceof Error ? error.message : String(error)}`);
@@ -265,10 +266,10 @@ async function removeFolderFromTreeView(folderName: string): Promise<void> {
 
     // Get current folders from settings
     const settingsPath = config.getVSCodeSettingsFilePath();
-    const treeViewFolders = config.getTreeViewFolders(settingsPath);
+    const treeViewFolderGroup = folders.getTreeViewFolderGroup(settingsPath);
 
     // Find and remove the folder and any sub-folders
-    const removeFolder = (folders: config.TreeViewFolderEntry[], name: string): config.TreeViewFolderEntry[] => {
+    const removeFolder = (folders: folders.TreeViewFolderEntry[], name: string): folders.TreeViewFolderEntry[] => {
       return folders.filter(folder => {
         if (folder.name === name) {
           return false;
@@ -280,15 +281,16 @@ async function removeFolderFromTreeView(folderName: string): Promise<void> {
       });
     };
 
-    const updatedFolders = removeFolder(treeViewFolders, folderName);
+    const updatedFolders = removeFolder(treeViewFolderGroup.folders, folderName);
 
-    if (updatedFolders.length === treeViewFolders.length) {
+    if (updatedFolders.length === treeViewFolderGroup.folders.length) {
       window.showWarningMessage('Folder not found in tree view');
       return;
     }
 
     // Update settings
-    config.updateTreeViewSettings(updatedFolders, settingsPath);
+    treeViewFolderGroup.folders = updatedFolders;
+    folders.updateTreeViewSettings(treeViewFolderGroup);
     window.showInformationMessage(`Removed folder from tree view`);
   } catch (error) {
     console.error('Error removing folder from tree view:', error);
@@ -296,17 +298,17 @@ async function removeFolderFromTreeView(folderName: string): Promise<void> {
   }
 }
 
-async function removeFileFromTreeView(entry: config.TreeViewFileEntry): Promise<void> {
+async function removeFileFromTreeView(entry: folders.TreeViewFileEntry): Promise<void> {
   try {
     console.log(`Removing file ${entry.name} from tree view`);
 
     // Get current folders from settings
     const settingsPath = config.getVSCodeSettingsFilePath();
-    const treeViewFolders = config.getTreeViewFolders(settingsPath);
+    const treeViewFolderGroup = folders.getTreeViewFolderGroup(settingsPath);
     const workspacePath = config.getWorkspaceFolder();
     let fileRemoved = false;
 
-    const removeFile = (folders: config.TreeViewFolderEntry[]): boolean => {
+    const removeFile = (folders: folders.TreeViewFolderEntry[]): boolean => {
       for (const folder of folders) {
         if (folder.files) {
           const fileIndex = folder.files.findIndex(f =>
@@ -327,7 +329,7 @@ async function removeFileFromTreeView(entry: config.TreeViewFileEntry): Promise<
       return false;
     };
 
-    removeFile(treeViewFolders);
+    removeFile(treeViewFolderGroup.folders);
 
     if (!fileRemoved) {
       window.showWarningMessage('File not found in tree view');
@@ -335,7 +337,7 @@ async function removeFileFromTreeView(entry: config.TreeViewFileEntry): Promise<
     }
 
     // Update settings
-    config.updateTreeViewSettings(treeViewFolders, settingsPath);
+    folders.updateTreeViewSettings(treeViewFolderGroup);
     window.showInformationMessage(`Removed ${entry.name} from tree view`);
   } catch (error) {
     console.error('Error removing file from tree view:', error);
@@ -343,17 +345,17 @@ async function removeFileFromTreeView(entry: config.TreeViewFileEntry): Promise<
   }
 }
 
-async function renameTreeViewFile(entry: config.TreeViewFileEntry, newName: string): Promise<void> {
+async function renameTreeViewFile(entry: folders.TreeViewFileEntry, newName: string): Promise<void> {
   try {
     console.log(`Renaming file from "${entry.name}" to "${newName}"`);
 
     // Get current folders from settings
     const settingsPath = config.getVSCodeSettingsFilePath();
-    const treeViewFolders = config.getTreeViewFolders(settingsPath);
+    const treeViewFolderGroup = folders.getTreeViewFolderGroup(settingsPath);
     const workspacePath = config.getWorkspaceFolder();
     let fileRenamed = false;
 
-    const renameFile = (folders: config.TreeViewFolderEntry[]): boolean => {
+    const renameFile = (folders: folders.TreeViewFolderEntry[]): boolean => {
       for (const folder of folders) {
         if (folder.files) {
           const fileIndex = folder.files.findIndex(f =>
@@ -377,7 +379,7 @@ async function renameTreeViewFile(entry: config.TreeViewFileEntry, newName: stri
       return false;
     };
 
-    renameFile(treeViewFolders);
+    renameFile(treeViewFolderGroup.folders);
 
     if (!fileRenamed) {
       window.showWarningMessage('File not found in tree view');
@@ -385,7 +387,7 @@ async function renameTreeViewFile(entry: config.TreeViewFileEntry, newName: stri
     }
 
     // Update settings
-    config.updateTreeViewSettings(treeViewFolders, settingsPath);
+    folders.updateTreeViewSettings(treeViewFolderGroup);
     window.showInformationMessage(`Renamed file to: ${newName}`);
   } catch (error) {
     console.error('Error renaming file in tree view:', error);
@@ -638,7 +640,7 @@ export function activate(context: ExtensionContext) {
   disposable = commands.registerCommand('codebook-md.addFileToChosenFolder', async () => {
     // Get the folders from configuration
     const configuration = workspace.getConfiguration('codebook-md');
-    const treeViewConfig = configuration.get<{ folders: config.TreeViewFolderEntry[]; }>('treeView') || { folders: [] };
+    const treeViewConfig = configuration.get<{ folders: folders.TreeViewFolderEntry[]; }>('treeView') || { folders: [] };
 
     // Create folder options for quickpick
     const folderOptions = treeViewConfig.folders.map(folder => ({
@@ -692,10 +694,10 @@ export function activate(context: ExtensionContext) {
 
       // Get current folders from configuration
       const settingsPath = config.getVSCodeSettingsFilePath();
-      const treeViewFolders = config.getTreeViewFolders(settingsPath);
+      const treeViewFolderGroup = folders.getTreeViewFolderGroup(settingsPath);
 
       // Find the folder entry by its name
-      const findFolder = (folders: config.TreeViewFolderEntry[], name: string): config.TreeViewFolderEntry | undefined => {
+      const findFolder = (folders: folders.TreeViewFolderEntry[], name: string): folders.TreeViewFolderEntry | undefined => {
         for (const folder of folders) {
           if (folder.name === name) {
             return folder;
@@ -710,7 +712,7 @@ export function activate(context: ExtensionContext) {
         return undefined;
       };
 
-      const folder = findFolder(treeViewFolders, folderName);
+      const folder = findFolder(treeViewFolderGroup.folders, folderName);
       if (!folder) {
         window.showErrorMessage(`Folder ${folderName} not found`);
         return;
@@ -720,7 +722,7 @@ export function activate(context: ExtensionContext) {
       folder.name = newName;
 
       // Update settings
-      config.updateTreeViewSettings(treeViewFolders, settingsPath);
+      folders.updateTreeViewSettings(treeViewFolderGroup);
       window.showInformationMessage(`Renamed folder to: ${newName}`);
     } catch (error) {
       console.error('Error renaming folder:', error);
@@ -745,10 +747,10 @@ export function activate(context: ExtensionContext) {
 
       // Get current folders from configuration
       const settingsPath = config.getVSCodeSettingsFilePath();
-      const treeViewFolders = config.getTreeViewFolders(settingsPath);
+      const treeViewFolderGroup = folders.getTreeViewFolderGroup(settingsPath);
 
       // Find the parent folder by name
-      const findFolder = (folders: config.TreeViewFolderEntry[], name: string): config.TreeViewFolderEntry | undefined => {
+      const findFolder = (folders: folders.TreeViewFolderEntry[], name: string): folders.TreeViewFolderEntry | undefined => {
         for (const folder of folders) {
           if (folder.name === name) {
             return folder;
@@ -763,7 +765,7 @@ export function activate(context: ExtensionContext) {
         return undefined;
       };
 
-      const parentFolder = findFolder(treeViewFolders, folderName);
+      const parentFolder = findFolder(treeViewFolderGroup.folders, folderName);
       if (!parentFolder) {
         window.showErrorMessage(`Folder ${folderName} not found`);
         return;
@@ -781,7 +783,7 @@ export function activate(context: ExtensionContext) {
       });
 
       // Update settings
-      config.updateTreeViewSettings(treeViewFolders, settingsPath);
+      folders.updateTreeViewSettings(treeViewFolderGroup);
       window.showInformationMessage(`Added sub-folder "${subFolderName}" to "${folderName}"`);
     } catch (error) {
       console.error('Error adding sub-folder:', error);
@@ -834,10 +836,10 @@ export function activate(context: ExtensionContext) {
 
       // Get current folders from configuration
       const settingsPath = config.getVSCodeSettingsFilePath();
-      const treeViewFolders = config.getTreeViewFolders(settingsPath);
+      const treeViewFolderGroup = folders.getTreeViewFolderGroup(settingsPath);
 
       // Find and remove the folder and any sub-folders
-      const removeFolder = (folders: config.TreeViewFolderEntry[]): boolean => {
+      const removeFolder = (folders: folders.TreeViewFolderEntry[]): boolean => {
         for (let i = 0; i < folders.length; i++) {
           if (folders[i].name === folderName) {
             folders.splice(i, 1);
@@ -853,13 +855,13 @@ export function activate(context: ExtensionContext) {
         return false;
       };
 
-      if (!removeFolder(treeViewFolders)) {
+      if (!removeFolder(treeViewFolderGroup.folders)) {
         window.showErrorMessage(`Folder "${folderName}" not found`);
         return;
       }
 
       // Update settings
-      config.updateTreeViewSettings(treeViewFolders, settingsPath);
+      folders.updateTreeViewSettings(treeViewFolderGroup);
       window.showInformationMessage(`Removed folder "${folderName}" and its contents`);
     } catch (error) {
       console.error('Error removing folder:', error);
@@ -869,16 +871,16 @@ export function activate(context: ExtensionContext) {
   context.subscriptions.push(disposable);
 
   // Command: Remove file from My Notebooks folder
-  disposable = commands.registerCommand('codebook-md.removeFileFromMyNotebooksFolder', async (entry: config.TreeViewFileEntry) => {
+  disposable = commands.registerCommand('codebook-md.removeFileFromMyNotebooksFolder', async (entry: folders.TreeViewFileEntry) => {
     try {
       // Get current folders from configuration
       const settingsPath = config.getVSCodeSettingsFilePath();
-      const treeViewFolders = config.getTreeViewFolders(settingsPath);
+      const treeViewFolderGroup = folders.getTreeViewFolderGroup(settingsPath);
       const workspacePath = config.getWorkspaceFolder();
       let fileRemoved = false;
 
       // Find and remove the file from its folder
-      const removeFile = (folders: config.TreeViewFolderEntry[]): boolean => {
+      const removeFile = (folders: folders.TreeViewFolderEntry[]): boolean => {
         for (const folder of folders) {
           if (folder.files) {
             const fileIndex = folder.files.findIndex(f =>
@@ -899,7 +901,7 @@ export function activate(context: ExtensionContext) {
         return false;
       };
 
-      removeFile(treeViewFolders);
+      removeFile(treeViewFolderGroup.folders);
 
       if (!fileRemoved) {
         window.showWarningMessage('File not found');
@@ -907,7 +909,7 @@ export function activate(context: ExtensionContext) {
       }
 
       // Update settings
-      config.updateTreeViewSettings(treeViewFolders, settingsPath);
+      folders.updateTreeViewSettings(treeViewFolderGroup);
       window.showInformationMessage(`Removed "${entry.name}" from My Notebooks`);
     } catch (error) {
       console.error('Error removing file:', error);
@@ -917,7 +919,7 @@ export function activate(context: ExtensionContext) {
   context.subscriptions.push(disposable);
 
   // Command: Rename file in My Notebooks webview
-  disposable = commands.registerCommand('codebook-md.renameFileInMyNotebooks', async (entry: config.TreeViewFileEntry) => {
+  disposable = commands.registerCommand('codebook-md.renameFileInMyNotebooks', async (entry: folders.TreeViewFileEntry) => {
     try {
       // Get new name from user
       const newName = await window.showInputBox({
@@ -932,12 +934,12 @@ export function activate(context: ExtensionContext) {
 
       // Get current folders from configuration
       const settingsPath = config.getVSCodeSettingsFilePath();
-      const treeViewFolders = config.getTreeViewFolders(settingsPath);
+      const treeViewFolderGroup = folders.getTreeViewFolderGroup(settingsPath);
       const workspacePath = config.getWorkspaceFolder();
       let fileRenamed = false;
 
       // Find and rename the file in its folder
-      const renameFile = (folders: config.TreeViewFolderEntry[]): boolean => {
+      const renameFile = (folders: folders.TreeViewFolderEntry[]): boolean => {
         for (const folder of folders) {
           if (folder.files) {
             const fileIndex = folder.files.findIndex(f =>
@@ -961,7 +963,7 @@ export function activate(context: ExtensionContext) {
         return false;
       };
 
-      renameFile(treeViewFolders);
+      renameFile(treeViewFolderGroup.folders);
 
       if (!fileRenamed) {
         window.showWarningMessage('File not found');
@@ -969,7 +971,7 @@ export function activate(context: ExtensionContext) {
       }
 
       // Update settings
-      config.updateTreeViewSettings(treeViewFolders, settingsPath);
+      folders.updateTreeViewSettings(treeViewFolderGroup);
       window.showInformationMessage(`Renamed file to: ${newName}`);
     } catch (error) {
       console.error('Error renaming file:', error);
@@ -996,7 +998,7 @@ export function activate(context: ExtensionContext) {
 
       // Get current folders from configuration
       const settingsPath = config.getVSCodeSettingsFilePath();
-      const treeViewFolders = config.getTreeViewFolders(settingsPath);
+      const treeViewFolderGroup = folders.getTreeViewFolderGroup(settingsPath);
 
       // Determine if this is a file or folder ID
       // File IDs contain square brackets, e.g., "0.1[2]"
@@ -1017,9 +1019,9 @@ export function activate(context: ExtensionContext) {
         const fileIndex = parseInt(matches[2], 10); // 2
 
         // Navigate to the folder using the folderPath
-        let currentFolders = treeViewFolders;
+        let currentFolders = treeViewFolderGroup.folders;
         const folderIndices = folderPath.split('.').map(index => parseInt(index, 10));
-        let targetFolder: config.TreeViewFolderEntry | undefined;
+        let targetFolder: folders.TreeViewFolderEntry | undefined;
 
         // Navigate to the target folder
         try {
@@ -1055,12 +1057,12 @@ export function activate(context: ExtensionContext) {
         // Special case for top-level folder
         if (folderIndices.length === 1) {
           const index = folderIndices[0];
-          if (index >= treeViewFolders.length) {
+          if (index >= treeViewFolderGroup.folders.length) {
             window.showErrorMessage(`Folder index out of bounds: ${index}`);
             return;
           }
-          const folderName = treeViewFolders[index].name;
-          treeViewFolders.splice(index, 1);
+          const folderName = treeViewFolderGroup.folders[index].name;
+          treeViewFolderGroup.folders.splice(index, 1);
           window.showInformationMessage(`Removed folder "${folderName}" and its contents`);
         } else {
           // For nested folders, we need to find the parent folder
@@ -1068,8 +1070,8 @@ export function activate(context: ExtensionContext) {
           const folderIndex = folderIndices[folderIndices.length - 1];
 
           // Navigate to the parent folder
-          let currentFolders = treeViewFolders;
-          let parentFolder: config.TreeViewFolderEntry | undefined;
+          let currentFolders = treeViewFolderGroup.folders;
+          let parentFolder: folders.TreeViewFolderEntry | undefined;
 
           try {
             for (const index of parentFolderIndices) {
@@ -1100,7 +1102,7 @@ export function activate(context: ExtensionContext) {
       }
 
       // Update settings
-      config.updateTreeViewSettings(treeViewFolders, settingsPath);
+      folders.updateTreeViewSettings(treeViewFolderGroup);
 
       // Force a refresh of the notebooks view
       await refreshNotebooksView();
@@ -1118,7 +1120,7 @@ export function activate(context: ExtensionContext) {
 
       // Get current folders from configuration
       const settingsPath = config.getVSCodeSettingsFilePath();
-      const treeViewFolders = config.getTreeViewFolders(settingsPath);
+      const treeViewFolderGroup = folders.getTreeViewFolderGroup(settingsPath);
 
       // Determine if this is a file or folder ID
       const isFile = objectId.includes('[');
@@ -1137,9 +1139,9 @@ export function activate(context: ExtensionContext) {
         const fileIndex = parseInt(matches[2], 10); // 2
 
         // Navigate to the folder using the folderPath
-        let currentFolders = treeViewFolders;
+        let currentFolders = treeViewFolderGroup.folders;
         const folderIndices = folderPath.split('.').map(index => parseInt(index, 10));
-        let targetFolder: config.TreeViewFolderEntry | undefined;
+        let targetFolder: folders.TreeViewFolderEntry | undefined;
 
         // Navigate to the target folder
         try {
@@ -1176,15 +1178,15 @@ export function activate(context: ExtensionContext) {
         // Special case for top-level folder
         if (folderIndices.length === 1) {
           const index = folderIndices[0];
-          if (index >= treeViewFolders.length) {
+          if (index >= treeViewFolderGroup.folders.length) {
             window.showErrorMessage(`Folder index out of bounds: ${index}`);
             return;
           }
           if (index > 0) {
             // Swap with previous folder at root level
-            const temp = treeViewFolders[index];
-            treeViewFolders[index] = treeViewFolders[index - 1];
-            treeViewFolders[index - 1] = temp;
+            const temp = treeViewFolderGroup.folders[index];
+            treeViewFolderGroup.folders[index] = treeViewFolderGroup.folders[index - 1];
+            treeViewFolderGroup.folders[index - 1] = temp;
           } else {
             window.showInformationMessage('Folder is already at the top');
             return;
@@ -1195,8 +1197,8 @@ export function activate(context: ExtensionContext) {
           const folderIndex = folderIndices[folderIndices.length - 1];
 
           // Navigate to the parent folder
-          let currentFolders = treeViewFolders;
-          let parentFolder: config.TreeViewFolderEntry | undefined;
+          let currentFolders = treeViewFolderGroup.folders;
+          let parentFolder: folders.TreeViewFolderEntry | undefined;
 
           try {
             for (const index of parentFolderIndices) {
@@ -1228,7 +1230,7 @@ export function activate(context: ExtensionContext) {
       }
 
       // Update settings
-      config.updateTreeViewSettings(treeViewFolders, settingsPath);
+      folders.updateTreeViewSettings(treeViewFolderGroup);
 
       // Force a refresh of the notebooks view
       await refreshNotebooksView();
@@ -1246,7 +1248,7 @@ export function activate(context: ExtensionContext) {
 
       // Get current folders from configuration
       const settingsPath = config.getVSCodeSettingsFilePath();
-      const treeViewFolders = config.getTreeViewFolders(settingsPath);
+      const treeViewFolderGroup = folders.getTreeViewFolderGroup(settingsPath);
 
       // Determine if this is a file or folder ID
       const isFile = objectId.includes('[');
@@ -1265,9 +1267,9 @@ export function activate(context: ExtensionContext) {
         const fileIndex = parseInt(matches[2], 10); // 2
 
         // Navigate to the folder using the folderPath
-        let currentFolders = treeViewFolders;
+        let currentFolders = treeViewFolderGroup.folders;
         const folderIndices = folderPath.split('.').map(index => parseInt(index, 10));
-        let targetFolder: config.TreeViewFolderEntry | undefined;
+        let targetFolder: folders.TreeViewFolderEntry | undefined;
 
         // Navigate to the target folder
         try {
@@ -1304,15 +1306,15 @@ export function activate(context: ExtensionContext) {
         // Special case for top-level folder
         if (folderIndices.length === 1) {
           const index = folderIndices[0];
-          if (index >= treeViewFolders.length) {
+          if (index >= treeViewFolderGroup.folders.length) {
             window.showErrorMessage(`Folder index out of bounds: ${index}`);
             return;
           }
-          if (index < treeViewFolders.length - 1) {
+          if (index < treeViewFolderGroup.folders.length - 1) {
             // Swap with next folder at root level
-            const temp = treeViewFolders[index];
-            treeViewFolders[index] = treeViewFolders[index + 1];
-            treeViewFolders[index + 1] = temp;
+            const temp = treeViewFolderGroup.folders[index];
+            treeViewFolderGroup.folders[index] = treeViewFolderGroup.folders[index + 1];
+            treeViewFolderGroup.folders[index + 1] = temp;
           } else {
             window.showInformationMessage('Folder is already at the bottom');
             return;
@@ -1323,8 +1325,8 @@ export function activate(context: ExtensionContext) {
           const folderIndex = folderIndices[folderIndices.length - 1];
 
           // Navigate to the parent folder
-          let currentFolders = treeViewFolders;
-          let parentFolder: config.TreeViewFolderEntry | undefined;
+          let currentFolders = treeViewFolderGroup.folders;
+          let parentFolder: folders.TreeViewFolderEntry | undefined;
 
           try {
             for (const index of parentFolderIndices) {
@@ -1356,7 +1358,7 @@ export function activate(context: ExtensionContext) {
       }
 
       // Update settings
-      config.updateTreeViewSettings(treeViewFolders, settingsPath);
+      folders.updateTreeViewSettings(treeViewFolderGroup);
     } catch (error) {
       console.error('Error moving item down in tree view:', error);
       window.showErrorMessage(`Failed to move item down: ${error instanceof Error ? error.message : String(error)}`);

@@ -10,6 +10,7 @@ import {
 import * as path from 'path';
 import * as fs from 'fs';
 import * as config from '../config';
+import * as folders from '../folders';
 
 /**
  * Provider for the My Notebooks webview view.
@@ -178,11 +179,11 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
   private _getWebviewContent() {
     // Get the tree view folders data
     const settingsPath = config.getVSCodeSettingsFilePath();
-    const treeData = config.getTreeViewFolders(settingsPath);
+    const treeViewFolderGroup = folders.getTreeViewFolderGroup(settingsPath);
 
     // Build HTML for the folders and files
     let foldersHtml = '';
-    treeData.forEach((folder, index) => {
+    treeViewFolderGroup.folders.forEach((folder, index) => {
       const folderIndex = index.toString();
       foldersHtml += this._buildFolderHtml(folder, 0, folderIndex);
     });
@@ -204,12 +205,12 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
   /**
    * Build HTML for a folder and its contents
    */
-  private _buildFolderHtml(folder: config.TreeViewFolderEntry, level: number = 0, folderIndex: string): string {
+  private _buildFolderHtml(folder: folders.TreeViewFolderEntry, level: number = 0, folderIndex: string): string {
     if (folder.hide) {
       return '';
     }
 
-    const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
+    const workspacePath = config.getWorkspaceFolder();
 
     // The ID for the folder in the format of 'folderIndex'
     const folderId = folderIndex;
