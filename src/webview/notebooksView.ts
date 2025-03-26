@@ -138,7 +138,9 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
     // Update webview when tree view data changes
     this._disposables.push(
       workspace.onDidChangeConfiguration(e => {
-        if (e.affectsConfiguration('codebook-md.treeView.folders')) {
+        if (e.affectsConfiguration('codebook-md.treeView') ||
+          e.affectsConfiguration('codebook-md.treeView.folders') ||
+          e.affectsConfiguration('codebook-md')) {
           this._updateWebview();
         }
       })
@@ -161,6 +163,13 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
     }
 
     this._view.webview.html = this._getWebviewContent();
+  }
+
+  /**
+   * Update the webview content - public method that can be called from outside
+   */
+  public updateWebview(): void {
+    this._updateWebview();
   }
 
   /**

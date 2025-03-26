@@ -66,9 +66,35 @@ export function getTempPath(): string {
 // getTreeViewFolders is a convenience function to get the tree view folders from the configuration
 // Merges settings from both user and workspace configurations
 export function getTreeViewFolders(settingsPath: string): TreeViewFolderEntry[] {
+  // Get workspace settings from .vscode/settings.json
   const vscodeSettings = readVSCodeSettings(settingsPath);
-  const vscodeFolders = vscodeSettings['codebook-md.treeView']?.folders || [];
-  return vscodeFolders;
+
+  // Check both possible configuration paths
+  const workspaceFolders =
+    vscodeSettings['codebook-md.treeView']?.folders ||
+    vscodeSettings['codebook-md']?.treeView?.folders ||
+    [];
+
+  // Get user settings from VS Code configuration API
+  const userConfig = workspace.getConfiguration('codebook-md');
+  const userFolders = userConfig.get<TreeViewFolderEntry[]>('treeView.folders', []);
+
+  // Merge with preference for workspace settings (they override user settings)
+  const mergedFolders = [...userFolders];
+
+  // Add workspace folders with deduplication by name
+  for (const folder of workspaceFolders) {
+    const existingIndex = mergedFolders.findIndex(f => f.name === folder.name);
+    if (existingIndex >= 0) {
+      // Update existing folder
+      mergedFolders[existingIndex] = folder;
+    } else {
+      // Add new folder
+      mergedFolders.push(folder);
+    }
+  }
+
+  return mergedFolders;
 }
 
 export function fullTempPath(tempPath: string, currentFile: string, workspacePath: string): string {
