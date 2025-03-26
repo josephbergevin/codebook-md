@@ -2,10 +2,10 @@ import { window, workspace } from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 
-const config = workspace.getConfiguration('codebook-md');
+const codebookConfig = workspace.getConfiguration('codebook-md');
 
 // basePath is the workspace root path
-const rootPath = config.get('rootPath', '');
+const rootPath = codebookConfig.get('rootPath', '');
 
 export interface TreeViewFolderEntry {
   name: string;
@@ -37,23 +37,23 @@ export interface CodebookMdConfig {
 }
 
 export function readConfig(): CodebookMdConfig {
-  const tempPath = config.get('tempPath', '');
+  const tempPath = codebookConfig.get('tempPath', '');
   const currentFile = window.activeTextEditor?.document.fileName ?? '';
-  const treeViewFolders = config.get<TreeViewFolderEntry[]>('treeView.folders', []);
+  const treeViewFolders = codebookConfig.get<TreeViewFolderEntry[]>('treeView.folders', []);
 
   return {
     rootPath: rootPath,
     tempPath: fullTempPath(tempPath, currentFile, rootPath),
-    permalinkPrefix: config.get('permalinkPrefix', ''),
+    permalinkPrefix: codebookConfig.get('permalinkPrefix', ''),
     treeView: {
       folders: treeViewFolders,
     },
     go: {
-      execType: config.get('go.execType', 'run'),
-      execTypeRunFilename: config.get('go.execTypeRunFilename', 'main.go'),
-      execTypeTestFilename: config.get('go.execTypeTestFilename', 'codebook_md_exec_test.go'),
-      execTypeTestBuildTag: config.get('go.execTypeTestBuildTag', 'codebook_md_exec'),
-      goimportsCmd: config.get('go.goimportsCmd', 'gopls imports'),
+      execType: codebookConfig.get('go.execType', 'run'),
+      execTypeRunFilename: codebookConfig.get('go.execTypeRunFilename', 'main.go'),
+      execTypeTestFilename: codebookConfig.get('go.execTypeTestFilename', 'codebook_md_exec_test.go'),
+      execTypeTestBuildTag: codebookConfig.get('go.execTypeTestBuildTag', 'codebook_md_exec'),
+      goimportsCmd: codebookConfig.get('go.goimportsCmd', 'gopls imports'),
     },
   };
 }
@@ -85,10 +85,34 @@ export function fullTempPath(tempPath: string, currentFile: string, workspacePat
 // If the path is absolute, it is returned as-is
 // If the path is relative, it is resolved relative to the workspace root
 export function getFullPath(filePath: string, workspacePath: string): string {
-  if (path.isAbsolute(filePath)) {
-    return filePath;
+  if (!workspacePath) {
+    return filePath.replace(/\\/g, '/');
   }
-  return path.resolve(workspacePath, filePath);
+
+  // Helper to convert to forward slashes
+  const toForwardSlashes = (p: string) => p.replace(/\\/g, '/');
+
+  // First convert any backslashes to forward slashes
+  const normalizedFilePath = toForwardSlashes(path.normalize(filePath));
+  const normalizedWorkspacePath = toForwardSlashes(path.normalize(workspacePath));
+
+  // If it's already relative, resolve against workspace then make relative again
+  if (!path.isAbsolute(normalizedFilePath)) {
+    const resolvedPath = toForwardSlashes(path.resolve(normalizedWorkspacePath, normalizedFilePath));
+    // If the resolved path starts with workspace path, make it relative
+    if (resolvedPath.startsWith(normalizedWorkspacePath + '/')) {
+      return toForwardSlashes(path.relative(normalizedWorkspacePath, resolvedPath));
+    }
+    return normalizedFilePath;
+  }
+
+  // For absolute paths, if they're in the workspace, make them relative
+  if (normalizedFilePath.startsWith(normalizedWorkspacePath + '/')) {
+    return toForwardSlashes(path.relative(normalizedWorkspacePath, normalizedFilePath));
+  }
+
+  // Otherwise return the normalized absolute path
+  return normalizedFilePath;
 }
 
 // Type for VS Code settings
@@ -247,6 +271,41 @@ export function updateTreeViewSettings(folders: TreeViewFolderEntry[]): void {
     console.error('Failed to update tree view settings:', error);
     window.showErrorMessage(`Failed to update tree view settings: ${(error as Error).message}`);
   }
+}
+
+// getWorkspaceFolder returns the actual workspace folder path
+// It handles "${workspaceFolder}" placeholder and falls back to the first workspace folder
+export function getWorkspaceFolder(): string {
+  const configRootPath = codebookConfig.get('rootPath', '');
+
+  console.log(`configRootPath: ${configRootPath}`);
+  console.log('Workspace folders:', workspace.workspaceFolders);
+
+  // If rootPath contains ${workspaceFolder}, replace it with actual workspace path
+  if (configRootPath.includes('${workspaceFolder}')) {
+    // print debug all workspace folders
+    const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!workspaceFolder) {
+      throw new Error('No workspace folder found');
+    }
+    console.log(`Replacing ${configRootPath} with ${workspaceFolder}`);
+    return configRootPath.replace('${workspaceFolder}', workspaceFolder);
+  }
+
+  // If rootPath is set and doesn't contain placeholder, use it
+  if (configRootPath) {
+    console.log(`Using rootPath: ${configRootPath}`);
+    return configRootPath;
+  }
+
+  // Fall back to first workspace folder
+  const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath;
+  if (!workspaceFolder) {
+    throw new Error('No workspace folder found');
+  }
+
+  console.log(`Using first workspace folder: ${workspaceFolder}`);
+  return workspaceFolder;
 }
 
 // suggestedDisplayName generates a display name from a filename by:

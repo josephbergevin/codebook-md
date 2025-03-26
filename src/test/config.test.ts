@@ -1,4 +1,5 @@
 import * as config from '../config';
+import * as path from 'path';
 
 jest.mock('vscode', () => ({
   window: {
@@ -57,6 +58,45 @@ describe('config.ts Test Suite', () => {
       for (const testCase of testCases) {
         expect(config.suggestedDisplayName(testCase.input)).toBe(testCase.expected);
       }
+    });
+  });
+
+  describe('getFullPath', () => {
+    it('should handle absolute paths within workspace', () => {
+      const filePath = '/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/docs/example.md';
+      const result = config.getFullPath(filePath, workspacePath);
+      expect(result).toBe('docs/example.md');
+    });
+
+    it('should handle relative paths', () => {
+      const filePath = 'docs/example.md';
+      const result = config.getFullPath(filePath, workspacePath);
+      expect(result).toBe('docs/example.md');
+    });
+
+    it('should handle paths with ../..', () => {
+      const filePath = '../codebook-md/docs/example.md';
+      const expected = path.normalize('docs/example.md');
+      const result = config.getFullPath(filePath, workspacePath);
+      expect(result).toBe(expected);
+    });
+
+    it('should handle absolute paths outside workspace', () => {
+      const filePath = '/other/path/example.md';
+      const result = config.getFullPath(filePath, workspacePath);
+      expect(result).toBe('/other/path/example.md');
+    });
+
+    it('should handle empty workspace path', () => {
+      const filePath = 'docs/example.md';
+      const result = config.getFullPath(filePath, '');
+      expect(result).toBe(filePath);
+    });
+
+    it('should handle paths with backslashes', () => {
+      const filePath = 'docs\\example.md';
+      const result = config.getFullPath(filePath, workspacePath);
+      expect(result).toBe('docs/example.md');  // Expect forward slashes regardless of input
     });
   });
 });

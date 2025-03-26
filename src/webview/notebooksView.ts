@@ -50,15 +50,30 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
     // Listen for messages from the webview
     webviewView.webview.onDidReceiveMessage(data => {
       switch (data.command) {
-        case 'openFile':
+        case 'openFile': {
           if (data.filePath) {
-            const uri = Uri.file(data.filePath);
+            const workspacePath = workspace.workspaceFolders?.[0]?.uri.fsPath;
+            if (!workspacePath) {
+              return;
+            }
+
+            // If the path is relative, resolve it against the workspace folder
+            const absolutePath = path.isAbsolute(data.filePath) ? data.filePath : path.join(workspacePath, data.filePath);
+
+            if (!fs.existsSync(absolutePath)) {
+              commands.executeCommand('vscode.showErrorMessage', `File not found: ${data.filePath}`);
+              return;
+            }
+
+            const uri = Uri.file(absolutePath);
             commands.executeCommand('vscode.openWith', uri, 'codebook-md');
           }
           break;
-        case 'refresh':
+        }
+        case 'refresh': {
           this._updateWebview();
           break;
+        }
         case 'addFolder':
           commands.executeCommand('codebook-md.addFolderToTreeView');
           break;
@@ -249,44 +264,26 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
     if (folder.files && folder.files.length > 0) {
       folder.files.forEach((file, fileIndex) => {
         const filePath = config.getFullPath(file.path, workspacePath);
-        const fileExists = fs.existsSync(filePath);
 
         // Create a unique index for the file in the format of 'folderIndex[fileIndex]'
         const fileId = `${folderIndex}[${fileIndex}]`;
 
         // Check if it's a markdown file
-        const isMarkdownFile = filePath.toLowerCase().endsWith('.md') || filePath.toLowerCase().endsWith('.markdown');
+        const isMarkdownFile = file.path.toLowerCase().endsWith('.md') || file.path.toLowerCase().endsWith('.markdown');
 
-        // Use appropriate SVG icon based on file type and existence
-        let fileIconSvg;
-
-        if (!fileExists) {
-          // Warning icon for non-existent files
-          fileIconSvg = `
-            <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8 1l7 14H1L8 1zm0 3L3.5 13h9L8 4z"/>
-              <path d="M7.5 6h1v5h-1V6z"/>
-              <path d="M7.5 12h1v1h-1v-1z"/>
-            </svg>
-          `;
-        } else if (isMarkdownFile) {
-          // Markdown-specific icon
-          fileIconSvg = `
-            <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-              <path d="M14.85 3c.63 0 1.15.52 1.14 1.15v7.7c0 .63-.51 1.15-1.15 1.15H1.15C.52 13 0 12.48 0 11.84V4.15C0 3.52.52 3 1.15 3H14.85zM7 12.75L10.25 8 7 8v4.75zm-1.5 0L2.25 8h3.25v4.75zm6 0L15.75 8h-3.25v4.75z"/>
-            </svg>
-          `;
-        } else {
-          // Generic file icon
-          fileIconSvg = `
-            <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-              <path d="M13.71 4.29l-3-3L10 1H4L3 2v12l1 1h9l1-1V5l-.29-.71zM13 14H4V2h5v4h4v8z"/>
-            </svg>
-          `;
-        }
+        // Always use the markdown icon for markdown files since we know they exist at this point
+        const fileIconSvg = isMarkdownFile ? `
+          <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14.85 3c.63 0 1.15.52 1.14 1.15v7.7c0 .63-.51 1.15-1.15 1.15H1.15C.52 13 0 12.48 0 11.84V4.15C0 3.52.52 3 1.15 3H14.85zM7 12.75L10.25 8 7 8v4.75zm-1.5 0L2.25 8h3.25v4.75zm6 0L15.75 8h-3.25v4.75z"/>
+          </svg>
+        ` : `
+          <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13.71 4.29l-3-3L10 1H4L3 2v12l1 1h9l1-1V5l-.29-.71zM13 14H4V2h5v4h4v8z"/>
+          </svg>
+        `;
 
         html += `
-          <div class="file" onclick="openFile('${this._escapeHtml(filePath)}')" data-path="${this._escapeHtml(filePath)}" data-item-path="${this._escapeHtml(file.path)}" id="file-${this._escapeHtml(fileId)}">
+          <div class="file" onclick="openFile('${this._escapeHtml(filePath)}', '${this._escapeHtml(file.path)}')" data-path="${this._escapeHtml(filePath)}" data-item-path="${this._escapeHtml(file.path)}" id="file-${this._escapeHtml(fileId)}">
             <span class="file-icon">${fileIconSvg}</span>
             <span class="file-name">${this._escapeHtml(file.name)}</span>
             <div class="actions">
