@@ -198,13 +198,13 @@
         }
       };
       
-      window.openFile = function(filePath) {
+      window.openFile = function(filePath, itemPath) {
         vscode.postMessage({
           command: 'openFile',
-          filePath: filePath
+          filePath: itemPath // Use the relative path stored in data-item-path
         });
       };
-
+      
       window.refresh = function() {
         vscode.postMessage({
           command: 'refresh'

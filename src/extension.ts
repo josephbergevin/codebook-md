@@ -180,7 +180,24 @@ export function activate(context: ExtensionContext) {
 
   // Register the command to open a markdown file with preview
   disposable = commands.registerCommand('codebook-md.openMarkdownFile', (filePath: string) => {
-    const uri = Uri.file(filePath);
+    const workspacePath = config.getWorkspaceFolder();
+    if (!workspacePath) {
+      window.showErrorMessage('No workspace folder found');
+      return;
+    }
+
+    // If the path is relative, resolve it against the workspace folder
+    const absolutePath = path.isAbsolute(filePath) ? filePath : path.join(workspacePath, filePath);
+
+    // Create URI from the resolved path
+    const uri = Uri.file(absolutePath);
+    console.log(`Opening file: ${absolutePath}`);
+
+    // Check if file exists before trying to open it
+    if (!fs.existsSync(absolutePath)) {
+      window.showErrorMessage(`File not found: ${filePath}`);
+      return;
+    }
 
     // Open the markdown file directly in the notebook editor
     commands.executeCommand('vscode.openWith', uri, 'codebook-md');
@@ -229,6 +246,9 @@ export function activate(context: ExtensionContext) {
     if (!uris || uris.length === 0) {
       return; // User canceled file selection
     }
+
+    // Call addFileToTreeViewFolder which already uses config.getFullPath()
+    await addFileToTreeViewFolder(uris[0].fsPath, selectedFolder.label);
   });
   context.subscriptions.push(disposable);
 
@@ -365,66 +385,7 @@ export function activate(context: ExtensionContext) {
       }
 
       const filePath = uris[0].fsPath;
-      const fileName = path.basename(filePath);
-
-      // Get display name from user
-      const displayName = await window.showInputBox({
-        placeHolder: fileName,
-        prompt: 'Enter a display name for this markdown file',
-        value: config.suggestedDisplayName(fileName)
-      });
-
-      if (!displayName) {
-        return; // User canceled
-      }
-
-      // Get current folders from configuration
-      const settingsPath = config.getVSCodeSettingsFilePath();
-      const treeViewFolders = config.getTreeViewFolders(settingsPath);
-
-      // Find the target folder by name
-      const findFolder = (folders: config.TreeViewFolderEntry[], name: string): config.TreeViewFolderEntry | undefined => {
-        for (const folder of folders) {
-          if (folder.name === name) {
-            return folder;
-          }
-          if (folder.folders) {
-            const found = findFolder(folder.folders, name);
-            if (found) {
-              return found;
-            }
-          }
-        }
-        return undefined;
-      };
-
-      const targetFolder = findFolder(treeViewFolders, folderName);
-      if (!targetFolder) {
-        window.showErrorMessage(`Folder ${folderName} not found`);
-        return;
-      }
-
-      // Initialize files array if it doesn't exist
-      if (!targetFolder.files) {
-        targetFolder.files = [];
-      }
-
-      // Convert to relative path if possible
-      const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
-      let relativePath = filePath;
-      if (workspacePath && filePath.startsWith(workspacePath)) {
-        relativePath = path.relative(workspacePath, filePath);
-      }
-
-      // Add new file entry
-      targetFolder.files.push({
-        name: displayName,
-        path: relativePath
-      });
-
-      // Update settings
-      config.updateTreeViewSettings(treeViewFolders);
-      window.showInformationMessage(`Added file "${displayName}" to folder "${folderName}"`);
+      await addFileToTreeViewFolder(filePath, folderName);
     } catch (error) {
       console.error('Error adding file to folder:', error);
       window.showErrorMessage(`Failed to add file to folder: ${error instanceof Error ? error.message : String(error)}`);
@@ -489,7 +450,7 @@ export function activate(context: ExtensionContext) {
       // Get current folders from configuration
       const settingsPath = config.getVSCodeSettingsFilePath();
       const treeViewFolders = config.getTreeViewFolders(settingsPath);
-      const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
+      const workspacePath = config.getWorkspaceFolder();
       let fileRemoved = false;
 
       // Find and remove the file from its folder
@@ -548,7 +509,7 @@ export function activate(context: ExtensionContext) {
       // Get current folders from configuration
       const settingsPath = config.getVSCodeSettingsFilePath();
       const treeViewFolders = config.getTreeViewFolders(settingsPath);
-      const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
+      const workspacePath = config.getWorkspaceFolder();
       let fileRenamed = false;
 
       // Find and rename the file in its folder
@@ -995,7 +956,7 @@ async function addFileToTreeViewFolder(filePath: string, folderName: string): Pr
     const settingsPath = config.getVSCodeSettingsFilePath();
     const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
-    // Find or create the target folder
+    // Find the target folder
     const findFolder = (folders: config.TreeViewFolderEntry[], name: string): config.TreeViewFolderEntry | undefined => {
       for (const folder of folders) {
         if (folder.name === name) {
@@ -1022,31 +983,41 @@ async function addFileToTreeViewFolder(filePath: string, folderName: string): Pr
       targetFolder.files = [];
     }
 
-    // Convert to relative path if possible
-    const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
-    let relativePath = filePath;
-    if (workspacePath && filePath.startsWith(workspacePath)) {
-      relativePath = path.relative(workspacePath, filePath);
+    // Get the workspace folder path
+    const workspacePath = config.getWorkspaceFolder();
+    if (!workspacePath) {
+      window.showErrorMessage('No workspace folder found');
+      return;
     }
 
-    // Check if file already exists in the folder
+    // Convert to relative path using getFullPath
+    const normalizedPath = config.getFullPath(filePath, workspacePath);
+
+    // Check if file already exists in the folder by comparing paths
     const existingIndex = targetFolder.files.findIndex(f =>
-      config.getFullPath(f.path, workspacePath) === filePath);
+      config.getFullPath(f.path, workspacePath) === normalizedPath
+    );
 
     if (existingIndex >= 0) {
       // Update existing file entry
-      targetFolder.files[existingIndex] = {
-        name: displayName,
-        path: relativePath
-      };
+      targetFolder.files[existingIndex].name = displayName;
+      targetFolder.files[existingIndex].path = normalizedPath;
       window.showInformationMessage(`Updated markdown file in folder: ${displayName}`);
+      console.log(`Added markdown file to folder: ${displayName}`);
+      console.log(`filePath: ${filePath}`);
+      console.log(`normalizedPath: ${normalizedPath}`);
+      console.log(`workspacePath: ${workspacePath}`);
     } else {
       // Add new file entry
       targetFolder.files.push({
         name: displayName,
-        path: relativePath
+        path: normalizedPath
       });
       window.showInformationMessage(`Added markdown file to folder: ${displayName}`);
+      console.log(`Added markdown file to folder: ${displayName}`);
+      console.log(`filePath: ${filePath}`);
+      console.log(`normalizedPath: ${normalizedPath}`);
+      console.log(`workspacePath: ${workspacePath}`);
     }
 
     // Update settings
@@ -1255,9 +1226,7 @@ async function removeFileFromTreeView(entry: config.TreeViewFileEntry): Promise<
     // Get current folders from .vscode/settings.json
     const settingsPath = config.getVSCodeSettingsFilePath();
     const treeViewFolders = config.getTreeViewFolders(settingsPath);
-
-    // Find the folder containing the file
-    const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
+    const workspacePath = config.getWorkspaceFolder();
     let fileRemoved = false;
 
     const removeFile = (folders: config.TreeViewFolderEntry[]): boolean => {
@@ -1305,9 +1274,7 @@ async function renameTreeViewFile(entry: config.TreeViewFileEntry, newName: stri
     // Get current folders from .vscode/settings.json
     const settingsPath = config.getVSCodeSettingsFilePath();
     const treeViewFolders = config.getTreeViewFolders(settingsPath);
-
-    // Find the file in its folder and rename it
-    const workspacePath = config.readConfig().rootPath || workspace.workspaceFolders?.[0].uri.fsPath || '';
+    const workspacePath = config.getWorkspaceFolder();
     let fileRenamed = false;
 
     const renameFile = (folders: config.TreeViewFolderEntry[]): boolean => {
