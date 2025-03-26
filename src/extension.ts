@@ -1374,7 +1374,7 @@ export function activate(context: ExtensionContext) {
   disposable = commands.registerCommand('codebook-md.refreshNotebooksView', () => {
     // Find the notebooks view provider and trigger a refresh
     if (notebooksViewProvider) {
-      console.log("Manually refreshing notebooks view");
+      console.log("refreshing notebooks view");
       notebooksViewProvider.updateWebview();
     }
   });
