@@ -15,7 +15,12 @@ const extensionConfig = {
     path: path.resolve(__dirname, 'dist'),
     filename: 'extension.js',
     libraryTarget: 'commonjs2',
-    devtoolModuleFilenameTemplate: '../[resource-path]'
+    devtoolModuleFilenameTemplate: function(info) {
+      // Handle source map paths correctly
+      const absolutePath = info.absoluteResourcePath;
+      // Convert Windows backslashes to forward slashes for URLs
+      return `file:///${absolutePath.replace(/\\/g, '/')}`;
+    }
   },
   externals: {
     vscode: 'commonjs vscode'
