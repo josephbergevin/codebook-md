@@ -231,16 +231,39 @@ export function updateTreeViewSettings(folders: TreeViewFolderEntry[]): void {
       throw new Error('No workspace folder found');
     }
 
+    // Read existing settings
     const existingSettings = readVSCodeSettings(settingsPath);
-    const updatedSettings: VSCodeSettings = {
+
+    // Update only the codebook-md.treeView section
+    const updatedSettings = {
       ...existingSettings,
       'codebook-md.treeView': {
-        ...existingSettings['codebook-md.treeView'],
         folders: folders
       }
     };
 
-    writeVSCodeSettings(updatedSettings);
+    // Create .vscode directory if it doesn't exist
+    const vscodeDirPath = path.dirname(settingsPath);
+    if (!fs.existsSync(vscodeDirPath)) {
+      fs.mkdirSync(vscodeDirPath, { recursive: true });
+    }
+
+    // Read existing content to preserve formatting and comments
+    let existingContent = '';
+    if (fs.existsSync(settingsPath)) {
+      existingContent = fs.readFileSync(settingsPath, 'utf8');
+    }
+
+    // Preserve formatting from existing content
+    const indent = existingContent.match(/^\s+/m)?.[0] || '  ';
+
+    // Preserve any leading comments
+    const commentMatch = existingContent.match(/^([\s\S]*?)\{/);
+    const leadingContent = commentMatch ? commentMatch[1] : '';
+
+    // Write the updated settings while preserving comments and formatting
+    const content = leadingContent + JSON.stringify(updatedSettings, null, indent);
+    fs.writeFileSync(settingsPath, content, 'utf8');
   } catch (err) {
     const error = err as Error;
     console.error('Failed to update tree view settings:', error);
@@ -249,28 +272,21 @@ export function updateTreeViewSettings(folders: TreeViewFolderEntry[]): void {
 }
 
 // getWorkspaceFolder returns the actual workspace folder path
-// It handles "${workspaceFolder}" placeholder and falls back to the first workspace folder
 export function getWorkspaceFolder(): string {
-  const configRootPath = codebookConfig.get('rootPath', '');
-
-  console.log(`configRootPath: ${configRootPath}`);
-  console.log('Workspace folders:', workspace.workspaceFolders);
+  const rootPathSetting = codebookConfig.get<string>('rootPath', '');
 
   // If rootPath contains ${workspaceFolder}, replace it with actual workspace path
-  if (configRootPath.includes('${workspaceFolder}')) {
-    // print debug all workspace folders
+  if (rootPathSetting.includes('${workspaceFolder}')) {
     const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath;
     if (!workspaceFolder) {
       throw new Error('No workspace folder found');
     }
-    console.log(`Replacing ${configRootPath} with ${workspaceFolder}`);
-    return configRootPath.replace('${workspaceFolder}', workspaceFolder);
+    return rootPathSetting.replace('${workspaceFolder}', workspaceFolder);
   }
 
   // If rootPath is set and doesn't contain placeholder, use it
-  if (configRootPath) {
-    console.log(`Using rootPath: ${configRootPath}`);
-    return configRootPath;
+  if (rootPathSetting) {
+    return rootPathSetting;
   }
 
   // Fall back to first workspace folder
@@ -279,7 +295,6 @@ export function getWorkspaceFolder(): string {
     throw new Error('No workspace folder found');
   }
 
-  console.log(`Using first workspace folder: ${workspaceFolder}`);
   return workspaceFolder;
 }
 
