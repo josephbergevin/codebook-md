@@ -176,7 +176,7 @@ export function readVSCodeSettings(settingsPath: string): VSCodeSettings {
 }
 
 // Helper function to write to .vscode/settings.json
-export function writeVSCodeSettings(settings: VSCodeSettings): void {
+export function writeVSCodeSettings(newSettings: VSCodeSettings): void {
   const settingsPath = getVSCodeSettingsFilePath();
 
   if (!settingsPath) {
@@ -190,41 +190,35 @@ export function writeVSCodeSettings(settings: VSCodeSettings): void {
       fs.mkdirSync(vscodeDirPath, { recursive: true });
     }
 
+    // Read existing settings
     let existingContent = '';
+    let existingSettings = {};
     if (fs.existsSync(settingsPath)) {
       existingContent = fs.readFileSync(settingsPath, 'utf8');
+      try {
+        existingSettings = JSON.parse(existingContent);
+      } catch (parseError) {
+        console.error('Error parsing existing settings:', parseError);
+        existingSettings = {};
+      }
     }
 
-    // If there's existing content, try to preserve comments and formatting
-    if (existingContent) {
-      try {
-        const existingSettings = JSON.parse(existingContent);
-        // Use deep merge instead of shallow merge
-        const mergedSettings = deepMerge(existingSettings, settings);
-        // Keep the original formatting by using the same whitespace
-        const match = existingContent.match(/^\s+/m);
-        const indent = match ? match[0] : '  ';
-        // Preserve any leading comments by keeping everything before the first {
-        const commentMatch = existingContent.match(/^([\s\S]*?)\{/);
-        const leadingContent = commentMatch ? commentMatch[1] : '';
-        const content = leadingContent + JSON.stringify(mergedSettings, null, indent);
-        fs.writeFileSync(settingsPath, content, 'utf8');
-        console.log('writeVSCodeSettings: wrote merged settings.json with preserved formatting');
-      } catch (parseError) {
-        // If parsing fails, fall back to simple merge
-        console.error('Error writeVSCodeSettings: parsing existing settings:', parseError);
-        const content = JSON.stringify(settings, null, 2);
-        fs.writeFileSync(settingsPath, content, 'utf8');
-        console.log('writeVSCodeSettings: wrote settings.json with standard formatting');
-      }
-    } else {
-      // For new files, use standard formatting
-      const content = JSON.stringify(settings, null, 2);
-      fs.writeFileSync(settingsPath, content, 'utf8');
-      console.log('writeVSCodeSettings: wrote new settings.json with standard formatting');
-    }
+    // Deep merge the new settings with existing settings
+    const mergedSettings = deepMerge(existingSettings as Record<string, unknown>, newSettings);
+
+    // Preserve formatting from existing content
+    const indent = existingContent.match(/^\s+/m)?.[0] || '  ';
+
+    // Preserve any leading comments
+    const commentMatch = existingContent.match(/^([\s\S]*?)\{/);
+    const leadingContent = commentMatch ? commentMatch[1] : '';
+
+    // Write the merged settings while preserving comments and formatting
+    const content = leadingContent + JSON.stringify(mergedSettings, null, indent);
+    fs.writeFileSync(settingsPath, content, 'utf8');
+    console.log('writeVSCodeSettings: Successfully wrote merged settings.json');
   } catch (error) {
-    console.error('Error writeVSCodeSettings: writing .vscode/settings.json:', error);
+    console.error('Error writing .vscode/settings.json:', error);
     throw error;
   }
 }
@@ -233,18 +227,24 @@ export function writeVSCodeSettings(settings: VSCodeSettings): void {
 export function updateTreeViewSettings(folders: TreeViewFolderEntry[]): void {
   try {
     const settingsPath = getVSCodeSettingsFilePath();
-    const settings = readVSCodeSettings(settingsPath);
+    if (!settingsPath) {
+      throw new Error('No workspace folder found');
+    }
 
-    // Only update the codebook-md.treeView format
-    settings['codebook-md.treeView'] = {
-      ...settings['codebook-md.treeView'],
-      folders: folders
+    const existingSettings = readVSCodeSettings(settingsPath);
+    const updatedSettings: VSCodeSettings = {
+      ...existingSettings,
+      'codebook-md.treeView': {
+        ...existingSettings['codebook-md.treeView'],
+        folders: folders
+      }
     };
 
-    writeVSCodeSettings(settings);
-  } catch (error) {
+    writeVSCodeSettings(updatedSettings);
+  } catch (err) {
+    const error = err as Error;
     console.error('Failed to update tree view settings:', error);
-    window.showErrorMessage(`Failed to update tree view settings: ${(error as Error).message}`);
+    window.showErrorMessage(`Failed to update tree view settings: ${error.message}`);
   }
 }
 
