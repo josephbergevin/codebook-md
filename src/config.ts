@@ -66,7 +66,7 @@ export function getTempPath(): string {
 // getTreeViewFolders is a convenience function to get the tree view folders from the configuration
 // Merges settings from both user and workspace configurations
 export function getTreeViewFolders(settingsPath: string): TreeViewFolderEntry[] {
-  // Get workspace settings from .vscode/settings.json
+  // Get workspace settings from the given settings path
   const vscodeSettings = readVSCodeSettings(settingsPath);
 
   // Check both possible configuration paths
@@ -155,28 +155,6 @@ interface VSCodeSettings {
   [key: string]: unknown;
 }
 
-// Helper function for deep merging objects
-function deepMerge<T extends Record<string, unknown>>(target: T, source: Partial<T>): T {
-  const output = { ...target } as T;
-
-  for (const key in source) {
-    if (Object.prototype.hasOwnProperty.call(source, key)) {
-      const sourceValue = source[key];
-      if (sourceValue && typeof sourceValue === 'object' && !Array.isArray(sourceValue)) {
-        const targetValue = output[key] as Record<string, unknown>;
-        output[key] = deepMerge(
-          (targetValue || {}) as Record<string, unknown>,
-          sourceValue as Record<string, unknown>
-        ) as T[Extract<keyof T, string>];
-      } else {
-        output[key] = sourceValue as T[Extract<keyof T, string>];
-      }
-    }
-  }
-
-  return output;
-}
-
 // Helper function to get the settings file path
 export function getVSCodeSettingsFilePath(): string {
   return workspace.workspaceFolders?.[0]
@@ -184,7 +162,7 @@ export function getVSCodeSettingsFilePath(): string {
     : '';
 }
 
-// Helper function to read .vscode/settings.json
+// Helper function to read the given settings path
 export function readVSCodeSettings(settingsPath: string): VSCodeSettings {
   if (settingsPath === '') {
     return {};
@@ -196,63 +174,14 @@ export function readVSCodeSettings(settingsPath: string): VSCodeSettings {
     }
     return JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
   } catch (error) {
-    console.error('Error reading .vscode/settings.json:', error);
+    console.error('Error reading settings file', error);
     return {};
   }
 }
 
-// Helper function to write to .vscode/settings.json
-export function writeVSCodeSettings(newSettings: VSCodeSettings): void {
-  const settingsPath = getVSCodeSettingsFilePath();
-
-  if (!settingsPath) {
-    throw new Error('No workspace folder found');
-  }
-
+// Helper function to update tree view settings in the given settings path
+export function updateTreeViewSettings(folders: TreeViewFolderEntry[], settingsPath: string): void {
   try {
-    // Create .vscode directory if it doesn't exist
-    const vscodeDirPath = path.dirname(settingsPath);
-    if (!fs.existsSync(vscodeDirPath)) {
-      fs.mkdirSync(vscodeDirPath, { recursive: true });
-    }
-
-    // Read existing settings
-    let existingContent = '';
-    let existingSettings = {};
-    if (fs.existsSync(settingsPath)) {
-      existingContent = fs.readFileSync(settingsPath, 'utf8');
-      try {
-        existingSettings = JSON.parse(existingContent);
-      } catch (parseError) {
-        console.error('Error parsing existing settings:', parseError);
-        existingSettings = {};
-      }
-    }
-
-    // Deep merge the new settings with existing settings
-    const mergedSettings = deepMerge(existingSettings as Record<string, unknown>, newSettings);
-
-    // Preserve formatting from existing content
-    const indent = existingContent.match(/^\s+/m)?.[0] || '  ';
-
-    // Preserve any leading comments
-    const commentMatch = existingContent.match(/^([\s\S]*?)\{/);
-    const leadingContent = commentMatch ? commentMatch[1] : '';
-
-    // Write the merged settings while preserving comments and formatting
-    const content = leadingContent + JSON.stringify(mergedSettings, null, indent);
-    fs.writeFileSync(settingsPath, content, 'utf8');
-    console.log('writeVSCodeSettings: Successfully wrote merged settings.json');
-  } catch (error) {
-    console.error('Error writing .vscode/settings.json:', error);
-    throw error;
-  }
-}
-
-// Helper function to update tree view settings in .vscode/settings.json
-export function updateTreeViewSettings(folders: TreeViewFolderEntry[]): void {
-  try {
-    const settingsPath = getVSCodeSettingsFilePath();
     if (!settingsPath) {
       throw new Error('No workspace folder found');
     }
@@ -268,7 +197,7 @@ export function updateTreeViewSettings(folders: TreeViewFolderEntry[]): void {
       }
     };
 
-    // Create .vscode directory if it doesn't exist
+    // Create settings directory if it doesn't exist
     const vscodeDirPath = path.dirname(settingsPath);
     if (!fs.existsSync(vscodeDirPath)) {
       fs.mkdirSync(vscodeDirPath, { recursive: true });
