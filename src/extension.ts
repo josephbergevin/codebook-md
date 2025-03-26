@@ -34,7 +34,7 @@ async function addFileToTreeViewFolder(filePath: string, folderName: string): Pr
       return; // User canceled
     }
 
-    // Get current folders from .vscode/settings.json
+    // Get current folders from settings
     const settingsPath = config.getVSCodeSettingsFilePath();
     const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
@@ -103,7 +103,7 @@ async function addFileToTreeViewFolder(filePath: string, folderName: string): Pr
     }
 
     // Update settings
-    config.updateTreeViewSettings(treeViewFolders);
+    config.updateTreeViewSettings(treeViewFolders, settingsPath);
   } catch (error) {
     console.error('Error adding file to folder:', error);
     window.showErrorMessage(`Failed to add file to folder: ${error instanceof Error ? error.message : String(error)}`);
@@ -123,7 +123,7 @@ async function addFolderToTreeView(): Promise<void> {
       return; // User canceled
     }
 
-    // Get current folders from .vscode/settings.json
+    // Get current folders from settings
     const settingsPath = config.getVSCodeSettingsFilePath();
     const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
@@ -137,7 +137,7 @@ async function addFolderToTreeView(): Promise<void> {
     window.showInformationMessage(`Added folder to tree view: ${folderName}`);
 
     // Update settings
-    config.updateTreeViewSettings(treeViewFolders);
+    config.updateTreeViewSettings(treeViewFolders, settingsPath);
   } catch (error) {
     console.error('Error adding folder to tree view:', error);
     window.showErrorMessage(`Failed to add folder to tree view: ${error instanceof Error ? error.message : String(error)}`);
@@ -157,7 +157,7 @@ async function addSubFolder(parentFolderName: string): Promise<void> {
       return; // User canceled
     }
 
-    // Get current folders from .vscode/settings.json
+    // Get current folders from settings
     const settingsPath = config.getVSCodeSettingsFilePath();
     const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
@@ -198,7 +198,7 @@ async function addSubFolder(parentFolderName: string): Promise<void> {
     window.showInformationMessage(`Added sub-folder ${folderName} to ${parentFolderName}`);
 
     // Update settings
-    config.updateTreeViewSettings(treeViewFolders);
+    config.updateTreeViewSettings(treeViewFolders, settingsPath);
   } catch (error) {
     console.error('Error adding sub-folder:', error);
     window.showErrorMessage(`Failed to add sub-folder: ${error instanceof Error ? error.message : String(error)}`);
@@ -221,7 +221,7 @@ async function renameFolderDisplay(folderName: string, currentDisplayName: strin
       return; // User canceled or no change
     }
 
-    // Get current folders from .vscode/settings.json
+    // Get current folders from settings
     const settingsPath = config.getVSCodeSettingsFilePath();
     const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
@@ -252,7 +252,7 @@ async function renameFolderDisplay(folderName: string, currentDisplayName: strin
     window.showInformationMessage(`Renamed folder to: ${newName}`);
 
     // Update settings
-    config.updateTreeViewSettings(treeViewFolders);
+    config.updateTreeViewSettings(treeViewFolders, settingsPath);
   } catch (error) {
     console.error('Error renaming folder:', error);
     window.showErrorMessage(`Failed to rename folder: ${error instanceof Error ? error.message : String(error)}`);
@@ -263,7 +263,7 @@ async function removeFolderFromTreeView(folderName: string): Promise<void> {
   try {
     console.log(`Removing folder ${folderName} from tree view`);
 
-    // Get current folders from .vscode/settings.json
+    // Get current folders from settings
     const settingsPath = config.getVSCodeSettingsFilePath();
     const treeViewFolders = config.getTreeViewFolders(settingsPath);
 
@@ -288,7 +288,7 @@ async function removeFolderFromTreeView(folderName: string): Promise<void> {
     }
 
     // Update settings
-    config.updateTreeViewSettings(updatedFolders);
+    config.updateTreeViewSettings(updatedFolders, settingsPath);
     window.showInformationMessage(`Removed folder from tree view`);
   } catch (error) {
     console.error('Error removing folder from tree view:', error);
@@ -300,7 +300,7 @@ async function removeFileFromTreeView(entry: config.TreeViewFileEntry): Promise<
   try {
     console.log(`Removing file ${entry.name} from tree view`);
 
-    // Get current folders from .vscode/settings.json
+    // Get current folders from settings
     const settingsPath = config.getVSCodeSettingsFilePath();
     const treeViewFolders = config.getTreeViewFolders(settingsPath);
     const workspacePath = config.getWorkspaceFolder();
@@ -335,7 +335,7 @@ async function removeFileFromTreeView(entry: config.TreeViewFileEntry): Promise<
     }
 
     // Update settings
-    config.updateTreeViewSettings(treeViewFolders);
+    config.updateTreeViewSettings(treeViewFolders, settingsPath);
     window.showInformationMessage(`Removed ${entry.name} from tree view`);
   } catch (error) {
     console.error('Error removing file from tree view:', error);
@@ -347,7 +347,7 @@ async function renameTreeViewFile(entry: config.TreeViewFileEntry, newName: stri
   try {
     console.log(`Renaming file from "${entry.name}" to "${newName}"`);
 
-    // Get current folders from .vscode/settings.json
+    // Get current folders from settings
     const settingsPath = config.getVSCodeSettingsFilePath();
     const treeViewFolders = config.getTreeViewFolders(settingsPath);
     const workspacePath = config.getWorkspaceFolder();
@@ -385,7 +385,7 @@ async function renameTreeViewFile(entry: config.TreeViewFileEntry, newName: stri
     }
 
     // Update settings
-    config.updateTreeViewSettings(treeViewFolders);
+    config.updateTreeViewSettings(treeViewFolders, settingsPath);
     window.showInformationMessage(`Renamed file to: ${newName}`);
   } catch (error) {
     console.error('Error renaming file in tree view:', error);
@@ -720,7 +720,7 @@ export function activate(context: ExtensionContext) {
       folder.name = newName;
 
       // Update settings
-      config.updateTreeViewSettings(treeViewFolders);
+      config.updateTreeViewSettings(treeViewFolders, settingsPath);
       window.showInformationMessage(`Renamed folder to: ${newName}`);
     } catch (error) {
       console.error('Error renaming folder:', error);
@@ -781,7 +781,7 @@ export function activate(context: ExtensionContext) {
       });
 
       // Update settings
-      config.updateTreeViewSettings(treeViewFolders);
+      config.updateTreeViewSettings(treeViewFolders, settingsPath);
       window.showInformationMessage(`Added sub-folder "${subFolderName}" to "${folderName}"`);
     } catch (error) {
       console.error('Error adding sub-folder:', error);
@@ -859,7 +859,7 @@ export function activate(context: ExtensionContext) {
       }
 
       // Update settings
-      config.updateTreeViewSettings(treeViewFolders);
+      config.updateTreeViewSettings(treeViewFolders, settingsPath);
       window.showInformationMessage(`Removed folder "${folderName}" and its contents`);
     } catch (error) {
       console.error('Error removing folder:', error);
@@ -907,7 +907,7 @@ export function activate(context: ExtensionContext) {
       }
 
       // Update settings
-      config.updateTreeViewSettings(treeViewFolders);
+      config.updateTreeViewSettings(treeViewFolders, settingsPath);
       window.showInformationMessage(`Removed "${entry.name}" from My Notebooks`);
     } catch (error) {
       console.error('Error removing file:', error);
@@ -969,7 +969,7 @@ export function activate(context: ExtensionContext) {
       }
 
       // Update settings
-      config.updateTreeViewSettings(treeViewFolders);
+      config.updateTreeViewSettings(treeViewFolders, settingsPath);
       window.showInformationMessage(`Renamed file to: ${newName}`);
     } catch (error) {
       console.error('Error renaming file:', error);
@@ -1100,7 +1100,7 @@ export function activate(context: ExtensionContext) {
       }
 
       // Update settings
-      config.updateTreeViewSettings(treeViewFolders);
+      config.updateTreeViewSettings(treeViewFolders, settingsPath);
 
       // Force a refresh of the notebooks view
       await refreshNotebooksView();
@@ -1228,7 +1228,7 @@ export function activate(context: ExtensionContext) {
       }
 
       // Update settings
-      config.updateTreeViewSettings(treeViewFolders);
+      config.updateTreeViewSettings(treeViewFolders, settingsPath);
 
       // Force a refresh of the notebooks view
       await refreshNotebooksView();
@@ -1356,7 +1356,7 @@ export function activate(context: ExtensionContext) {
       }
 
       // Update settings
-      config.updateTreeViewSettings(treeViewFolders);
+      config.updateTreeViewSettings(treeViewFolders, settingsPath);
     } catch (error) {
       console.error('Error moving item down in tree view:', error);
       window.showErrorMessage(`Failed to move item down: ${error instanceof Error ? error.message : String(error)}`);
