@@ -2,31 +2,31 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { window, workspace } from 'vscode';
 
-export interface TreeViewFolderGroup {
+export interface FolderGroup {
   name: string;
   source?: string;
   icon?: string;
   hide?: boolean;
-  folders: TreeViewFolderEntry[];
+  folders: FolderGroupFolder[];
 }
 
-export interface TreeViewFolderEntry {
+export interface FolderGroupFolder {
   name: string;
-  folders?: TreeViewFolderEntry[];
-  files?: TreeViewFileEntry[];
+  folders?: FolderGroupFolder[];
+  files?: FolderGroupFile[];
   icon?: string;
   hide?: boolean;
 }
 
-export interface TreeViewFileEntry {
+export interface FolderGroupFile {
   name: string;
   path: string;
 }
 
 // getTreeViewFolderGroup is a convenience function to get the tree view folder group from the configuration
-export function getTreeViewFolderGroup(settingsPath: string): TreeViewFolderGroup {
+export function getTreeViewFolderGroup(settingsPath: string): FolderGroup {
   // Get workspace settings from the given settings path
-  const vscodeSettings = readVSCodeSettings(settingsPath);
+  const vscodeSettings = readFolderGroupSettings(settingsPath);
 
   // Check both possible configuration paths
   const workspaceFolders =
@@ -36,7 +36,7 @@ export function getTreeViewFolderGroup(settingsPath: string): TreeViewFolderGrou
 
   // Get user settings from VS Code configuration API
   const userConfig = workspace.getConfiguration('codebook-md');
-  const userFolders = userConfig.get<TreeViewFolderEntry[]>('treeView.folders', []);
+  const userFolders = userConfig.get<FolderGroupFolder[]>('treeView.folders', []);
 
   // Merge with preference for workspace settings (they override user settings)
   const mergedFolders = [...userFolders];
@@ -63,21 +63,21 @@ export function getTreeViewFolderGroup(settingsPath: string): TreeViewFolderGrou
 }
 
 // Type for VS Code settings
-interface VSCodeSettings {
+interface FolderGroupSettings {
   'codebook-md'?: {
     treeView?: {
-      folders: TreeViewFolderEntry[];
+      folders: FolderGroupFolder[];
     };
     [key: string]: unknown;
   };
   'codebook-md.treeView'?: {
-    folders: TreeViewFolderEntry[];
+    folders: FolderGroupFolder[];
   };
   [key: string]: unknown;
 }
 
 // Helper function to read the given settings path
-export function readVSCodeSettings(settingsPath: string): VSCodeSettings {
+export function readFolderGroupSettings(settingsPath: string): FolderGroupSettings {
   if (settingsPath === '') {
     return {};
   }
@@ -94,14 +94,14 @@ export function readVSCodeSettings(settingsPath: string): VSCodeSettings {
 }
 
 // Helper function to update tree view settings in the given settings path
-export function updateTreeViewSettings(folderGroup: TreeViewFolderGroup): void {
+export function updateTreeViewSettings(folderGroup: FolderGroup): void {
   try {
     if (!folderGroup.source) {
       throw new Error('No workspace folder found');
     }
 
     // Read existing settings
-    const existingSettings = readVSCodeSettings(folderGroup.source);
+    const existingSettings = readFolderGroupSettings(folderGroup.source);
 
     // Update only the codebook-md.treeView section
     const updatedSettings = {
