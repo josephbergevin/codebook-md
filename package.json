@@ -580,7 +580,8 @@
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint-fix": "eslint src/**/*.ts --fix",
     "lint": "eslint src/**/*.ts",
-    "test": "jest"
+    "test": "jest --silent",
+    "test:verbose": "jest"
   },
   "devDependencies": {
     "@eslint/js": "^9.6.0",
