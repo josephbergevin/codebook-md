@@ -246,7 +246,7 @@ export class FolderGroup {
       // Read existing settings
       const existingSettings = readFolderGroupSettings(this.source);
 
-      // Update only the codebook-md.treeView section
+      // Update only the codebook-md.treeView section while preserving all other settings
       const updatedSettings = {
         ...existingSettings,
         'codebook-md.treeView': {
@@ -254,7 +254,7 @@ export class FolderGroup {
         }
       };
 
-      // Create settings directory if it doesn't exist
+      // Create settings directory if it does not exist
       const vscodeDirPath = path.dirname(this.source);
       if (!fs.existsSync(vscodeDirPath)) {
         fs.mkdirSync(vscodeDirPath, { recursive: true });
@@ -266,16 +266,22 @@ export class FolderGroup {
         existingContent = fs.readFileSync(this.source, 'utf8');
       }
 
-      // Preserve formatting from existing content
-      const indent = existingContent.match(/^\s+/m)?.[0] || '  ';
-
-      // Preserve any leading comments
+      // Preserve leading comments
       const commentMatch = existingContent.match(/^([\s\S]*?)\{/);
       const leadingContent = commentMatch ? commentMatch[1] : '';
 
-      // Write the updated settings while preserving comments and formatting
-      const content = leadingContent + JSON.stringify(updatedSettings, null, indent);
-      fs.writeFileSync(this.source, content, 'utf8');
+      // Parse existing JSON to preserve formatting
+      const parsedExistingSettings = existingContent ? JSON.parse(existingContent.substring(existingContent.indexOf('{'))) : {};
+
+      // Merge updated settings with existing settings
+      const mergedSettings = {
+        ...parsedExistingSettings,
+        ...updatedSettings
+      };
+
+      // Write the updated settings while preserving comments and using compact JSON format
+      const compactJson = JSON.stringify(mergedSettings, null, 2);
+      fs.writeFileSync(this.source, leadingContent + compactJson, 'utf8');
     } catch (err) {
       const error = err as Error;
       console.error('Failed to update tree view settings:', error);
