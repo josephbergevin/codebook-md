@@ -17,7 +17,7 @@ export class FolderGroup {
     this.folders = folders;
   }
 
-  addFolder(folder: FolderGroupFolder) {
+  addFolder(folder: FolderGroupFolder): void {
     this.folders.push(folder);
   }
 
@@ -122,48 +122,26 @@ export class FolderGroup {
         return true;
       }
 
-      // If the file is already at the bottom, return false
+      // If the file is already at the bottom or index is invalid, return false
       console.log('Item is already at the bottom');
+      return false;
+    } else if (objectIdIsFile(objId)) {
+      // If it's a file ID format but index is invalid, return false
       return false;
     }
 
     // Handle folder movement
-    // The objectId is the folder path, e.g., "0.1.2"
     const parentFolder = this.findTargetParentFolderByObjectId(objId);
     // if we're at the root level, use this.folders for the move
     // if we're not at the root level, use parentFolder.folders
-    if (parentFolder) {
-      const folderIndex = parentFolder.folders.findIndex(folder => folder.name === targetFolder.name);
-      if (folderIndex >= 0 && folderIndex < parentFolder.folders.length - 1) {
-        // Swap with next folder
-        const temp = parentFolder.folders[folderIndex];
-        parentFolder.folders[folderIndex] = parentFolder.folders[folderIndex + 1];
-        parentFolder.folders[folderIndex + 1] = temp;
+    const folderList = parentFolder ? parentFolder.folders : this.folders;
+    const targetIndex = folderList.findIndex(folder => folder.name === targetFolder.name);
 
-        if (parentFolder.folders && folderIndex > 0) {
-          // Swap with previous folder
-          const temp = parentFolder.folders[folderIndex];
-          parentFolder.folders[folderIndex] = parentFolder.folders[folderIndex - 1];
-          parentFolder.folders[folderIndex - 1] = temp;
-          console.log('Item moved down successfully');
-          return true;
-        }
-
-        console.log('Folder is already at the top');
-        return false;
-      }
-
-      console.log('Folder is already at the bottom');
-      return false;
-    }
-
-    // swap with next folder at root level
-    const folderIndex = this.folders.findIndex(folder => folder.name === targetFolder.name);
-    if (folderIndex >= 0 && folderIndex < this.folders.length - 1) {
-      // Swap with next folder at root level
-      const temp = this.folders[folderIndex];
-      this.folders[folderIndex] = this.folders[folderIndex + 1];
-      this.folders[folderIndex + 1] = temp;
+    if (targetIndex >= 0 && targetIndex < folderList.length - 1) {
+      // Swap with next folder
+      const temp = folderList[targetIndex];
+      folderList[targetIndex] = folderList[targetIndex + 1];
+      folderList[targetIndex + 1] = temp;
       console.log('Item moved down successfully');
       return true;
     }
@@ -222,15 +200,19 @@ export class FolderGroup {
       return undefined;
     }
 
-    const targetPathParts = targetPath.split('.');
-
-    // if we're at the root level, we can't find a parent
-    if (targetPathParts.length === 1) {
+    // For root level items, return undefined
+    if (!targetPath.includes('.')) {
       console.log('target folder is at the root level');
       return undefined;
     }
 
-    const parentPath = targetPathParts.slice(0, -1).join('.');
+    // For file IDs in nested folders (e.g., '1.0[0]'), return the last folder ('1.0')
+    if (objectIdIsFile(objId)) {
+      return this.findTargetFolderByObjectId(targetPath);
+    }
+
+    // For folders, get the parent path and return that folder
+    const parentPath = targetPath.split('.').slice(0, -1).join('.');
     return this.findTargetFolderByObjectId(parentPath);
   }
 
@@ -370,14 +352,22 @@ export function objectIdFileIndex(objId: string): number {
     return -1;
   }
 
+  // Check for proper bracket format with no nested brackets
   const matches = objId.match(/\[(\d+)\]/);
-  if (!matches || matches.length !== 2) {
+  if (!matches || matches.length !== 2 || objId.indexOf('[') !== objId.lastIndexOf('[') ||
+    objId.indexOf(']') !== objId.lastIndexOf(']')) {
     console.error(`Invalid file ID format: ${objId}`);
     return -1;
   }
 
-  // Extract the file index from the objectId
-  return parseInt(matches[1], 10);
+  // Extract and validate the file index
+  const index = parseInt(matches[1], 10);
+  if (index < 0) {
+    console.error(`Invalid file ID format: ${objId}`);
+    return -1;
+  }
+
+  return index;
 }
 
 // folderPathFromObjectId extracts the folder path from the objectId
