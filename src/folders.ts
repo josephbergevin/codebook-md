@@ -194,19 +194,19 @@ export class FolderGroup {
   // It works similar to findTargetFolderByObjectId but returns the parent folder of the target folder.
   // If the target folder is at the root level, it returns undefined.
   findTargetParentFolderByObjectId(objId: string): FolderGroupFolder | undefined {
+    // Get the folder path part of the object ID
     const targetPath = objectIdFolderPath(objId);
     if (!targetPath) {
       console.error(`Invalid objectId format: ${objId}`);
       return undefined;
     }
 
-    // For root level items, return undefined
+    // For root level items (either folders or files at root), return undefined
     if (!targetPath.includes('.')) {
-      console.log('target folder is at the root level');
       return undefined;
     }
 
-    // For file IDs in nested folders (e.g., '1.0[0]'), return the last folder ('1.0')
+    // For files, return their containing folder
     if (objectIdIsFile(objId)) {
       return this.findTargetFolderByObjectId(targetPath);
     }
@@ -260,28 +260,29 @@ export class FolderGroup {
         fs.mkdirSync(vscodeDirPath, { recursive: true });
       }
 
-      // Read existing content to preserve formatting and comments
+      // Read existing content to preserve comments
       let existingContent = '';
       if (fs.existsSync(this.source)) {
         existingContent = fs.readFileSync(this.source, 'utf8');
       }
 
-      // Preserve leading comments
+      // Preserve any leading comments
       const commentMatch = existingContent.match(/^([\s\S]*?)\{/);
       const leadingContent = commentMatch ? commentMatch[1] : '';
 
-      // Parse existing JSON to preserve formatting
-      const parsedExistingSettings = existingContent ? JSON.parse(existingContent.substring(existingContent.indexOf('{'))) : {};
+      // Convert to JSON with compact format
+      const jsonContent = JSON.stringify(updatedSettings);
+      const compactJson = jsonContent
+        .replace(/\s*:\s*/g, ':')
+        .replace(/\s*,\s*/g, ',')
+        .replace(/\s*\{\s*/g, '{')
+        .replace(/\s*\}\s*/g, '}')
+        .replace(/\s*\[\s*/g, '[')
+        .replace(/\s*\]\s*/g, ']');
 
-      // Merge updated settings with existing settings
-      const mergedSettings = {
-        ...parsedExistingSettings,
-        ...updatedSettings
-      };
-
-      // Write the updated settings while preserving comments and using compact JSON format
-      const compactJson = JSON.stringify(mergedSettings, null, 2);
-      fs.writeFileSync(this.source, leadingContent + compactJson, 'utf8');
+      // Write the updated settings
+      const content = leadingContent + compactJson;
+      fs.writeFileSync(this.source, content, 'utf8');
     } catch (err) {
       const error = err as Error;
       console.error('Failed to update tree view settings:', error);
@@ -448,7 +449,10 @@ export function readFolderGroupSettings(settingsPath: string): FolderGroupSettin
     if (!fs.existsSync(settingsPath)) {
       return {};
     }
-    return JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    const content = fs.readFileSync(settingsPath, 'utf8');
+    // Strip comments before parsing JSON
+    const jsonContent = content.replace(/^\s*\/\/.*$/gm, '').trim();
+    return JSON.parse(jsonContent);
   } catch (error) {
     console.error('Error reading settings file', error);
     return {};
