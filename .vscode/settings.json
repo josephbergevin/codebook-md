@@ -140,5 +140,7 @@
   },
 	"notebook.experimental.cellChat": true,
 	"notebook.output.scrolling": true,
-	"editor.hover.delay": 700
+  "editor.hover.delay": 700,
+  "github.copilot.chat.editor.temporalContext.enabled": true,
+  "github.copilot.chat.languageContext.typescript.enabled": true
 }
