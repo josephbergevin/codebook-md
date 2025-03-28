@@ -103,6 +103,15 @@
           <li>Enter the folder name</li>
           <li>Add files to the folder</li>
         </ol>
+
+        <h4>Configuration File</h4>
+        <p>Virtual folder configurations are stored in <code>.vscode/codebook-md.json</code> within your workspace. This file contains all your folder groups, their hierarchical structure, and file references.</p>
+        <ul>
+          <li><span class="feature-highlight">Version Control:</span> The configuration file can be committed to version control for team sharing</li>
+          <li><span class="feature-highlight">Manual Editing:</span> Advanced users can manually edit the configuration file</li>
+          <li><span class="feature-highlight">Workspace-Specific:</span> Each workspace has its own configuration file</li>
+        </ul>
+        <p>Note: Changes made through the UI are automatically saved to this file.</p>
       </section>
 
       <section id="executable-code">
@@ -294,6 +303,12 @@ func TestExecNotebook(t *testing.T) {
 
       <section id="recent-updates">
         <h2>Recent Updates</h2>
+        <h4>New Configuration Location</h4>
+        <ul>
+          <li>TreeView configuration moved to <code>.vscode/codebook-md.json</code></li>
+          <li>Better integration with version control systems</li>
+          <li>Workspace-specific configuration for team collaboration</li>
+        </ul>
         <h4>Version 0.11.2</h4>
         <ul>
           <li>Move Up/Down functionality for folders and files</li>
