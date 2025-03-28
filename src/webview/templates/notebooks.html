@@ -16,29 +16,46 @@
       padding: 10px;
       position: relative;
     }
-    .toolbar {
+    .top-actions {
       display: flex;
       justify-content: flex-end;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
       padding: 5px;
       border-bottom: 1px solid var(--vscode-panel-border);
     }
-    .toolbar-button {
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      padding: 4px 8px;
-      margin-left: 8px;
+    .global-actions {
       display: flex;
-      align-items: center;
-      color: var(--vscode-foreground);
-      border-radius: 3px;
+      justify-content: center;
+      gap: 10px;
+      margin: 20px 0;
     }
-    .toolbar-button:hover {
-      background-color: var(--vscode-button-hoverBackground);
+    .folder-group {
+      margin-bottom: 25px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--vscode-panel-border);
     }
-    .toolbar-button svg {
-      margin-right: 5px;
+    .folder-group-header {
+      background-color: var(--vscode-sideBar-background);
+      padding: 10px;
+      border-bottom: 1px solid var(--vscode-panel-border);
+    }
+    .folder-group-title {
+      margin: 0 0 5px 0;
+      font-size: 1.1em;
+      color: var(--vscode-sideBarTitle-foreground);
+    }
+    .folder-group-description {
+      margin: 0 0 10px 0;
+      font-size: 0.9em;
+      opacity: 0.8;
+    }
+    .folder-group-actions {
+      display: flex;
+      gap: 5px;
+    }
+    .folder-group-content {
+      padding: 10px;
     }
     .folder {
       margin-bottom: 10px;
@@ -68,7 +85,7 @@
       justify-content: center;
     }
     .folder-icon svg path {
-      fill: #35d3f3;
+      fill: #19889e;
     }
     .folder-content {
       padding-left: 20px;
@@ -93,7 +110,7 @@
       justify-content: center;
     }
     .file-icon svg path {
-      fill: #35d3f3;
+      fill: #97e4f3;
     }
     .file-name {
       margin-left: 5px;
@@ -129,13 +146,14 @@
       background: transparent;
       border: none;
       cursor: pointer;
-      padding: 4px;
+      padding: 4px 8px;
       margin: 0 2px;
       display: flex;
       align-items: center;
       justify-content: center;
       color: var(--vscode-foreground);
       border-radius: 3px;
+      font-size: var(--vscode-font-size);
     }
     .action-button:hover {
       background-color: var(--vscode-button-hoverBackground);
@@ -143,6 +161,11 @@
     .action-button svg {
       width: 14px;
       height: 14px;
+    }
+    .refresh-button {
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
     .icon-svg {
       width: 16px;
@@ -156,41 +179,15 @@
     .folder-icon svg path {
       fill: #19889e;
     }
-    .file-icon svg path {
-      fill: #97e4f3;
-    }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="toolbar">
-      <button class="toolbar-button" title="New Folder" onclick="addFolder()">
-        <svg class="icon-svg icon-folder" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-          <path d="M14.5 3H7.71l-2-2H1.5l-.5.5v11l.5.5h13l.5-.5v-9l-.5-.5zM14 13H2V4h5.5l2 2H14v7z"/>
-          <path d="M8.5 8v-1h-1v1h-1v1h1v1h1v-1h1v-1h-1z"/>
-        </svg>
-        New Folder
-      </button>
-      <button class="toolbar-button" title="New File" onclick="addFile()">
-        <svg class="icon-svg icon-file" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-          <path d="M13.71 4.29l-3-3L10 1H4L3 2v12l1 1h9l1-1V5l-.29-.71zM13 14H4V2h5v4h4v8z"/>
-          <path d="M9 9H7V7H6v2H4v1h2v2h1v-2h2V9z"/>
-        </svg>
-        New File
-      </button>
-      <button class="toolbar-button" title="Refresh" onclick="refresh()">
-        <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-          <path d="M13.451 5.609l-.579-.939-1.068.812-.076.094c-.335.415-.927 1.341-1.124 2.876l-.021.165.033.163.071.345c.146.689.55 1.31 1.125 1.723.25.18.5.275.75.275.2 0 .4-.05.6-.15l.526-.302.272.272a.95.95 0 0 0 .65.284.95.95 0 0 0 .668-.284c.35-.349.4-.7.4-1.087 0-.38-.075-.75-.3-1.147l-.225-.392-.048-.83c-.03-.595-.295-1.12-.738-1.5-.374-.318-.814-.47-1.3-.5zm.948 5.316a.456.456 0 0 1-.318.137.456.456 0 0 1-.318-.137l-.413-.414-1.118.655c-.099.05-.199.075-.299.075a.493.493 0 0 1-.375-.139c-.275-.199-.508-.553-.61-1.022l-.069-.345-.13-.145c.15-1.142.564-1.931.831-2.274l.255-.195-.592-.762c-.202.335-.458.848-.609 1.631-.15.775-.076 1.677.225 2.573.148.436.42.853.804 1.142.381.287.818.429 1.307.429.425 0 .852-.116 1.239-.347l.546-.32.405.405c.084.084.192.125.3.125a.43.43 0 0 0 .3-.125A.442.442 0 0 0 15 11.667c0-.188-.042-.362-.125-.512l-.345-.609.162-.203c.139-.174.262-.373.369-.597.109-.224.164-.457.164-.7 0-.43-.077-.824-.249-1.155-.15-.315-.434-.672-.813-.965-.382-.292-.825-.424-1.327-.424-.433 0-.856.119-1.236.354l-.533.315-.583-.754c.241-.18.516-.331.822-.453.302-.119.615-.18.933-.18.788 0 1.457.25 2.013.748.559.499.847 1.163.847 1.935 0 .342-.075.664-.229.964-.15.3-.362.559-.637.763l-.395.293.22.384c.131.239.193.482.193.73 0 .244-.042.471-.134.68a1.99 1.99 0 0 1-.311.539l-.021.029z"/>
-        </svg>
-        Refresh
-      </button>
-    </div>
     {{folders}}
   </div>
   <script>
     (function() {
       const vscode = acquireVsCodeApi();
-
       window.toggleFolder = function(header) {
         const content = header.nextElementSibling;
         if (content) {
@@ -217,9 +214,17 @@
         });
       };
       
-      window.addFile = function() {
+      window.addFolderToGroup = function(groupIndex) {
         vscode.postMessage({
-          command: 'addFile'
+          command: 'addFolder',
+          groupIndex: groupIndex
+        });
+      };
+      
+      window.addFile = function(groupIndex) {
+        vscode.postMessage({
+          command: 'addFile',
+          groupIndex: groupIndex
         });
       };
       
@@ -230,10 +235,11 @@
         });
       };
       
-      window.addFileToFolder = function(folderName) {
+      window.addFileToFolder = function(folderName, groupIndex) {
         vscode.postMessage({
           command: 'addFileToFolder',
-          folderName: folderName
+          folderName: folderName,
+          groupIndex: groupIndex ? parseInt(groupIndex, 10) : undefined
         });
       };
       
