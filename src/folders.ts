@@ -1,10 +1,10 @@
 import * as fs from 'fs';
-import * as path from 'path';
-import { window, workspace } from 'vscode';
+import * as config from './config';
 
 export class FolderGroup {
   name: string;
   source: string;
+  index: number;
   icon: string;
   hide: boolean;
   folders: FolderGroupFolder[] = [];
@@ -12,6 +12,7 @@ export class FolderGroup {
   constructor(name: string, source: string, folders: FolderGroupFolder[]) {
     this.name = name;
     this.source = source;
+    this.index = 0;
     this.icon = '';
     this.hide = false;
     this.folders = folders;
@@ -237,57 +238,62 @@ export class FolderGroup {
   }
 
   // applyChanges applies the current state of the folder group to the .source file
+  // find the folderGroup with (index === this.index, name === this.name) - overwrite it
+  // and save the file
   applyChanges(): void {
-    try {
-      if (!this.source) {
-        throw new Error('No workspace folder found');
-      }
+    // Get current folders from settings
+    const configPath = config.getCodebookConfigFilePath();
 
-      // Read existing settings
-      const existingSettings = readFolderGroupSettings(this.source);
-
-      // Update only the codebook-md.treeView section while preserving all other settings
-      const updatedSettings = {
-        ...existingSettings,
-        'codebook-md.treeView': {
-          folders: this.folders
-        }
-      };
-
-      // Create settings directory if it does not exist
-      const vscodeDirPath = path.dirname(this.source);
-      if (!fs.existsSync(vscodeDirPath)) {
-        fs.mkdirSync(vscodeDirPath, { recursive: true });
-      }
-
-      // Read existing content to preserve comments
-      let existingContent = '';
-      if (fs.existsSync(this.source)) {
-        existingContent = fs.readFileSync(this.source, 'utf8');
-      }
-
-      // Preserve any leading comments
-      const commentMatch = existingContent.match(/^([\s\S]*?)\{/);
-      const leadingContent = commentMatch ? commentMatch[1] : '';
-
-      // Convert to JSON with compact format
-      const jsonContent = JSON.stringify(updatedSettings);
-      const compactJson = jsonContent
-        .replace(/\s*:\s*/g, ':')
-        .replace(/\s*,\s*/g, ',')
-        .replace(/\s*\{\s*/g, '{')
-        .replace(/\s*\}\s*/g, '}')
-        .replace(/\s*\[\s*/g, '[')
-        .replace(/\s*\]\s*/g, ']');
-
-      // Write the updated settings
-      const content = leadingContent + compactJson;
-      fs.writeFileSync(this.source, content, 'utf8');
-    } catch (err) {
-      const error = err as Error;
-      console.error('Failed to update tree view settings:', error);
-      window.showErrorMessage(`Failed to update tree view settings: ${error.message}`);
+    // Validate configPath before proceeding
+    if (!configPath) {
+      console.error('Cannot apply changes: configuration path is undefined or empty');
+      return;
     }
+
+    const codebookConfig = readCodebookConfig(configPath);
+
+    // if there are no folder groups, push this one and save
+    if (!codebookConfig.folderGroups || codebookConfig.folderGroups.length === 0) {
+      codebookConfig.folderGroups = [this];
+      writeCodebookConfig(configPath, codebookConfig);
+      console.log('Folder group did not exist - created successfully');
+      return;
+    }
+
+    // find the folder group with the same name and index
+    const existingGroupIndex = codebookConfig.folderGroups.findIndex(group => group.name === this.name && group.index === this.index);
+    if (existingGroupIndex !== -1) {
+      // Update the existing folder group
+      codebookConfig.folderGroups[existingGroupIndex].folders = this.folders;
+      writeCodebookConfig(configPath, codebookConfig);
+      console.log('Folder group updated successfully');
+      return;
+    }
+
+    // Otherwise: 
+    // - set the index to the last
+    // - push this folder group to the list
+    // - save
+    this.index = codebookConfig.folderGroups.length;
+    codebookConfig.folderGroups.push(this);
+    writeCodebookConfig(configPath, codebookConfig);
+    console.log('Folder group added successfully');
+  }
+}
+
+// writeCodebookConfig saves the updated configuration to the file
+export function writeCodebookConfig(configPath: string, codebookConfig: CodebookConfig): void {
+  try {
+    // Validate the configPath to prevent undefined path error
+    if (!configPath) {
+      throw new Error('Configuration path is undefined or empty');
+    }
+
+    const jsonContent = JSON.stringify(codebookConfig, null, 2);
+    fs.writeFileSync(configPath, jsonContent, 'utf8');
+    console.log('Configuration saved successfully');
+  } catch (error) {
+    console.error('Error saving configuration', error);
   }
 }
 
@@ -393,118 +399,75 @@ export class FolderGroupFile {
 }
 
 // getTreeViewFolderGroup is a convenience function to get the tree view folder group from the configuration
-export function getTreeViewFolderGroup(settingsPath: string): FolderGroup {
-  // Get workspace settings from the given settings path
-  const vscodeSettings = readFolderGroupSettings(settingsPath);
-
-  // Check both possible configuration paths
-  const workspaceFolders =
-    vscodeSettings['codebook-md.treeView']?.folders ||
-    vscodeSettings['codebook-md']?.treeView?.folders ||
-    [];
-
-  // Get user settings from VS Code configuration API
-  const userConfig = workspace.getConfiguration('codebook-md');
-  const userFolders = userConfig.get<FolderGroupFolder[]>('treeView.folders', []);
-
-  // Merge with preference for workspace settings (they override user settings)
-  const mergedFolders = [...userFolders];
-
-  // Add workspace folders with deduplication by name
-  for (const folder of workspaceFolders) {
-    const existingIndex = mergedFolders.findIndex(f => f.name === folder.name);
-    if (existingIndex >= 0) {
-      // Update existing folder
-      mergedFolders[existingIndex] = folder;
-    } else {
-      // Add new folder
-      mergedFolders.push(folder);
-    }
+export function getWorkspaceFolderGroup(configPath: string): FolderGroup {
+  // Validate the settings path to prevent downstream undefined errors
+  if (!configPath) {
+    console.error('Settings path is undefined or empty');
+    // Return a new folder group with a default name, but ensure we're not using an undefined source
+    return new FolderGroup('Workspace', '', []);
   }
 
-  return new FolderGroup('Codebook', settingsPath, mergedFolders);
+  // get workspace settings from the given settings path
+  const codebookConfig = readCodebookConfig(configPath);
+
+  // loop through the folder groups and find the one with name = 'Workspace'
+  const workspaceGroup = codebookConfig.folderGroups?.find(group => group.name === 'Workspace');
+  if (workspaceGroup) {
+    // Create a proper FolderGroup instance to ensure all prototype methods are available
+    const folderGroup = new FolderGroup(
+      workspaceGroup.name,
+      // Ensure source property is set correctly - use configPath if workspaceGroup.source is undefined
+      workspaceGroup.source || configPath,
+      workspaceGroup.folders || []
+    );
+    // Copy other properties
+    folderGroup.index = workspaceGroup.index;
+    folderGroup.icon = workspaceGroup.icon;
+    folderGroup.hide = workspaceGroup.hide;
+
+    return folderGroup;
+  }
+
+  return new FolderGroup('Workspace', configPath, []);
 }
 
 // Type for VS Code settings
-interface FolderGroupSettings {
-  'codebook-md'?: {
-    treeView?: {
-      folders: FolderGroupFolder[];
-    };
-    [key: string]: unknown;
-  };
-  'codebook-md.treeView'?: {
-    folders: FolderGroupFolder[];
-  };
-  [key: string]: unknown;
+export class CodebookConfig {
+  folderGroups?: FolderGroup[];
+
+  constructor() {
+    this.folderGroups = [];
+  }
 }
 
-// Helper function to read the given settings path
-export function readFolderGroupSettings(settingsPath: string): FolderGroupSettings {
-  if (settingsPath === '') {
-    return {};
+// readCodebookConfig reads the codebook-md configuration file
+export function readCodebookConfig(configPath: string): CodebookConfig {
+  if (configPath === '') {
+    console.log('No codebook-md configuration found');
+    return new CodebookConfig();
   }
 
   try {
-    if (!fs.existsSync(settingsPath)) {
-      return {};
+    if (!fs.existsSync(configPath)) {
+      return new CodebookConfig();
     }
-    const content = fs.readFileSync(settingsPath, 'utf8');
-    // Strip comments before parsing JSON
-    const jsonContent = content.replace(/^\s*\/\/.*$/gm, '').trim();
-    return JSON.parse(jsonContent);
+    const jsonContent = fs.readFileSync(configPath, 'utf8');
+    const codebookConfig = JSON.parse(jsonContent);
+
+    // if there are folder groups, set the index values in a loop
+    if (codebookConfig.folderGroups) {
+      codebookConfig.folderGroups.forEach((group: FolderGroup, index: number) => {
+        group.index = index;
+      });
+    }
+
+    return codebookConfig;
   } catch (error) {
     console.error('Error reading settings file', error);
     return {};
   }
 }
 
-// Helper function to update tree view settings in the given settings path
-export function updateTreeViewSettings(folderGroup: FolderGroup): void {
-  try {
-    if (!folderGroup.source) {
-      throw new Error('No workspace folder found');
-    }
-
-    // Read existing settings
-    const existingSettings = readFolderGroupSettings(folderGroup.source);
-
-    // Update only the codebook-md.treeView section
-    const updatedSettings = {
-      ...existingSettings,
-      'codebook-md.treeView': {
-        folders: folderGroup.folders
-      }
-    };
-
-    // Create settings directory if it doesn't exist
-    const vscodeDirPath = path.dirname(folderGroup.source);
-    if (!fs.existsSync(vscodeDirPath)) {
-      fs.mkdirSync(vscodeDirPath, { recursive: true });
-    }
-
-    // Read existing content to preserve formatting and comments
-    let existingContent = '';
-    if (fs.existsSync(folderGroup.source)) {
-      existingContent = fs.readFileSync(folderGroup.source, 'utf8');
-    }
-
-    // Preserve formatting from existing content
-    const indent = existingContent.match(/^\s+/m)?.[0] || '  ';
-
-    // Preserve any leading comments
-    const commentMatch = existingContent.match(/^([\s\S]*?)\{/);
-    const leadingContent = commentMatch ? commentMatch[1] : '';
-
-    // Write the updated settings while preserving comments and formatting
-    const content = leadingContent + JSON.stringify(updatedSettings, null, indent);
-    fs.writeFileSync(folderGroup.source, content, 'utf8');
-  } catch (err) {
-    const error = err as Error;
-    console.error('Failed to update tree view settings:', error);
-    window.showErrorMessage(`Failed to update tree view settings: ${error.message}`);
-  }
-}
 
 // suggestedDisplayName generates a display name from a filename by:
 // 1. Removing the file extension

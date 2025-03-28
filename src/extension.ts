@@ -106,8 +106,8 @@ async function addFolderToTreeView(): Promise<void> {
     }
 
     // Get current folders from settings
-    const settingsPath = config.getVSCodeSettingsFilePath();
-    const folderGroup = folders.getTreeViewFolderGroup(settingsPath);
+    const configPath = config.getCodebookConfigFilePath();
+    const folderGroup = folders.getWorkspaceFolderGroup(configPath);
 
     folderGroup.folders.push(new folders.FolderGroupFolder(folderName));
     window.showInformationMessage(`Added folder to tree view: ${folderName}`);
@@ -134,8 +134,8 @@ async function addSubFolder(parentFolderName: string): Promise<void> {
     }
 
     // Get current folders from settings
-    const settingsPath = config.getVSCodeSettingsFilePath();
-    const folderGroup = folders.getTreeViewFolderGroup(settingsPath);
+    const configPath = config.getCodebookConfigFilePath();
+    const folderGroup = folders.getWorkspaceFolderGroup(configPath);
 
     // Find the parent folder
     const parentFolder = folderGroup.findFolder(parentFolderName);
@@ -178,8 +178,8 @@ async function renameFolderDisplay(folderName: string, currentDisplayName: strin
     }
 
     // Get current folders from settings
-    const settingsPath = config.getVSCodeSettingsFilePath();
-    const folderGroup = folders.getTreeViewFolderGroup(settingsPath);
+    const configPath = config.getCodebookConfigFilePath();
+    const folderGroup = folders.getWorkspaceFolderGroup(configPath);
 
     const folder = folderGroup.findFolder(folderName);
     if (!folder) {
@@ -204,8 +204,8 @@ async function removeFolderFromTreeView(folderName: string): Promise<void> {
     console.log(`Removing folder ${folderName} from tree view`);
 
     // Get current folders from settings
-    const settingsPath = config.getVSCodeSettingsFilePath();
-    const folderGroup = folders.getTreeViewFolderGroup(settingsPath);
+    const configPath = config.getCodebookConfigFilePath();
+    const folderGroup = folders.getWorkspaceFolderGroup(configPath);
 
     const success = folderGroup.removeFolder(folderName);
     if (!success) {
@@ -226,8 +226,8 @@ async function renameTreeViewFile(entry: folders.FolderGroupFile, newName: strin
     console.log(`Renaming file from "${entry.name}" to "${newName}"`);
 
     // Get current folders from settings
-    const settingsPath = config.getVSCodeSettingsFilePath();
-    const folderGroup = folders.getTreeViewFolderGroup(settingsPath);
+    const configPath = config.getCodebookConfigFilePath();
+    const folderGroup = folders.getWorkspaceFolderGroup(configPath);
     const workspacePath = config.getWorkspaceFolder();
     let fileRenamed = false;
 
@@ -515,8 +515,8 @@ export function activate(context: ExtensionContext) {
   // Command: Add a markdown file to tree view via file picker and folder selection
   disposable = commands.registerCommand('codebook-md.addFileToChosenFolder', async () => {
     // Get current folders from configuration
-    const settingsPath = config.getVSCodeSettingsFilePath();
-    const folderGroup = folders.getTreeViewFolderGroup(settingsPath);
+    const configPath = config.getCodebookConfigFilePath();
+    const folderGroup = folders.getWorkspaceFolderGroup(configPath);
 
     // Create folder options for quickpick
     const folderOptions = folderGroup.folders.map(folder => ({
@@ -569,8 +569,8 @@ export function activate(context: ExtensionContext) {
       }
 
       // Get current folders from configuration
-      const settingsPath = config.getVSCodeSettingsFilePath();
-      const folderGroup = folders.getTreeViewFolderGroup(settingsPath);
+      const configPath = config.getCodebookConfigFilePath();
+      const folderGroup = folders.getWorkspaceFolderGroup(configPath);
 
       // Find the folder entry by its name
       const folder = folderGroup.findFolder(folderName);
@@ -607,8 +607,8 @@ export function activate(context: ExtensionContext) {
       }
 
       // Get current folders from configuration
-      const settingsPath = config.getVSCodeSettingsFilePath();
-      const folderGroup = folders.getTreeViewFolderGroup(settingsPath);
+      const configPath = config.getCodebookConfigFilePath();
+      const folderGroup = folders.getWorkspaceFolderGroup(configPath);
 
       // Find the parent folder by name
       const parentFolder = folderGroup.findFolder(folderName);
@@ -654,8 +654,8 @@ export function activate(context: ExtensionContext) {
       }
 
       const filePath = uris[0].fsPath;
-      const settingsPath = config.getVSCodeSettingsFilePath();
-      const folderGroup = folders.getTreeViewFolderGroup(settingsPath);
+      const configPath = config.getCodebookConfigFilePath();
+      const folderGroup = folders.getWorkspaceFolderGroup(configPath);
       await addFileToTreeViewFolder(folderGroup, filePath, folderName);
     } catch (error) {
       console.error('Error adding file to folder:', error);
@@ -680,8 +680,8 @@ export function activate(context: ExtensionContext) {
       }
 
       // Get current folders from configuration
-      const settingsPath = config.getVSCodeSettingsFilePath();
-      const folderGroup = folders.getTreeViewFolderGroup(settingsPath);
+      const configPath = config.getCodebookConfigFilePath();
+      const folderGroup = folders.getWorkspaceFolderGroup(configPath);
 
       // Find and remove the folder and any sub-folders
       const removeFolder = (folders: folders.FolderGroupFolder[]): boolean => {
@@ -719,8 +719,8 @@ export function activate(context: ExtensionContext) {
   disposable = commands.registerCommand('codebook-md.removeFileFromMyNotebooksFolder', async (entry: folders.FolderGroupFile) => {
     try {
       // Get current folders from configuration
-      const settingsPath = config.getVSCodeSettingsFilePath();
-      const folderGroup = folders.getTreeViewFolderGroup(settingsPath);
+      const configPath = config.getCodebookConfigFilePath();
+      const folderGroup = folders.getWorkspaceFolderGroup(configPath);
       const workspacePath = config.getWorkspaceFolder();
       let fileRemoved = false;
 
@@ -778,8 +778,8 @@ export function activate(context: ExtensionContext) {
       }
 
       // Get current folders from configuration
-      const settingsPath = config.getVSCodeSettingsFilePath();
-      const folderGroup = folders.getTreeViewFolderGroup(settingsPath);
+      const configPath = config.getCodebookConfigFilePath();
+      const folderGroup = folders.getWorkspaceFolderGroup(configPath);
       const workspacePath = config.getWorkspaceFolder();
       let fileRenamed = false;
 
@@ -842,8 +842,8 @@ export function activate(context: ExtensionContext) {
       }
 
       // Get current folders from configuration
-      const settingsPath = config.getVSCodeSettingsFilePath();
-      const folderGroup = folders.getTreeViewFolderGroup(settingsPath);
+      const configPath = config.getCodebookConfigFilePath();
+      const folderGroup = folders.getWorkspaceFolderGroup(configPath);
 
       // Determine if this is a file or folder ID
       // File IDs contain square brackets, e.g., "0.1[2]"
@@ -964,8 +964,8 @@ export function activate(context: ExtensionContext) {
       console.log(`Moving item with ID: ${objectId} up in tree view`);
 
       // Get current folders from configuration
-      const settingsPath = config.getVSCodeSettingsFilePath();
-      const folderGroup = folders.getTreeViewFolderGroup(settingsPath);
+      const configPath = config.getCodebookConfigFilePath();
+      const folderGroup = folders.getWorkspaceFolderGroup(configPath);
 
       // move the item up using the objectId
       const success = folderGroup.moveTreeViewItemUp(objectId);
@@ -992,8 +992,8 @@ export function activate(context: ExtensionContext) {
       console.log(`Moving item with ID: ${objectId} down in tree view`);
 
       // Get current folders from configuration
-      const settingsPath = config.getVSCodeSettingsFilePath();
-      const folderGroup = folders.getTreeViewFolderGroup(settingsPath);
+      const configPath = config.getCodebookConfigFilePath();
+      const folderGroup = folders.getWorkspaceFolderGroup(configPath);
 
       // move the item down using the objectId
       const success = folderGroup.moveTreeViewItemDown(objectId);

@@ -58,9 +58,9 @@ export function getFullPath(filePath: string, workspacePath: string): string {
 }
 
 // Helper function to get the settings file path
-export function getVSCodeSettingsFilePath(): string {
+export function getCodebookConfigFilePath(): string {
   return workspace.workspaceFolders?.[0]
-    ? path.join(workspace.workspaceFolders[0].uri.fsPath, '.vscode', 'settings.json')
+    ? path.join(workspace.workspaceFolders[0].uri.fsPath, '.vscode', 'codebook-md.json')
     : '';
 }
 
