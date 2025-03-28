@@ -76,10 +76,10 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
           break;
         }
         case 'addFolder':
-          commands.executeCommand('codebook-md.addFolderToTreeView');
+          commands.executeCommand('codebook-md.addFolderToTreeView', data.groupIndex);
           break;
         case 'addFile':
-          commands.executeCommand('codebook-md.addFileToChosenFolder');
+          commands.executeCommand('codebook-md.addFileToChosenFolder', data.groupIndex);
           break;
         case 'addSubFolder':
           if (data.folderName) {
@@ -88,7 +88,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
           break;
         case 'addFileToFolder':
           if (data.folderName) {
-            commands.executeCommand('codebook-md.addFileToMyNotebooksFolder', data.folderName);
+            commands.executeCommand('codebook-md.addFileToMyNotebooksFolder', data.folderName, data.groupIndex);
           }
           break;
         case 'removeFolder':
@@ -177,19 +177,96 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
    * Get the webview HTML content
    */
   private _getWebviewContent() {
-    // Get the tree view folders data
-    const settingsPath = config.getCodebookConfigFilePath();
-    const treeViewFolderGroup = folders.getWorkspaceFolderGroup(settingsPath);
+    // Get the config path
+    const configPath = config.getCodebookConfigFilePath();
 
-    // Build HTML for the folders and files
-    let foldersHtml = '';
-    treeViewFolderGroup.folders.forEach((folder, index) => {
-      const folderIndex = index.toString();
-      foldersHtml += this._buildFolderHtml(folder, 0, folderIndex);
-    });
+    // Read the configuration file to get all folder groups
+    const codebookConfig = folders.readCodebookConfig(configPath);
 
-    if (!foldersHtml) {
-      foldersHtml = '<p class="no-data">No notebooks found. Add folders and files using the buttons above.</p>';
+    // Build HTML for the folder groups
+    let folderGroupsHtml = '';
+
+    // Add a refresh button at the top
+    folderGroupsHtml += `
+      <div class="top-actions">
+        <button class="action-button refresh-button" title="Refresh View" onclick="refresh()">
+          <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13.451 5.609l-.579-.939-1.068.812-.076.094c-.335.415-.927 1.341-1.124 2.876l-.021.165.033.163.071.345c0 1.654-1.346 3-3 3-.795 0-1.545-.311-2.107-.868-.563-.567-.873-1.317-.873-2.111 0-1.431 1.007-2.632 2.351-2.929v2.926s2.528-2.087 2.984-2.461c.456-.373.202-.746-.254-.373-.354.287-2.984 2.461-2.984 2.461v-2.926c-2.077.463-3.635 2.319-3.635 4.544 0 2.559 2.087 4.646 4.647 4.646 2.559 0 4.646-2.088 4.646-4.646 0-.598-.127-1.631-.484-2.606-.229-.486-.471-.961-.846-1.351-.463-.489-.075-.952.397-.452.472.478.785.942 1.056 1.368.418.713.589 1.356.589 3.041 0 3.206-2.607 5.813-5.813 5.813-3.206 0-5.813-2.607-5.813-5.813 0-3.206 2.607-5.813 5.813-5.813 1.859 0 3.516.886 4.572 2.256l.169.216.035-.18c.233-.535.496-.858.872-1.016.13-.055.21-.031.137.043z"/>
+          </svg>
+          Refresh
+        </button>
+      </div>
+    `;
+
+    // If there are no folder groups, display a message
+    if (!codebookConfig.folderGroups || codebookConfig.folderGroups.length === 0) {
+      folderGroupsHtml += '<p class="no-data">No notebooks found. Add folders and files using the buttons below.</p>';
+      folderGroupsHtml += `
+        <div class="global-actions">
+          <button class="action-button" title="Add Folder" onclick="addFolder()">
+            <svg class="icon-svg icon-folder" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+              <path d="M14.5 3H7.71l-2-2H1.5l-.5.5v11l.5.5h13l.5-.5v-9l-.5-.5zM14 13H2V4h5.71l2 2H14v7z"/>
+              <path d="M8.5 8v-1h-1v1h-1v1h1v1h1v-1h1v-1h-1z"/>
+            </svg>
+            Add Folder
+          </button>
+          <button class="action-button" title="Add File" onclick="addFile()">
+            <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13.71 4.29l-3-3L10 1H4L3 2v12l1 1h9l1-1V5l-.29-.71zM13 14H4V2h5v4h4v8z"/>
+              <path d="M8.5 8v-1h-1v1h-1v1h1v1h1v-1h1v-1h-1z"/>
+            </svg>
+            Add File
+          </button>
+        </div>
+      `;
+    } else {
+      // Process each folder group
+      codebookConfig.folderGroups.forEach((folderGroup, groupIndex) => {
+        if (folderGroup.hide) {
+          return; // Skip hidden folder groups
+        }
+        // Start the folder group with its title and description
+        folderGroupsHtml += `
+          <div class="folder-group" id="folder-group-${this._escapeHtml(groupIndex.toString())}">
+            <div class="folder-group-header">
+              <h2 class="folder-group-title">${this._escapeHtml(folderGroup.name)}</h2>
+              ${folderGroup.description ? `<p class="folder-group-description">${this._escapeHtml(folderGroup.description)}</p>` : ''}
+              <div class="folder-group-actions">
+                <button class="action-button" title="Add Folder" onclick="addFolderToGroup(${groupIndex})">
+                  <svg class="icon-svg icon-folder" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14.5 3H7.71l-2-2H1.5l-.5.5v11l.5.5h13l.5-.5v-9l-.5-.5zM14 13H2V4h5.71l2 2H14v7z"/>
+                    <path d="M8.5 8v-1h-1v1h-1v1h1v1h1v-1h1v-1h-1z"/>
+                  </svg>
+                  Add Folder
+                </button>
+                <button class="action-button" title="Add File" onclick="addFile(${groupIndex})">
+                  <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13.71 4.29l-3-3L10 1H4L3 2v12l1 1h9l1-1V5l-.29-.71zM13 14H4V2h5v4h4v8z"/>
+                    <path d="M8.5 8v-1h-1v1h-1v1h1v1h1v-1h1v-1h-1z"/>
+                  </svg>
+                  Add File
+                </button>
+              </div>
+            </div>
+            <div class="folder-group-content">`
+          ;
+
+        // Add folders for this group
+        if (folderGroup.folders && folderGroup.folders.length > 0) {
+          folderGroup.folders.forEach((folder, folderIndex) => {
+            // Create a unique index for the folder that includes the group index
+            const folderIndexStr = `${groupIndex}.${folderIndex}`;
+            folderGroupsHtml += this._buildFolderHtml(folder, 0, folderIndexStr);
+          });
+        } else {
+          folderGroupsHtml += '<p class="no-data">No folders in this group. Add folders and files using the buttons above.</p>';
+        }
+
+        folderGroupsHtml += `
+            </div>
+          </div>
+        `;
+      });
     }
 
     // Read the HTML template
@@ -197,7 +274,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
     let htmlContent = fs.readFileSync(templatePath, 'utf8');
 
     // Replace placeholder with folders HTML
-    htmlContent = htmlContent.replace('{{folders}}', foldersHtml);
+    htmlContent = htmlContent.replace('{{folders}}', folderGroupsHtml);
 
     return htmlContent;
   }
@@ -241,7 +318,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
                 <path d="M8.5 8v-1h-1v1h-1v1h1v1h1v-1h1v-1h-1z"/>
               </svg>
             </button>
-            <button class="action-button icon-file" title="Add File" onclick="event.stopPropagation(); addFileToFolder('${this._escapeHtml(folder.name)}')">
+            <button class="action-button icon-file" title="Add File" onclick="event.stopPropagation(); addFileToFolder('${this._escapeHtml(folder.name)}', '${this._escapeHtml(folderIndex.split('.')[0])}')">
               <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                 <path d="M8 4v3.5h-3.5v1h3.5v3.5h1v-3.5h3.5v-1h-3.5v-3.5z"/>
               </svg>

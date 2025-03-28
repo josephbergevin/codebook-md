@@ -5,14 +5,16 @@ export class FolderGroup {
   name: string;
   source: string;
   index: number;
+  description: string;
   icon: string;
   hide: boolean;
   folders: FolderGroupFolder[] = [];
 
-  constructor(name: string, source: string, folders: FolderGroupFolder[]) {
+  constructor(name: string, source: string, description: string, folders: FolderGroupFolder[]) {
     this.name = name;
     this.source = source;
     this.index = 0;
+    this.description = description;
     this.icon = '';
     this.hide = false;
     this.folders = folders;
@@ -404,7 +406,7 @@ export function getWorkspaceFolderGroup(configPath: string): FolderGroup {
   if (!configPath) {
     console.error('Settings path is undefined or empty');
     // Return a new folder group with a default name, but ensure we're not using an undefined source
-    return new FolderGroup('Workspace', '', []);
+    return new FolderGroup('Workspace', '', '', []);
   }
 
   // get workspace settings from the given settings path
@@ -418,6 +420,7 @@ export function getWorkspaceFolderGroup(configPath: string): FolderGroup {
       workspaceGroup.name,
       // Ensure source property is set correctly - use configPath if workspaceGroup.source is undefined
       workspaceGroup.source || configPath,
+      workspaceGroup.description || '',
       workspaceGroup.folders || []
     );
     // Copy other properties
@@ -428,7 +431,7 @@ export function getWorkspaceFolderGroup(configPath: string): FolderGroup {
     return folderGroup;
   }
 
-  return new FolderGroup('Workspace', configPath, []);
+  return new FolderGroup('Workspace', configPath, '', []);
 }
 
 // Type for VS Code settings
@@ -481,4 +484,44 @@ export function suggestedDisplayName(fileName: string): string {
     .split(/[_\-\s.]/) // Split by underscore, dash, space, or period
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize first letter of each word
     .join(' '); // Join with spaces
+}
+
+/**
+ * Find a folder group by its index and return it
+ * This function handles operations on specific folder groups rather than just the Workspace group
+ */
+export function getFolderGroupByIndex(configPath: string, groupIndex: number): FolderGroup | undefined {
+  if (!configPath) {
+    console.error('Config path is undefined or empty');
+    return undefined;
+  }
+
+  // Read the config file to get all folder groups
+  const codebookConfig = readCodebookConfig(configPath);
+  if (!codebookConfig.folderGroups || codebookConfig.folderGroups.length === 0) {
+    console.log('No folder groups found in the config');
+    return undefined;
+  }
+
+  // Check if the group index is valid
+  if (groupIndex < 0 || groupIndex >= codebookConfig.folderGroups.length) {
+    console.error(`Invalid group index: ${groupIndex}`);
+    return undefined;
+  }
+
+  // Get the folder group and create a proper FolderGroup instance
+  const group = codebookConfig.folderGroups[groupIndex];
+  const folderGroup = new FolderGroup(
+    group.name,
+    group.source || configPath,
+    group.description || '',
+    group.folders || []
+  );
+
+  // Copy other properties
+  folderGroup.index = group.index;
+  folderGroup.icon = group.icon;
+  folderGroup.hide = group.hide;
+
+  return folderGroup;
 }

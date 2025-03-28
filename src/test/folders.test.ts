@@ -63,7 +63,7 @@ describe('config.ts Test Suite', () => {
 
     beforeEach(() => {
       // Set up a test folder structure
-      folderGroup = new folders.FolderGroup('Test', 'test/settings.json', [
+      folderGroup = new folders.FolderGroup('Test', 'test/settings.json', '', [
         new folders.FolderGroupFolder('Folder1'),
         new folders.FolderGroupFolder('Folder2'),
         new folders.FolderGroupFolder('Folder3')
@@ -137,7 +137,7 @@ describe('config.ts Test Suite', () => {
 
     beforeEach(() => {
       // Set up a test folder structure
-      folderGroup = new folders.FolderGroup('Test', 'test/settings.json', [
+      folderGroup = new folders.FolderGroup('Test', 'test/settings.json', '', [
         new folders.FolderGroupFolder('Folder1'),
         new folders.FolderGroupFolder('Folder2'),
         new folders.FolderGroupFolder('Folder3')
@@ -218,7 +218,7 @@ describe('config.ts Test Suite', () => {
 
     beforeEach(() => {
       // Set up a test folder structure
-      folderGroup = new folders.FolderGroup('Test', 'test/settings.json', [
+      folderGroup = new folders.FolderGroup('Test', 'test/settings.json', '', [
         new folders.FolderGroupFolder('Folder1'),
         new folders.FolderGroupFolder('Folder2'),
         new folders.FolderGroupFolder('Folder3')
@@ -300,7 +300,7 @@ describe('config.ts Test Suite', () => {
 
     beforeEach(() => {
       // Set up a test folder structure
-      folderGroup = new folders.FolderGroup('Test', 'test/settings.json', [
+      folderGroup = new folders.FolderGroup('Test', 'test/settings.json', '', [
         new folders.FolderGroupFolder('Folder1'),
         new folders.FolderGroupFolder('Folder2'),
         new folders.FolderGroupFolder('Folder3')
