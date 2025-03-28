@@ -130,55 +130,67 @@ The Tree View is accessible from the VS Code activity bar. Click on the Codebook
 
 ### Configuration
 
-You can customize the Tree View through the `codebook-md.treeView` settings in your VS Code settings. The Tree View structure is stored in your workspace or user settings.
+The Tree View structure is stored in the `.vscode/codebook-md.json` file within your workspace. This configuration file manages your virtual folders, their hierarchical structure, and file references.
+
+Benefits of this configuration approach include:
+- **Version Control Integration**: The configuration file can be committed to your repository, allowing team sharing of notebook organization
+- **Workspace-Specific**: Each workspace has its own configuration file, allowing for project-specific organization
+- **Manual Editing**: Advanced users can directly edit the configuration file for bulk changes
+
+All changes made through the Tree View UI are automatically saved to this file.
+
+Example configuration format:
 
 ```json
 {
-  "codebook-md.treeView": {
-    "folders": [
-      {
-        "name": "Projects",
-        "icon": "path/to/custom/icon.png",
-        "folders": [
-          {
-            "name": "SubProject1",
-            "files": [
-              {
-                "name": "Overview",
-                "path": "projects/subproject1/overview.md"
-              }
-            ]
-          }
-        ],
-        "files": [
-          {
-            "name": "Project Plan",
-            "path": "projects/project-plan.md"
-          }
-        ]
-      },
-      {
-        "name": "Documentation",
-        "folders": [
-          {
-            "name": "Guides",
-            "files": [
-              {
-                "name": "Getting Started",
-                "path": "docs/guides/getting-started.md"
-              }
-            ]
-          }
-        ],
-        "files": [
-          {
-            "name": "Readme",
-            "path": "docs/readme.md"
-          }
-        ]
-      }
-    ]
-  }
+  "folderGroups": [
+    {
+      "name": "Workspace",
+      "description": "Workspace folder group",
+      "folders": [
+        {
+          "name": "Projects",
+          "folders": [
+            {
+              "name": "SubProject1",
+              "files": [
+                {
+                  "name": "Overview",
+                  "path": "projects/subproject1/overview.md"
+                }
+              ]
+            }
+          ],
+          "files": [
+            {
+              "name": "Project Plan",
+              "path": "projects/project-plan.md"
+            }
+          ]
+        },
+        {
+          "name": "Documentation",
+          "folders": [
+            {
+              "name": "Guides",
+              "files": [
+                {
+                  "name": "Getting Started",
+                  "path": "docs/guides/getting-started.md"
+                }
+              ]
+            }
+          ],
+          "files": [
+            {
+              "name": "Readme",
+              "path": "docs/readme.md"
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }
 ```
 
