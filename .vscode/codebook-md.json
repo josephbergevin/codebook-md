@@ -1,0 +1,77 @@
+{
+  "folderGroups": [
+    {
+      "name": "Workspace",
+      "description": "Workspace folder group",
+      "folders": [
+        {
+          "name": "Docs",
+          "files": [
+            {
+              "name": "ReadMe",
+              "path": "README.md"
+            },
+            {
+              "name": "Changelog",
+              "path": "CHANGELOG.md"
+            },
+            {
+              "name": "Copilot Instructions",
+              "path": ".github/copilot-instructions.md"
+            }
+          ],
+          "folders": [
+            {
+              "name": "Releases",
+              "files": []
+            }
+          ]
+        },
+        {
+          "name": "Ci-Cd",
+          "files": [
+            {
+              "name": "Tooling",
+              "path": "tooling/tooling.md"
+            }
+          ]
+        },
+        {
+          "name": "Features",
+          "files": [
+            {
+              "name": "Tree View",
+              "path": "tooling/apiplayground/feature-updates/tree_view.md"
+            },
+            {
+              "name": "Code Block Config",
+              "path": "tooling/apiplayground/feature-updates/code_block_config.md"
+            },
+            {
+              "name": "Documentation Webview",
+              "path": "tooling/apiplayground/feature-updates/documentation_webview.md"
+            }
+          ]
+        },
+        {
+          "name": "Bugs",
+          "files": [
+            {
+              "name": "Bug Fixes",
+              "path": "tooling/apiplayground/feature-updates/bug_fixes.md"
+            }
+          ]
+        },
+        {
+          "name": "Examples",
+          "files": [
+            {
+              "name": "Example",
+              "path": "example.md"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
