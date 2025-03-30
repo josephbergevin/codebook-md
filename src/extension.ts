@@ -19,7 +19,7 @@ import * as configModal from './webview/configModal';
 const kernel = new Kernel();
 
 // Helper functions moved to the top
-async function addFileToTreeViewFolder(folderGroup: folders.FolderGroup, filePath: string, folderName: string): Promise<void> {
+async function addFileToFolderGroupFolder(folderGroup: folders.FolderGroup, filePath: string, folderName: string): Promise<void> {
   try {
     console.log(`Adding file ${filePath} to folder ${folderName}`);
 
@@ -73,10 +73,7 @@ async function addFileToTreeViewFolder(folderGroup: folders.FolderGroup, filePat
       console.log(`workspacePath: ${workspacePath}`);
     } else {
       // Add new file entry
-      targetFolder.files.push({
-        name: displayName,
-        path: normalizedPath
-      });
+      targetFolder.files.push(new folders.FolderGroupFile(displayName, normalizedPath, ''));
       window.showInformationMessage(`Added markdown file to folder: ${displayName}`);
       console.log(`Added markdown file to folder: ${displayName}`);
       console.log(`filePath: ${filePath}`);
@@ -85,14 +82,14 @@ async function addFileToTreeViewFolder(folderGroup: folders.FolderGroup, filePat
     }
 
     // Update settings
-    folderGroup.applyChanges();
+    folderGroup.writeChanges();
   } catch (error) {
     console.error('Error adding file to folder:', error);
     window.showErrorMessage(`Failed to add file to folder: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
-async function addFolderToTreeView(groupIndex?: number): Promise<void> {
+async function addFolderToFolderGroup(groupIndex?: number): Promise<void> {
   try {
     // Get folder name from user
     const folderName = await window.showInputBox({
@@ -118,15 +115,15 @@ async function addFolderToTreeView(groupIndex?: number): Promise<void> {
       ];
     }
 
-    // If groupIndex is specified and valid, use that group
-    // Otherwise, default to the first group (index 0)
+    // The groupIndex sent from the notebooksView is 1-based, so we need to convert it to 0-based
+    // If groupIndex is undefined or out of bounds, default to the first group (index 0)
     const targetGroupIndex = (groupIndex !== undefined &&
-      groupIndex >= 0 &&
-      groupIndex < codebookConfig.folderGroups.length)
-      ? groupIndex : 0;
+      groupIndex > 0 && // Change from >= 0 to > 0 to ensure 1-based index
+      groupIndex <= codebookConfig.folderGroups.length) // Change from < to <= for inclusive check
+      ? groupIndex - 1 : 0;
 
     // Add the new folder to the target group
-    codebookConfig.folderGroups[targetGroupIndex].folders.push(new folders.FolderGroupFolder(folderName));
+    codebookConfig.folderGroups[targetGroupIndex].folders.push(new folders.FolderGroupFolder(folderName, ''));
     window.showInformationMessage(`Added folder to tree view: ${folderName}`);
 
     // Update settings
@@ -170,124 +167,14 @@ async function addSubFolder(parentFolderName: string): Promise<void> {
     }
 
     // Add new sub-folder
-    parentFolder.folders.push(new folders.FolderGroupFolder(folderName));
+    parentFolder.folders.push(new folders.FolderGroupFolder(folderName, ''));
     window.showInformationMessage(`Added sub-folder ${folderName} to ${parentFolderName}`);
 
     // Update settings
-    folderGroup.applyChanges();
+    folderGroup.writeChanges();
   } catch (error) {
     console.error('Error adding sub-folder:', error);
     window.showErrorMessage(`Failed to add sub-folder: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
-async function renameFolderDisplay(folderName: string, currentDisplayName: string): Promise<void> {
-  try {
-    // Add debug logging at the start of the function
-    console.log(`renaming folder ${folderName}`);
-
-    // Get new display name from user
-    const newName = await window.showInputBox({
-      placeHolder: currentDisplayName,
-      prompt: 'Enter a new display name for this folder',
-      value: currentDisplayName
-    });
-
-    if (!newName || newName === currentDisplayName) {
-      return; // User canceled or no change
-    }
-
-    // Get current folders from settings
-    const configPath = config.getCodebookConfigFilePath();
-    const folderGroup = folders.getWorkspaceFolderGroup(configPath);
-
-    const folder = folderGroup.findFolder(folderName);
-    if (!folder) {
-      window.showErrorMessage(`Folder ${folderName} not found`);
-      return;
-    }
-
-    // Update the folder's display name
-    folder.name = newName;
-    window.showInformationMessage(`Renamed folder to: ${newName}`);
-
-    // Update settings
-    folderGroup.applyChanges();
-  } catch (error) {
-    console.error('Error renaming folder:', error);
-    window.showErrorMessage(`Failed to rename folder: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
-async function removeFolderFromTreeView(folderName: string): Promise<void> {
-  try {
-    console.log(`Removing folder ${folderName} from tree view`);
-
-    // Get current folders from settings
-    const configPath = config.getCodebookConfigFilePath();
-    const folderGroup = folders.getWorkspaceFolderGroup(configPath);
-
-    const success = folderGroup.removeFolder(folderName);
-    if (!success) {
-      window.showWarningMessage('Folder not found in tree view');
-      return;
-    }
-
-    folderGroup.applyChanges();
-    window.showInformationMessage(`Removed folder ${folderName} from tree view`);
-  } catch (error) {
-    console.error('Error removing folder from tree view:', error);
-    window.showErrorMessage(`Failed to remove folder from tree view: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
-async function renameTreeViewFile(entry: folders.FolderGroupFile, newName: string): Promise<void> {
-  try {
-    console.log(`Renaming file from "${entry.name}" to "${newName}"`);
-
-    // Get current folders from settings
-    const configPath = config.getCodebookConfigFilePath();
-    const folderGroup = folders.getWorkspaceFolderGroup(configPath);
-    const workspacePath = config.getWorkspaceFolder();
-    let fileRenamed = false;
-
-    const renameFile = (folders: folders.FolderGroupFolder[]): boolean => {
-      for (const folder of folders) {
-        if (folder.files) {
-          const fileIndex = folder.files.findIndex(f =>
-            f.name === entry.name && config.getFullPath(f.path, workspacePath) === config.getFullPath(entry.path, workspacePath));
-
-          if (fileIndex !== -1) {
-            folder.files[fileIndex] = {
-              ...folder.files[fileIndex],
-              name: newName
-            };
-            fileRenamed = true;
-            return true;
-          }
-        }
-        if (folder.folders) {
-          if (renameFile(folder.folders)) {
-            return true;
-          }
-        }
-      }
-      return false;
-    };
-
-    renameFile(folderGroup.folders);
-
-    if (!fileRenamed) {
-      window.showWarningMessage('File not found in tree view');
-      return;
-    }
-
-    // Update settings
-    folderGroup.applyChanges();
-    window.showInformationMessage(`Renamed file to: ${newName}`);
-  } catch (error) {
-    console.error('Error renaming file in tree view:', error);
-    window.showErrorMessage(`Failed to rename file: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -495,7 +382,7 @@ export function activate(context: ExtensionContext) {
   context.subscriptions.push(disposable);
 
   // Register the command to open the tree view
-  disposable = commands.registerCommand('codebook-md.openTreeView', () => {
+  disposable = commands.registerCommand('codebook-md.openNotebooksView', () => {
     commands.executeCommand('workbench.view.extension.codebook-md-activitybar');
   });
   context.subscriptions.push(disposable);
@@ -532,7 +419,7 @@ export function activate(context: ExtensionContext) {
   });
   context.subscriptions.push(disposable);
 
-  // Command: Add a markdown file to tree view via file picker and folder selection
+  // Command: Add a markdown file to a FolderGroup via file picker and folder selection
   disposable = commands.registerCommand('codebook-md.addFileToChosenFolder', async (groupIndex?: number) => {
     await addFileToChosenFolder(groupIndex);
   });
@@ -567,7 +454,7 @@ export function activate(context: ExtensionContext) {
       folder.name = newName;
 
       // Update settings
-      folderGroup.applyChanges();
+      folderGroup.writeChanges();
       window.showInformationMessage(`Renamed folder to: ${newName}`);
     } catch (error) {
       console.error('Error renaming folder:', error);
@@ -607,10 +494,10 @@ export function activate(context: ExtensionContext) {
       }
 
       // Add new subfolder
-      parentFolder.folders.push(new folders.FolderGroupFolder(subFolderName));
+      parentFolder.folders.push(new folders.FolderGroupFolder(subFolderName, ''));
 
       // Update settings
-      folderGroup.applyChanges();
+      folderGroup.writeChanges();
       window.showInformationMessage(`Added sub-folder "${subFolderName}" to "${folderName}"`);
     } catch (error) {
       console.error('Error adding sub-folder:', error);
@@ -643,10 +530,13 @@ export function activate(context: ExtensionContext) {
       let folderGroup: folders.FolderGroup;
 
       if (groupIndex !== undefined) {
+        // The groupIndex sent from the notebooksView is 1-based, so we need to convert it to 0-based
+        const targetGroupIndex = groupIndex - 1;
+
         // If a group index is provided, use the corresponding folder group
-        const targetGroup = folders.getFolderGroupByIndex(configPath, groupIndex);
+        const targetGroup = folders.getFolderGroupByIndex(configPath, targetGroupIndex);
         if (!targetGroup) {
-          window.showErrorMessage(`Folder group with index ${groupIndex} not found`);
+          window.showErrorMessage(`Folder group with index ${targetGroupIndex} not found`);
           return;
         }
         folderGroup = targetGroup;
@@ -655,7 +545,7 @@ export function activate(context: ExtensionContext) {
         folderGroup = folders.getWorkspaceFolderGroup(configPath);
       }
 
-      await addFileToTreeViewFolder(folderGroup, filePath, folderName);
+      await addFileToFolderGroupFolder(folderGroup, filePath, folderName);
 
       // Force a refresh of the notebooks view
       await refreshNotebooksView();
@@ -708,7 +598,7 @@ export function activate(context: ExtensionContext) {
       }
 
       // Update settings
-      folderGroup.applyChanges();
+      folderGroup.writeChanges();
       window.showInformationMessage(`Removed folder "${folderName}" and its contents`);
     } catch (error) {
       console.error('Error removing folder:', error);
@@ -756,7 +646,7 @@ export function activate(context: ExtensionContext) {
       }
 
       // Update settings
-      folderGroup.applyChanges();
+      folderGroup.writeChanges();
       window.showInformationMessage(`Removed "${entry.name}" from My Notebooks`);
     } catch (error) {
       console.error('Error removing file:', error);
@@ -818,7 +708,7 @@ export function activate(context: ExtensionContext) {
       }
 
       // Update settings
-      folderGroup.applyChanges();
+      folderGroup.writeChanges();
       window.showInformationMessage(`Renamed file to: ${newName}`);
     } catch (error) {
       console.error('Error renaming file:', error);
@@ -827,10 +717,10 @@ export function activate(context: ExtensionContext) {
   });
   context.subscriptions.push(disposable);
 
-  // Command: Remove object (file or folder) from tree view based on index ID
-  disposable = commands.registerCommand('codebook-md.removeObjectFromTreeView', async (objectId: string) => {
+  // Command: Remove object (file or folder) from a FolderGroup based on index ID
+  disposable = commands.registerCommand('codebook-md.removeObjectFromFolderGroup', async (entId: string) => {
     try {
-      console.log(`Removing object with ID: ${objectId} from tree view`);
+      console.log(`Removing object with ID: ${entId} from tree view`);
       // Ask for confirmation
       const answer = await window.showWarningMessage(
         `Are you sure you want to remove this item from My Notebooks?`,
@@ -841,235 +731,93 @@ export function activate(context: ExtensionContext) {
       if (answer !== 'Yes') {
         return; // User canceled
       }
-      // Extract the group index from the objectId (first number in the path)
-      const groupIndex = parseInt(objectId.split('.')[0], 10);
-      // Get the config path
-      const configPath = config.getCodebookConfigFilePath();
-      // Get the correct folder group using the new helper function
-      const folderGroup = folders.getFolderGroupByIndex(configPath, groupIndex);
-      if (!folderGroup) {
-        console.error(`Folder group not found for index: ${groupIndex}`);
+
+      const entity = new folders.FolderGroupEntity(entId, config.getCodebookConfigFilePath());
+      if (!entity) {
+        console.error(`Entity not found for ID: ${entId}`);
         return;
       }
-      // Determine if this is a file or folder ID
-      const isFile = folders.objectIdIsFile(objectId);
-      if (isFile) {
-        // Handle file removal
-        const folderPath = folders.objectIdFolderPath(objectId);
-        if (!folderPath) {
-          window.showErrorMessage(`Invalid file ID format: ${objectId}`);
-          return;
-        }
-        const fileIndex = folders.objectIdFileIndex(objectId);
-        if (fileIndex === -1) {
-          window.showErrorMessage(`Invalid file index in ID: ${objectId}`);
-          return;
-        }
 
-        // For file removal, we need to adjust how we find the target folder based on the folderPath
-        // The folderPath is in the format "groupIndex.folderIndex1.folderIndex2..." (e.g., "0.3")
-        // We need to extract only the folder indices after the group index
-        const folderIndices = folderPath.split('.').slice(1).map(idx => parseInt(idx, 10));
-        let targetFolder: folders.FolderGroupFolder | undefined;
-
-        // If folderIndices is empty, it means the file is directly in the root of the group
-        // which is not possible, so we show an error
-        if (folderIndices.length === 0) {
-          window.showErrorMessage(`Invalid folder path: ${folderPath}`);
-          return;
-        }
-
-        // Navigate to the target folder
-        const currentFolders = folderGroup.folders;
-        try {
-          // Get the folder at folderIndices[0]
-          const topLevelIndex = folderIndices[0];
-          if (topLevelIndex >= currentFolders.length) {
-            throw new Error(`Folder index out of bounds: ${topLevelIndex}`);
-          }
-          targetFolder = currentFolders[topLevelIndex];
-
-          // Navigate through any additional nested folders
-          for (let i = 1; i < folderIndices.length; i++) {
-            if (!targetFolder.folders) {
-              throw new Error(`Folder does not have subfolders`);
-            }
-            const index = folderIndices[i];
-            if (index >= targetFolder.folders.length) {
-              throw new Error(`Folder index out of bounds: ${index}`);
-            }
-            targetFolder = targetFolder.folders[index];
-          }
-        } catch (error) {
-          console.error(`Failed to find folder: ${error instanceof Error ? error.message : String(error)}`);
-          window.showErrorMessage(`Could not find folder for path: ${folderPath}`);
-          return;
-        }
-
-        // Remove the file at the specified index
-        if (!targetFolder) {
-          window.showErrorMessage(`Could not find folder for path: ${folderPath}`);
-          return;
-        }
-
-        if (targetFolder.files && fileIndex < targetFolder.files.length) {
-          const fileName = targetFolder.files[fileIndex].name;
-          targetFolder.files.splice(fileIndex, 1);
-          window.showInformationMessage(`Removed "${fileName}" from My Notebooks`);
-        } else {
-          window.showErrorMessage(`File not found at index ${fileIndex}`);
-          return;
-        }
-      } else {
-        // Handle folder removal
-        // Extract indices from folder path
-        const folderIndices = objectId.split('.').map(index => parseInt(index, 10));
-        // If we just have a single index after the group index (e.g., "0.1"), it's a top-level folder in that group
-        if (folderIndices.length === 2) {
-          const folderIndex = folderIndices[1];
-          if (folderIndex >= folderGroup.folders.length) {
-            window.showErrorMessage(`Folder index out of bounds: ${folderIndex}`);
-            return;
-          }
-          const folderName = folderGroup.folders[folderIndex].name;
-          folderGroup.folders.splice(folderIndex, 1);
-          window.showInformationMessage(`Removed folder "${folderName}" and its contents`);
-        } else {
-          // For nested folders, find the parent folder and then remove the child
-          // Get all indices except the first (group index) and last (target folder index)
-          const parentIndices = folderIndices.slice(1, -1);
-          const folderIndex = folderIndices[folderIndices.length - 1];
-
-          // Navigate to the parent folder
-          let parentFolder: folders.FolderGroupFolder | undefined;
-          const currentFolders = folderGroup.folders;
-
-          try {
-            if (parentIndices.length === 0) {
-              // This means we're dealing with a top-level folder, which is handled above
-              // This case should not occur but we'll handle it anyway
-              throw new Error("Invalid parent folder indices");
-            }
-
-            // Get the folder at parentIndices[0]
-            const topLevelIndex = parentIndices[0];
-            if (topLevelIndex >= currentFolders.length) {
-              throw new Error(`Folder index out of bounds: ${topLevelIndex}`);
-            }
-            parentFolder = currentFolders[topLevelIndex];
-
-            // Navigate through any additional nested folders
-            for (let i = 1; i < parentIndices.length; i++) {
-              if (!parentFolder.folders) {
-                throw new Error(`Folder does not have subfolders`);
-              }
-              const index = parentIndices[i];
-              if (index >= parentFolder.folders.length) {
-                throw new Error(`Folder index out of bounds: ${index}`);
-              }
-              parentFolder = parentFolder.folders[index];
-            }
-          } catch (error) {
-            console.error(`Failed to find parent folder: ${error instanceof Error ? error.message : String(error)}`);
-            window.showErrorMessage(`Could not find parent folder`);
-            return;
-          }
-
-          // Remove the folder at the specified index
-          if (!parentFolder) {
-            window.showErrorMessage(`Could not find parent folder`);
-            return;
-          }
-
-          if (parentFolder.folders && folderIndex < parentFolder.folders.length) {
-            const folderName = parentFolder.folders[folderIndex].name;
-            parentFolder.folders.splice(folderIndex, 1);
-            window.showInformationMessage(`Removed folder "${folderName}" and its contents`);
-          } else {
-            window.showErrorMessage(`Folder not found at index ${folderIndex}`);
-            return;
-          }
-        }
+      // Get the correct folder group using the new helper function
+      const folderGroup = entity.getFolderGroup();
+      if (!folderGroup) {
+        console.error(`Folder group not found for index: ${entity.stringify()}`);
+        return;
       }
+
+      folderGroup.removeEntity(entity);
+
       // Update settings
-      folderGroup.applyChanges();
-      // Force a refresh of the notebooks view
+      folderGroup.writeChanges();
       await refreshNotebooksView();
     } catch (error) {
-      console.error('Error removing object from tree view:', error);
+      console.error('Error removing entity from tree view:', error);
       window.showErrorMessage(`Failed to remove object: ${error instanceof Error ? error.message : String(error)}`);
     }
   });
   context.subscriptions.push(disposable);
 
   // Command: Move item up in tree view
-  disposable = commands.registerCommand('codebook-md.moveTreeViewItemUp', async (objectId: string) => {
+  disposable = commands.registerCommand('codebook-md.moveFolderGroupEntityUp', async (entId: string) => {
     try {
-      console.log(`Moving item with ID: ${objectId} up in tree view`);
+      console.log(`Moving item with ID: ${entId} up in tree view`);
 
-      // Extract the group index from the objectId (first number in the path)
-      const groupIndex = parseInt(objectId.split('.')[0], 10);
-
-      // Get the config path
-      const configPath = config.getCodebookConfigFilePath();
-
-      // Get the correct folder group using the new helper function
-      const folderGroup = folders.getFolderGroupByIndex(configPath, groupIndex);
-
-      if (!folderGroup) {
-        console.error(`Folder group not found for index: ${groupIndex}`);
+      const entity = new folders.FolderGroupEntity(entId, config.getCodebookConfigFilePath());
+      if (!entity) {
+        console.error(`Entity not found for ID: ${entId}`);
         return;
       }
 
-      // Move the item up using the objectId
-      const success = folderGroup.moveTreeViewItemUp(objectId);
+      // Get the correct folder group using the new helper function
+      const folderGroup = entity.getFolderGroup();
+      if (!folderGroup) {
+        console.error(`Folder group not found for index: ${entity.stringify()}`);
+        return;
+      }
+
+      // Move the item up using the entId
+      const success = folderGroup.moveEntityUp(entity);
       if (!success) {
-        console.log(`Item with ID ${objectId} not moved up`);
+        console.log(`Item with ID ${entId} not moved up`);
         return;
       }
 
       // Update settings
-      folderGroup.applyChanges();
-
-      // Force a refresh of the notebooks view
+      folderGroup.writeChanges();
       await refreshNotebooksView();
     } catch (error) {
-      console.error('Error moving item up in tree view:', error);
-      window.showErrorMessage(`Failed to move item up: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('Error moving entity up in tree view:', error);
     }
   });
   context.subscriptions.push(disposable);
 
   // Command: Move item down in tree view
-  disposable = commands.registerCommand('codebook-md.moveTreeViewItemDown', async (objectId: string) => {
+  disposable = commands.registerCommand('codebook-md.moveFolderGroupEntityDown', async (entId: string) => {
     try {
-      console.log(`Moving item with ID: ${objectId} down in tree view`);
+      console.log(`Moving item with ID: ${entId} down in tree view`);
 
-      // Extract the group index from the objectId (first number in the path)
-      const groupIndex = parseInt(objectId.split('.')[0], 10);
-
-      // Get the config path
-      const configPath = config.getCodebookConfigFilePath();
-
-      // Get the correct folder group using the new helper function
-      const folderGroup = folders.getFolderGroupByIndex(configPath, groupIndex);
-
-      if (!folderGroup) {
-        console.error(`Folder group not found for index: ${groupIndex}`);
+      const entity = new folders.FolderGroupEntity(entId, config.getCodebookConfigFilePath());
+      if (!entity) {
+        console.error(`Entity not found for ID: ${entId}`);
         return;
       }
 
-      // Move the item down using the objectId
-      const success = folderGroup.moveTreeViewItemDown(objectId);
+      // Get the correct folder group using the new helper function
+      const folderGroup = entity.getFolderGroup();
+      if (!folderGroup) {
+        console.error(`Folder group not found for index: ${entity.stringify()}`);
+        return;
+      }
+
+      // Move the item down using the entity
+      const success = folderGroup.moveEntityDown(entity);
       if (!success) {
-        console.log(`Item with ID ${objectId} not moved down`);
+        console.log(`Entity ${entity.stringify()} not moved down`);
         return;
       }
 
       // Update settings
-      folderGroup.applyChanges();
-
-      // Force a refresh of the notebooks view
+      folderGroup.writeChanges();
       await refreshNotebooksView();
     } catch (error) {
       console.error('Error moving item down in tree view:', error);
@@ -1079,8 +827,8 @@ export function activate(context: ExtensionContext) {
   context.subscriptions.push(disposable);
 
   // Command: Add folder to tree view
-  disposable = commands.registerCommand('codebook-md.addFolderToTreeView', async (groupIndex?: number) => {
-    await addFolderToTreeView(groupIndex);
+  disposable = commands.registerCommand('codebook-md.addFolderToFolderGroup', async (groupIndex?: number) => {
+    await addFolderToFolderGroup(groupIndex);
   });
   context.subscriptions.push(disposable);
 
@@ -1100,12 +848,9 @@ export function deactivate() { }
 
 // Export helper functions
 export {
-  addFileToTreeViewFolder,
-  addFolderToTreeView,
+  addFileToFolderGroupFolder,
+  addFolderToFolderGroup,
   addSubFolder,
-  renameFolderDisplay,
-  removeFolderFromTreeView,
-  renameTreeViewFile
 };
 
 async function addFileToChosenFolder(groupIndex?: number): Promise<void> {
@@ -1122,12 +867,11 @@ async function addFileToChosenFolder(groupIndex?: number): Promise<void> {
       return;
     }
 
-    // If groupIndex is specified and valid, use that group
-    // Otherwise, default to the first group (index 0)
-    const targetGroupIndex = (groupIndex !== undefined &&
-      groupIndex >= 0 &&
-      groupIndex < codebookConfig.folderGroups.length)
-      ? groupIndex : 0;
+    // The groupIndex sent from the notebooksView is 1-based, so we need to convert it to 0-based
+    // If groupIndex is undefined, default to the first group (index 0)
+    const targetGroupIndex = (groupIndex !== undefined && groupIndex > 0 &&
+      groupIndex <= codebookConfig.folderGroups.length)
+      ? groupIndex - 1 : 0;
 
     // Get the target folder group
     const folderGroup = folders.getFolderGroupByIndex(configPath, targetGroupIndex);
@@ -1172,8 +916,8 @@ async function addFileToChosenFolder(groupIndex?: number): Promise<void> {
       return; // User canceled file selection
     }
 
-    // Call addFileToTreeViewFolder with the correct folder group
-    await addFileToTreeViewFolder(folderGroup, uris[0].fsPath, selectedFolder.label);
+    // Call addFileToFolderGroupFolder with the correct folder group
+    await addFileToFolderGroupFolder(folderGroup, uris[0].fsPath, selectedFolder.label);
 
     // Force a refresh of the notebooks view
     await refreshNotebooksView();

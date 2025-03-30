@@ -26,7 +26,13 @@ jest.mock('path', () => ({
   dirname: jest.fn(),
 }));
 
-describe('config.ts Test Suite', () => {
+// Mock config module
+jest.mock('../config', () => ({
+  getCodebookConfigFilePath: jest.fn(() => 'test-config-path'),
+}));
+
+describe('folders.ts Test Suite', () => {
+  // Existing tests
   describe('suggestedDisplayName', () => {
     it('should properly format filenames', () => {
       const testCases = [
@@ -58,367 +64,268 @@ describe('config.ts Test Suite', () => {
     });
   });
 
-  describe('moveTreeViewItemDown', () => {
+  // New tests for findTargetFolderByEntityId
+  describe('findTargetFolderByEntityId', () => {
     let folderGroup: folders.FolderGroup;
+    let rootFolder1: folders.FolderGroupFolder;
+    let rootFolder2: folders.FolderGroupFolder;
+    let nestedFolder1: folders.FolderGroupFolder;
+    let nestedFolder2: folders.FolderGroupFolder;
+    let deeplyNestedFolder: folders.FolderGroupFolder;
+
+    // Mock console methods to verify logging
+    const originalConsoleError = console.error;
+    const mockConsoleError = jest.fn();
 
     beforeEach(() => {
-      // Set up a test folder structure
-      folderGroup = new folders.FolderGroup('Test', 'test/settings.json', '', [
-        new folders.FolderGroupFolder('Folder1'),
-        new folders.FolderGroupFolder('Folder2'),
-        new folders.FolderGroupFolder('Folder3')
-      ]);
+      // Create a new folder group for each test
+      folderGroup = new folders.FolderGroup('Test Group', 'test-source', 'Test Description', []);
 
-      // Add some files to Folder1
-      const folder1 = folderGroup.folders[0];
-      folder1.files = [
-        new folders.FolderGroupFile('File1', 'path1'),
-        new folders.FolderGroupFile('File2', 'path2'),
-        new folders.FolderGroupFile('File3', 'path3')
-      ];
+      // Create test folders at root level
+      rootFolder1 = new folders.FolderGroupFolder('Root Folder 1', '');
+      rootFolder2 = new folders.FolderGroupFolder('Root Folder 2', '');
 
-      // Add nested folders to Folder2
-      const folder2 = folderGroup.folders[1];
-      folder2.folders = [
-        new folders.FolderGroupFolder('Nested1'),
-        new folders.FolderGroupFolder('Nested2')
-      ];
+      // Create nested folders
+      nestedFolder1 = new folders.FolderGroupFolder('Nested Folder 1', '');
+      nestedFolder2 = new folders.FolderGroupFolder('Nested Folder 2', '');
+      deeplyNestedFolder = new folders.FolderGroupFolder('Deeply Nested Folder', '');
+
+      // Set up folder hierarchy
+      nestedFolder1.folders = [deeplyNestedFolder];
+      rootFolder1.folders = [nestedFolder1, nestedFolder2];
+
+      // Add root folders to the folder group
+      folderGroup.folders = [rootFolder1, rootFolder2];
+
+      // Mock console.error
+      console.error = mockConsoleError;
+      mockConsoleError.mockReset();
     });
 
-    it('should move a root-level folder down', () => {
-      const moved = folderGroup.moveTreeViewItemDown('0');
-      expect(moved).toBe(true);
-      expect(folderGroup.folders[0].name).toBe('Folder2');
-      expect(folderGroup.folders[1].name).toBe('Folder1');
+    afterEach(() => {
+      // Restore console methods
+      console.error = originalConsoleError;
     });
 
-    it('should not move the last root-level folder down', () => {
-      const moved = folderGroup.moveTreeViewItemDown('2');
-      expect(moved).toBe(false);
-      expect(folderGroup.folders[2].name).toBe('Folder3');
+    it('should find a folder at the root level', () => {
+      // Root level folder (index 1-based, so "1" refers to the first folder)
+      const targetFolder = folderGroup.findTargetFolderByEntityId('1');
+
+      expect(targetFolder).toBeDefined();
+      expect(targetFolder).toBe(rootFolder1);
     });
 
-    it('should move a file down within its folder', () => {
-      const moved = folderGroup.moveTreeViewItemDown('0[0]');
-      expect(moved).toBe(true);
-      const folder1 = folderGroup.folders[0];
-      expect(folder1.files[0].name).toBe('File2');
-      expect(folder1.files[1].name).toBe('File1');
+    it('should find a folder at the nested level', () => {
+      // Nested folder (1.1 means first child of first root folder, 1-based)
+      const targetFolder = folderGroup.findTargetFolderByEntityId('1.1');
+
+      expect(targetFolder).toBeDefined();
+      expect(targetFolder).toBe(nestedFolder1);
     });
 
-    it('should not move the last file down', () => {
-      const moved = folderGroup.moveTreeViewItemDown('0[2]');
-      expect(moved).toBe(false);
-      const folder1 = folderGroup.folders[0];
-      expect(folder1.files[2].name).toBe('File3');
+    it('should find a folder at a deeply nested level', () => {
+      // Deeply nested folder (1.1.1 means first child of first child of first root folder)
+      const targetFolder = folderGroup.findTargetFolderByEntityId('1.1.1');
+
+      expect(targetFolder).toBeDefined();
+      expect(targetFolder).toBe(deeplyNestedFolder);
     });
 
-    it('should move a nested folder down', () => {
-      const moved = folderGroup.moveTreeViewItemDown('1.0');
-      expect(moved).toBe(true);
-      const folder2 = folderGroup.folders[1];
-      expect(folder2.folders[0].name).toBe('Nested2');
-      expect(folder2.folders[1].name).toBe('Nested1');
+    it('should return undefined for invalid folder path format', () => {
+      const targetFolder = folderGroup.findTargetFolderByEntityId('');
+
+      expect(targetFolder).toBeUndefined();
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid entityId format')
+      );
     });
 
-    it('should not move a folder down with invalid object id', () => {
-      const moved = folderGroup.moveTreeViewItemDown('invalid.id');
-      expect(moved).toBe(false);
+    it('should return undefined for non-existent folder index', () => {
+      // Using index that exceeds the array bounds
+      const targetFolder = folderGroup.findTargetFolderByEntityId('9');
+
+      expect(targetFolder).toBeUndefined();
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to find folder')
+      );
     });
 
-    it('should not move a file down with invalid object id', () => {
-      const moved = folderGroup.moveTreeViewItemDown('0[invalid]');
-      expect(moved).toBe(false);
+    it('should return undefined for folder index out of bounds in nested path', () => {
+      // Valid root but invalid nested index
+      const targetFolder = folderGroup.findTargetFolderByEntityId('1.9');
+
+      expect(targetFolder).toBeUndefined();
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to find folder')
+      );
+    });
+
+    it('should handle non-numeric folder indices', () => {
+      // Non-numeric indices should be NaN after parseInt
+      const targetFolder = folderGroup.findTargetFolderByEntityId('abc');
+
+      expect(targetFolder).toBeUndefined();
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to find folder')
+      );
+    });
+
+    it('should return undefined for partially valid path with invalid end', () => {
+      // First part exists (rootFolder1) but second part doesn't
+      const targetFolder = folderGroup.findTargetFolderByEntityId('1.3');
+
+      expect(targetFolder).toBeUndefined();
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to find folder')
+      );
+    });
+
+    it('should handle folder path with correct structure but missing folders', () => {
+      // Create a group with empty folders array
+      const emptyFolderGroup = new folders.FolderGroup('Empty Group', 'test-source', 'Empty Description', []);
+      const targetFolder = emptyFolderGroup.findTargetFolderByEntityId('1');
+
+      expect(targetFolder).toBeUndefined();
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to find folder')
+      );
+    });
+
+    it('should handle folders with undefined nested folders array', () => {
+      // Create a folder with undefined folders array
+      const folderWithoutNestedFolders = new folders.FolderGroupFolder('No Nested Folders', '');
+      folderGroup.folders = [folderWithoutNestedFolders];
+
+      // Try to access a nested folder
+      const targetFolder = folderGroup.findTargetFolderByEntityId('1.1');
+
+      expect(targetFolder).toBeUndefined();
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to find folder')
+      );
     });
   });
 
-  describe('moveTreeViewItemUp', () => {
+  // New tests for findTargetParentFolderByEntityId
+  describe('findTargetParentFolderByEntityId', () => {
     let folderGroup: folders.FolderGroup;
+    let rootFolder1: folders.FolderGroupFolder;
+    let rootFolder2: folders.FolderGroupFolder;
+    let nestedFolder1: folders.FolderGroupFolder;
+    let nestedFolder2: folders.FolderGroupFolder;
+    let deeplyNestedFolder: folders.FolderGroupFolder;
+
+    // Mock console methods to verify logging
+    const originalConsoleError = console.error;
+    const mockConsoleError = jest.fn();
 
     beforeEach(() => {
-      // Set up a test folder structure
-      folderGroup = new folders.FolderGroup('Test', 'test/settings.json', '', [
-        new folders.FolderGroupFolder('Folder1'),
-        new folders.FolderGroupFolder('Folder2'),
-        new folders.FolderGroupFolder('Folder3')
-      ]);
+      // Create a new folder group for each test
+      folderGroup = new folders.FolderGroup('Test Group', 'test-source', 'Test Description', []);
 
-      // Add some files to Folder1
-      const folder1 = folderGroup.folders[0];
-      folder1.files = [
-        new folders.FolderGroupFile('File1', 'path1'),
-        new folders.FolderGroupFile('File2', 'path2'),
-        new folders.FolderGroupFile('File3', 'path3')
-      ];
+      // Create test folders at root level
+      rootFolder1 = new folders.FolderGroupFolder('Root Folder 1', '');
+      rootFolder2 = new folders.FolderGroupFolder('Root Folder 2', '');
 
-      // Add nested folders to Folder2
-      const folder2 = folderGroup.folders[1];
-      folder2.folders = [
-        new folders.FolderGroupFolder('Nested1'),
-        new folders.FolderGroupFolder('Nested2')
-      ];
+      // Create nested folders
+      nestedFolder1 = new folders.FolderGroupFolder('Nested Folder 1', '');
+      nestedFolder2 = new folders.FolderGroupFolder('Nested Folder 2', '');
+      deeplyNestedFolder = new folders.FolderGroupFolder('Deeply Nested Folder', '');
+
+      // Set up folder hierarchy
+      nestedFolder1.folders = [deeplyNestedFolder];
+      rootFolder1.folders = [nestedFolder1, nestedFolder2];
+
+      // Add root folders to the folder group
+      folderGroup.folders = [rootFolder1, rootFolder2];
+
+      // Mock console.error
+      console.error = mockConsoleError;
+      mockConsoleError.mockReset();
     });
 
-    it('should move a root-level folder up', () => {
-      const moved = folderGroup.moveTreeViewItemUp('1');
-      expect(moved).toBe(true);
-      expect(folderGroup.folders[0].name).toBe('Folder2');
-      expect(folderGroup.folders[1].name).toBe('Folder1');
+    afterEach(() => {
+      // Restore console methods
+      console.error = originalConsoleError;
     });
 
-    it('should not move the first root-level folder up', () => {
-      const moved = folderGroup.moveTreeViewItemUp('0');
-      expect(moved).toBe(false);
-      expect(folderGroup.folders[0].name).toBe('Folder1');
+    it('should return undefined for a root level folder', () => {
+      // Root level folder has no parent folder in the hierarchy
+      const parentFolder = folderGroup.findTargetParentFolderByEntityId('1');
+
+      expect(parentFolder).toBeUndefined();
     });
 
-    it('should move a file up within its folder', () => {
-      const moved = folderGroup.moveTreeViewItemUp('0[1]');
-      expect(moved).toBe(true);
-      const folder1 = folderGroup.folders[0];
-      expect(folder1.files[0].name).toBe('File2');
-      expect(folder1.files[1].name).toBe('File1');
+    it('should find the parent folder of a nested folder', () => {
+      // For folder path 1.1, the parent is the folder at path 1
+      const parentFolder = folderGroup.findTargetParentFolderByEntityId('1.1');
+
+      expect(parentFolder).toBeDefined();
+      expect(parentFolder).toBe(rootFolder1);
     });
 
-    it('should not move the first file up', () => {
-      const moved = folderGroup.moveTreeViewItemUp('0[0]');
-      expect(moved).toBe(false);
-      const folder1 = folderGroup.folders[0];
-      expect(folder1.files[0].name).toBe('File1');
+    it('should find the parent folder of a deeply nested folder', () => {
+      // For folder path 1.1.1, the parent is the folder at path 1.1
+      const parentFolder = folderGroup.findTargetParentFolderByEntityId('1.1.1');
+
+      expect(parentFolder).toBeDefined();
+      expect(parentFolder).toBe(nestedFolder1);
     });
 
-    it('should move a nested folder up', () => {
-      const moved = folderGroup.moveTreeViewItemUp('1.1');
-      expect(moved).toBe(true);
-      const folder2 = folderGroup.folders[1];
-      expect(folder2.folders[0].name).toBe('Nested2');
-      expect(folder2.folders[1].name).toBe('Nested1');
+    it('should handle multi-level nesting correctly', () => {
+      // Create a more complex nested structure for testing
+      const extraNestedFolder = new folders.FolderGroupFolder('Extra Nested', '');
+      deeplyNestedFolder.folders = [extraNestedFolder];
+
+      // For folder path 1.1.1.1, the parent is the folder at path 1.1.1
+      const parentFolder = folderGroup.findTargetParentFolderByEntityId('1.1.1.1');
+
+      expect(parentFolder).toBeDefined();
+      expect(parentFolder).toBe(deeplyNestedFolder);
     });
 
-    it('should not move a folder up with invalid object id', () => {
-      const moved = folderGroup.moveTreeViewItemUp('invalid.id');
-      expect(moved).toBe(false);
+    it('should return undefined for invalid folder path format', () => {
+      const parentFolder = folderGroup.findTargetParentFolderByEntityId('');
+
+      expect(parentFolder).toBeUndefined();
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid entityId format')
+      );
     });
 
-    it('should not move a file up with invalid object id', () => {
-      const moved = folderGroup.moveTreeViewItemUp('0[invalid]');
-      expect(moved).toBe(false);
+    it('should return undefined for non-existent parent path', () => {
+      // Path 9.1 doesn't exist, so there's no parent folder to find
+      const parentFolder = folderGroup.findTargetParentFolderByEntityId('9.1');
+
+      expect(parentFolder).toBeUndefined();
     });
 
-    it('should not move first nested folder up', () => {
-      const moved = folderGroup.moveTreeViewItemUp('1.0');
-      expect(moved).toBe(false);
-      const folder2 = folderGroup.folders[1];
-      expect(folder2.folders[0].name).toBe('Nested1');
-    });
-  });
+    it('should handle paths with invalid segments', () => {
+      // Path with non-numeric segment
+      const parentFolder = folderGroup.findTargetParentFolderByEntityId('abc.1');
 
-  describe('findTargetFolderByObjectId', () => {
-    let folderGroup: folders.FolderGroup;
-
-    beforeEach(() => {
-      // Set up a test folder structure
-      folderGroup = new folders.FolderGroup('Test', 'test/settings.json', '', [
-        new folders.FolderGroupFolder('Folder1'),
-        new folders.FolderGroupFolder('Folder2'),
-        new folders.FolderGroupFolder('Folder3')
-      ]);
-
-      // Add some files to Folder1
-      const folder1 = folderGroup.folders[0];
-      folder1.files = [
-        new folders.FolderGroupFile('File1', 'path1'),
-        new folders.FolderGroupFile('File2', 'path2')
-      ];
-
-      // Add nested folders to Folder2
-      const folder2 = folderGroup.folders[1];
-      folder2.folders = [
-        new folders.FolderGroupFolder('Nested1'),
-        new folders.FolderGroupFolder('Nested2')
-      ];
-
-      // Add deeply nested folder
-      folder2.folders[0].folders = [
-        new folders.FolderGroupFolder('DeepNested')
-      ];
+      expect(parentFolder).toBeUndefined();
     });
 
-    it('should find root-level folder', () => {
-      const folder = folderGroup.findTargetFolderByObjectId('0');
-      expect(folder).toBeDefined();
-      expect(folder?.name).toBe('Folder1');
+    it('should not find a parent folder when target folder does not exist', () => {
+      // Path 1.9.1 - the segment 9 doesn't exist
+      const parentFolder = folderGroup.findTargetParentFolderByEntityId('1.9.1');
+
+      expect(parentFolder).toBeUndefined();
     });
 
-    it('should find nested folder', () => {
-      const folder = folderGroup.findTargetFolderByObjectId('1.0');
-      expect(folder).toBeDefined();
-      expect(folder?.name).toBe('Nested1');
-    });
+    it('should use findTargetFolderByEntityId to locate the parent folder', () => {
+      // Spy on findTargetFolderByEntityId to verify it's being called
+      const spy = jest.spyOn(folderGroup, 'findTargetFolderByEntityId');
 
-    it('should find deeply nested folder', () => {
-      const folder = folderGroup.findTargetFolderByObjectId('1.0.0');
-      expect(folder).toBeDefined();
-      expect(folder?.name).toBe('DeepNested');
-    });
+      // Call the method under test
+      folderGroup.findTargetParentFolderByEntityId('1.1.1');
 
-    it('should find folder containing a file', () => {
-      const folder = folderGroup.findTargetFolderByObjectId('0[1]');
-      expect(folder).toBeDefined();
-      expect(folder?.name).toBe('Folder1');
-      expect(folder?.files[1].name).toBe('File2');
-    });
+      // Verify findTargetFolderByEntityId was called with the parent path
+      expect(spy).toHaveBeenCalledWith('1.1');
 
-    it('should return undefined for invalid object id format', () => {
-      const folder = folderGroup.findTargetFolderByObjectId('invalid.id');
-      expect(folder).toBeUndefined();
-    });
-
-    it('should return undefined for out of bounds folder index', () => {
-      const folder = folderGroup.findTargetFolderByObjectId('5');
-      expect(folder).toBeUndefined();
-    });
-
-    it('should return undefined for out of bounds nested folder index', () => {
-      const folder = folderGroup.findTargetFolderByObjectId('1.5');
-      expect(folder).toBeUndefined();
-    });
-
-    it('should return undefined for non-existent nested path', () => {
-      const folder = folderGroup.findTargetFolderByObjectId('0.0.0');
-      expect(folder).toBeUndefined();
-    });
-
-    it('should handle empty object id', () => {
-      const folder = folderGroup.findTargetFolderByObjectId('');
-      expect(folder).toBeUndefined();
-    });
-  });
-
-  describe('findTargetParentFolderByObjectId', () => {
-    let folderGroup: folders.FolderGroup;
-
-    beforeEach(() => {
-      // Set up a test folder structure
-      folderGroup = new folders.FolderGroup('Test', 'test/settings.json', '', [
-        new folders.FolderGroupFolder('Folder1'),
-        new folders.FolderGroupFolder('Folder2'),
-        new folders.FolderGroupFolder('Folder3')
-      ]);
-
-      // Add some files to Folder1
-      const folder1 = folderGroup.folders[0];
-      folder1.files = [
-        new folders.FolderGroupFile('File1', 'path1'),
-        new folders.FolderGroupFile('File2', 'path2')
-      ];
-
-      // Add nested folders to Folder2
-      const folder2 = folderGroup.folders[1];
-      folder2.folders = [
-        new folders.FolderGroupFolder('Nested1'),
-        new folders.FolderGroupFolder('Nested2')
-      ];
-
-      // Add deeply nested folder
-      folder2.folders[0].folders = [
-        new folders.FolderGroupFolder('DeepNested')
-      ];
-    });
-
-    it('should return undefined for root-level folder', () => {
-      const parent = folderGroup.findTargetParentFolderByObjectId('0');
-      expect(parent).toBeUndefined();
-    });
-
-    it('should return undefined for root-level folder with file', () => {
-      const parent = folderGroup.findTargetParentFolderByObjectId('0[0]');
-      expect(parent).toBeUndefined();
-    });
-
-    it('should find parent of nested folder', () => {
-      const parent = folderGroup.findTargetParentFolderByObjectId('1.0');
-      expect(parent).toBeDefined();
-      expect(parent?.name).toBe('Folder2');
-    });
-
-    it('should find parent of deeply nested folder', () => {
-      const parent = folderGroup.findTargetParentFolderByObjectId('1.0.0');
-      expect(parent).toBeDefined();
-      expect(parent?.name).toBe('Nested1');
-    });
-
-    it('should return undefined for invalid object id format', () => {
-      const parent = folderGroup.findTargetParentFolderByObjectId('invalid.id');
-      expect(parent).toBeUndefined();
-    });
-
-    it('should return undefined for out of bounds folder index', () => {
-      const parent = folderGroup.findTargetParentFolderByObjectId('5.0');
-      expect(parent).toBeUndefined();
-    });
-
-    it('should return undefined for out of bounds nested folder index', () => {
-      const parent = folderGroup.findTargetParentFolderByObjectId('1.5.0');
-      expect(parent).toBeUndefined();
-    });
-
-    it('should return undefined for empty object id', () => {
-      const parent = folderGroup.findTargetParentFolderByObjectId('');
-      expect(parent).toBeUndefined();
-    });
-
-    it('should return parent folder for file in nested folder', () => {
-      // First add a file to Nested1
-      const folder2 = folderGroup.folders[1];
-      folder2.folders[0].files = [
-        new folders.FolderGroupFile('NestedFile', 'nested/path')
-      ];
-
-      const parent = folderGroup.findTargetParentFolderByObjectId('1.0[0]');
-      expect(parent).toBeDefined();
-      expect(parent?.name).toBe('Nested1');
-    });
-  });
-
-  describe('objectIdFileIndex', () => {
-    it('should return file index for valid file objectId', () => {
-      expect(folders.objectIdFileIndex('0[1]')).toBe(1);
-      expect(folders.objectIdFileIndex('1.2[3]')).toBe(3);
-      expect(folders.objectIdFileIndex('0.1.2[4]')).toBe(4);
-    });
-
-    it('should return -1 for folder objectId', () => {
-      expect(folders.objectIdFileIndex('0')).toBe(-1);
-      expect(folders.objectIdFileIndex('1.2')).toBe(-1);
-      expect(folders.objectIdFileIndex('0.1.2')).toBe(-1);
-    });
-
-    it('should return -1 for invalid file index format', () => {
-      expect(folders.objectIdFileIndex('0[a]')).toBe(-1);
-      expect(folders.objectIdFileIndex('1.2[abc]')).toBe(-1);
-      expect(folders.objectIdFileIndex('0[]')).toBe(-1);
-    });
-
-    it('should return -1 for empty string', () => {
-      expect(folders.objectIdFileIndex('')).toBe(-1);
-    });
-
-    it('should return -1 for malformed brackets', () => {
-      expect(folders.objectIdFileIndex('0]1[')).toBe(-1);
-      expect(folders.objectIdFileIndex('0[[1]]')).toBe(-1);
-      expect(folders.objectIdFileIndex('0[1')).toBe(-1);
-      expect(folders.objectIdFileIndex('0]1')).toBe(-1);
-    });
-
-    it('should handle large file indices', () => {
-      expect(folders.objectIdFileIndex('0[999]')).toBe(999);
-      expect(folders.objectIdFileIndex('1.2[1000000]')).toBe(1000000);
-    });
-
-    it('should return -1 for negative file indices', () => {
-      expect(folders.objectIdFileIndex('0[-1]')).toBe(-1);
-      expect(folders.objectIdFileIndex('1.2[-42]')).toBe(-1);
+      // Clean up
+      spy.mockRestore();
     });
   });
 });

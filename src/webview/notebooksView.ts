@@ -76,7 +76,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
           break;
         }
         case 'addFolder':
-          commands.executeCommand('codebook-md.addFolderToTreeView', data.groupIndex);
+          commands.executeCommand('codebook-md.addFolderToFolderGroup', data.groupIndex);
           break;
         case 'addFile':
           commands.executeCommand('codebook-md.addFileToChosenFolder', data.groupIndex);
@@ -118,37 +118,26 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
             commands.executeCommand('codebook-md.renameFolderInMyNotebooks', data.folderName);
           }
           break;
-        case 'removeObjectFromTreeView':
+        case 'removeObjectFromFolderGroup':
           if (data.objectId) {
-            commands.executeCommand('codebook-md.removeObjectFromTreeView', data.objectId);
+            commands.executeCommand('codebook-md.removeObjectFromFolderGroup', data.objectId);
           }
           break;
         case 'moveItemUp':
           if (data.objectId) {
-            commands.executeCommand('codebook-md.moveTreeViewItemUp', data.objectId);
+            commands.executeCommand('codebook-md.moveFolderGroupEntityUp', data.objectId);
           }
           break;
         case 'moveItemDown':
           if (data.objectId) {
-            commands.executeCommand('codebook-md.moveTreeViewItemDown', data.objectId);
+            commands.executeCommand('codebook-md.moveFolderGroupEntityDown', data.objectId);
           }
           break;
       }
     });
 
-    // Update webview when tree view data changes
-    this._disposables.push(
-      workspace.onDidChangeConfiguration(e => {
-        if (e.affectsConfiguration('codebook-md.treeView') ||
-          e.affectsConfiguration('codebook-md.treeView.folders') ||
-          e.affectsConfiguration('codebook-md')) {
-          this._updateWebview();
-        }
-      })
-    );
-
-    // Watch for changes in .vscode/settings.json
-    const settingsWatcher = workspace.createFileSystemWatcher('**/.vscode/settings.json');
+    // Watch for changes in .vscode/codebook-md.json
+    const settingsWatcher = workspace.createFileSystemWatcher('**/.vscode/codebook-md.json');
     settingsWatcher.onDidChange(() => this._updateWebview());
     settingsWatcher.onDidCreate(() => this._updateWebview());
     settingsWatcher.onDidDelete(() => this._updateWebview());
@@ -222,6 +211,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
     } else {
       // Process each folder group
       codebookConfig.folderGroups.forEach((folderGroup, groupIndex) => {
+        groupIndex++;
         if (folderGroup.hide) {
           return; // Skip hidden folder groups
         }
@@ -254,9 +244,10 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
         // Add folders for this group
         if (folderGroup.folders && folderGroup.folders.length > 0) {
           folderGroup.folders.forEach((folder, folderIndex) => {
+            folderIndex++;
             // Create a unique index for the folder that includes the group index
-            const folderIndexStr = `${groupIndex}.${folderIndex}`;
-            folderGroupsHtml += this._buildFolderHtml(folder, 0, folderIndexStr);
+            const folderIndexStr = `${groupIndex}-${folderIndex}`;
+            folderGroupsHtml += this._buildFolderHtml(groupIndex, folder, 0, folderIndexStr);
           });
         } else {
           folderGroupsHtml += '<p class="no-data">No folders in this group. Add folders and files using the buttons above.</p>';
@@ -282,18 +273,16 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
   /**
    * Build HTML for a folder and its contents
    */
-  private _buildFolderHtml(folder: folders.FolderGroupFolder, level: number = 0, folderIndex: string): string {
+  private _buildFolderHtml(groupIndex: number, folder: folders.FolderGroupFolder, level: number = 0, folderIndex: string): string {
     if (folder.hide) {
       return '';
     }
 
     const workspacePath = config.getWorkspaceFolder();
-
-    // The ID for the folder in the format of 'folderIndex'
-    const folderId = folderIndex;
+    const folderEntityId = `${folderIndex}-0`;
 
     let html = `
-      <div class="folder ${level > 0 ? 'subfolder' : ''}" id="folder-${this._escapeHtml(folderId)}">
+      <div class="folder ${level > 0 ? 'subfolder' : ''}" id="folder-${this._escapeHtml(folderEntityId)}">
         <div class="folder-header" onclick="event.stopPropagation(); toggleFolder(this)">
           <span class="folder-icon">
             <svg class="icon-svg icon-folder" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
@@ -302,12 +291,12 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
           </span>
           <span class="folder-name">${this._escapeHtml(folder.name)}</span>
           <div class="actions">
-            <button class="action-button" title="Move Up" onclick="event.stopPropagation(); return moveItemUp('${this._escapeHtml(folderId)}', event);">
+            <button class="action-button" title="Move Up" onclick="event.stopPropagation(); return moveItemUp('${this._escapeHtml(folderEntityId)}', event);">
               <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                 <path d="M8 4.5l-5 5h3V12h4V9.5h3L8 4.5z"/>
               </svg>
             </button>
-            <button class="action-button" title="Move Down" onclick="event.stopPropagation(); return moveItemDown('${this._escapeHtml(folderId)}', event);">
+            <button class="action-button" title="Move Down" onclick="event.stopPropagation(); return moveItemDown('${this._escapeHtml(folderEntityId)}', event);">
               <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                 <path d="M8 11.5l5-5H10V4H6v2.5H3L8 11.5z"/>
               </svg>
@@ -323,7 +312,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
                 <path d="M8 4v3.5h-3.5v1h3.5v3.5h1v-3.5h3.5v-1h-3.5v-3.5z"/>
               </svg>
             </button>
-            <button class="action-button icon-folder" title="Remove Folder" onclick="event.stopPropagation(); return removeObject('${this._escapeHtml(folderId)}', event);">
+            <button class="action-button icon-folder" title="Remove Folder" onclick="event.stopPropagation(); return removeObject('${this._escapeHtml(folderEntityId)}', event);">
               <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                 <path d="M3 8v1h10V8H3z"/>
               </svg>
@@ -341,19 +330,26 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
     // Add sub-folders
     if (folder.folders && folder.folders.length > 0) {
       folder.folders.forEach((subFolder, subIndex) => {
+        subIndex++;
         // Create a unique index for the subfolder
-        const subFolderIndex = `${folderIndex}.${subIndex}`;
-        html += this._buildFolderHtml(subFolder, level + 1, subFolderIndex);
+        const subFolderIndex = `${groupIndex}-${folderIndex}.${subIndex}`;
+        html += this._buildFolderHtml(groupIndex, subFolder, level + 1, subFolderIndex);
       });
     }
 
     // Add files
     if (folder.files && folder.files.length > 0) {
       folder.files.forEach((file, fileIndex) => {
+        fileIndex++;
         const filePath = config.getFullPath(file.path, workspacePath);
 
-        // Create a unique index for the file in the format of 'folderIndex[fileIndex]'
-        const fileId = `${folderIndex}[${fileIndex}]`;
+        // Create a unique index for the file - folderIndex already includes groupIndex
+        // and subIndex (if applicable), so we just need to append the fileIndex
+        const fileEntityId = `${folderIndex}-${fileIndex}`;
+        // if the fileId does not contain 2 dashes, log an error to the console
+        if ((fileEntityId.match(/-/g) || []).length !== 2) {
+          console.error(`File ID "${fileEntityId}" does not contain 2 dashes.`);
+        }
 
         // Check if it's a markdown file
         const isMarkdownFile = file.path.toLowerCase().endsWith('.md') || file.path.toLowerCase().endsWith('.markdown');
@@ -370,21 +366,21 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
         `;
 
         html += `
-          <div class="file" onclick="openFile('${this._escapeHtml(filePath)}', '${this._escapeHtml(file.path)}')" data-path="${this._escapeHtml(filePath)}" data-item-path="${this._escapeHtml(file.path)}" id="file-${this._escapeHtml(fileId)}">
+          <div class="file" onclick="openFile('${this._escapeHtml(filePath)}', '${this._escapeHtml(file.path)}')" data-path="${this._escapeHtml(filePath)}" data-item-path="${this._escapeHtml(file.path)}" id="file-${this._escapeHtml(fileEntityId)}">
             <span class="file-icon">${fileIconSvg}</span>
             <span class="file-name">${this._escapeHtml(file.name)}</span>
             <div class="actions">
-              <button class="action-button" title="Move Up" onclick="event.stopPropagation(); return moveItemUp('${this._escapeHtml(fileId)}', event);">
+              <button class="action-button" title="Move Up" onclick="event.stopPropagation(); return moveItemUp('${this._escapeHtml(fileEntityId)}', event);">
                 <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                   <path d="M8 4.5l-5 5h3V12h4V9.5h3L8 4.5z"/>
                 </svg>
               </button>
-              <button class="action-button" title="Move Down" onclick="event.stopPropagation(); return moveItemDown('${this._escapeHtml(fileId)}', event);">
+              <button class="action-button" title="Move Down" onclick="event.stopPropagation(); return moveItemDown('${this._escapeHtml(fileEntityId)}', event);">
                 <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                   <path d="M8 11.5l5-5H10V4H6v2.5H3L8 11.5z"/>
                 </svg>
               </button>
-              <button class="action-button" title="Remove from My Notebooks" onclick="event.stopPropagation(); return removeObject('${this._escapeHtml(fileId)}', event);">
+              <button class="action-button" title="Remove from My Notebooks" onclick="event.stopPropagation(); return removeObject('${this._escapeHtml(fileEntityId)}', event);">
                 <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                   <path d="M3 8v1h10V8H3z"/>
                 </svg>

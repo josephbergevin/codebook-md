@@ -54,101 +54,6 @@
           "scope": "window",
           "default": "/tmp"
         },
-        "codebook-md.treeView": {
-          "type": "object",
-          "properties": {
-            "folders": {
-              "description": "Virtual folders to organize files in the tree view. Folders can be nested.",
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "description": "Display name for the folder"
-                  },
-                  "icon": {
-                    "type": "string",
-                    "description": "Path to a custom icon for the folder"
-                  },
-                  "hide": {
-                    "type": "boolean",
-                    "description": "Whether to hide this folder in the tree view"
-                  },
-                  "folders": {
-                    "type": "array",
-                    "description": "Sub-folders within this folder",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string"
-                        },
-                        "icon": {
-                          "type": "string"
-                        },
-                        "hide": {
-                          "type": "boolean"
-                        },
-                        "folders": {
-                          "type": "array"
-                        },
-                        "files": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "name": {
-                                "type": "string"
-                              },
-                              "path": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "name",
-                              "path"
-                            ]
-                          }
-                        }
-                      },
-                      "required": [
-                        "name"
-                      ]
-                    }
-                  },
-                  "files": {
-                    "type": "array",
-                    "description": "Markdown files in this folder",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string",
-                          "description": "Display name for the markdown file"
-                        },
-                        "path": {
-                          "type": "string",
-                          "description": "Path to the markdown file"
-                        }
-                      },
-                      "required": [
-                        "name",
-                        "path"
-                      ]
-                    }
-                  }
-                },
-                "required": [
-                  "name"
-                ]
-              }
-            }
-          },
-          "default": {
-            "folders": []
-          }
-        },
         "codebook-md.permalinkPrefix": {
           "description": "Prefix for identifying permalinks. When matched in a markdown, the permalink will be converted to a link to the same file/lines in VS Code.",
           "type": "string"
@@ -478,13 +383,9 @@
         "icon": "$(add)"
       },
       {
-        "command": "codebook-md.addFolderToTreeView",
+        "command": "codebook-md.addFolderToFolderGroup",
         "title": "Add Virtual Folder to Tree View",
         "icon": "$(new-folder)"
-      },
-      {
-        "command": "codebook-md.renameTreeViewFile",
-        "title": "Rename"
       },
       {
         "command": "codebook-md.addFileToFolder",
@@ -497,11 +398,7 @@
         "icon": "$(folder-add)"
       },
       {
-        "command": "codebook-md.renameFolderDisplay",
-        "title": "Rename Folder"
-      },
-      {
-        "command": "codebook-md.removeFolderFromTreeView",
+        "command": "codebook-md.removeFolderFromFolderGroup",
         "title": "Remove Folder",
         "icon": "$(trash)"
       }
