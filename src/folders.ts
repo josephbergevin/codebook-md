@@ -1,10 +1,65 @@
 import * as fs from 'fs';
 import * as config from './config';
 
+// FolderGroup represents a group of folders in the codebook-md configuration
+// the OjectId format is used to identify folders and files within the FolderGroups
+// - ObjectId format:
+// - The beginning index is 1 (not 0) - however, we will use 0 as the file index if the item is a folder. 
+// - Here is objectId template:
+//   - {{folderGroupIndex}}-{{folder.tree.path}}-{{fileIndex}}
+//     - example: 1-1.2-2
+//       - 1: folderGroupIndex #1
+//       - 1.2: folder.tree.path
+//         - 1: root-folder index #1
+//         - 1.2: sub-folder index #2 in root-folder index #1
+//       - 2: fileIndex #2
+//       - So 1-1.2-2 means this is the 2nd file in the 2nd sub-folder in the 1st root-folder of the 1st folderGroup
+//       - The objectId's need to be updated accordingly in the code to reflect this structure
+//       - Ensure that the logic for generating objectId's in #file:notebooksView.ts is consistent with this format  
+// - Here's an example folder/file structure with objectId's
+//   - FolderGroup #1
+//     - MyRootFolder (1-1-0)
+//       - MyFile (1-1-1)
+//       - MyFile (1-1-2)
+//       - MySubFolder (1-1.1-0)
+//         - MyFile (1-1.1.1)
+//         - MyFile (1-1.1.2)
+//         - MySubSubFolder (1-1.1.1-0)
+//           - MyFile (1-1.1.1-1)
+//           - MyFile (1-1.1.1-2)
+//     - MyRootFolder (1-2-0)
+//       - MyFile (1-2-1)
+//       - MyFile (1-2-2)
+//       - MySubFolder (1-2.1-0)
+//         - MyFile (1-2.1.1)
+//         - MyFile (1-2.1.2)
+//         - MySubSubFolder (1-2.1.1-0)
+//           - MyFile (1-2.1.1-1)
+//           - MyFile (1-2.1.1-2)
+//   - FolderGroup #2
+//     - MyRootFolder (2-1-0)
+//       - MyFile (2-1-1)
+//       - MyFile (2-1-2)
+//       - MySubFolderC (2-1.1-0)
+//         - MyFile (2-1.1.1)
+//         - MyFile (2-1.1.2)
+//         - MySubSubFolder (2-1.1.1-0)
+//           - MyFile (2-1.1.1-1)
+//           - MyFile (2-1.1.1-2)
+//   - FolderGroup #3
+//     - MyRootFolder (3-1-0)
+//       - MyFile (3-1-1)
+//       - MyFile (3-1-2)
+//       - MySubFolderC (3-1.1-0)
+//         - MyFile (3-1.1.1)
+//         - MyFile (3-1.1.2)
+//         - MySubSubFolder (3-1.1.1-0)
+//           - MyFile (3-1.1.1-1)
+//           - MyFile (3-1.1.1-2)
 export class FolderGroup {
   name: string;
-  source: string;
-  index: number;
+  source: string; // 
+  index: number; // not included in json
   description: string;
   icon: string;
   hide: boolean;
@@ -20,155 +75,256 @@ export class FolderGroup {
     this.folders = folders;
   }
 
-  addFolder(folder: FolderGroupFolder): void {
-    this.folders.push(folder);
+  // moves the entity up using the following steps:
+  // - open the folder group
+  // - walk through the folders
+  // - find the target folder
+  // - if the target folder is at the root level, use folderGroup.folders
+  // - if the entity is a file: 
+  //   - swap it with the previous file
+  // - if the entity is a folder:
+  //   - swap it with the previous folder
+  // - if the entity is already at the top of its parent, return false
+  // - return true if the entity was moved, false otherwise
+  moveEntityUp(entity: FolderGroupEntity): boolean {
+    // - use the folder group
+    // if the entity is a file, find the target folder and move the file up
+    if (entity.isFile()) {
+      // Check if the entity is at the root level
+      const arrayIndex = entity.fileArrayIndex();
+      if (arrayIndex <= 0) {
+        console.log(`File is already at the top: ${entity.stringify()}`);
+        return false;
+      }
+
+      const targetFolder = this.findTargetFolderByEntityId(entity.folderPath);
+      if (!targetFolder) {
+        console.error(`Target folder not found for file: ${entity.stringify()}`);
+        return false;
+      }
+
+      // Move the file up
+      const previousFile = targetFolder.files[arrayIndex - 1];
+      targetFolder.files[arrayIndex - 1] = targetFolder.files[arrayIndex];
+      targetFolder.files[arrayIndex] = previousFile;
+      this.applyStateTargetFolderFiles(targetFolder);
+      console.log(`File moved up: ${entity.stringify()}`);
+      return true;
+    }
+
+    // if the entity is a folder, find the parent folder and move the folder up
+    const arrayIndex = entity.folderArrayIndex();
+
+    // if the entity is a folder, find the parent folder and move the folder up
+    const parentFolder = entity.getTargetParentFolder();
+    if (!parentFolder) {
+      // this means we're at the root level
+      // Move the folder up in the root folders
+      if (arrayIndex <= 0) {
+        console.log(`Folder is already at the top: ${entity.stringify()}`);
+        return false;
+      }
+
+      // Move the folder up
+      // Swap the folder with the previous one
+      if (arrayIndex < 0 || arrayIndex >= this.folders.length) {
+        console.error(`Invalid array index: ${arrayIndex} for entityId: ${entity.stringify()}`);
+        return false;
+      }
+      const previousFolder = this.folders[arrayIndex - 1];
+      this.folders[arrayIndex - 1] = this.folders[arrayIndex];
+      this.folders[arrayIndex] = previousFolder;
+      console.log(`Folder moved up: ${entity.stringify()}`);
+      return true;
+    }
+
+    if (arrayIndex <= 0) {
+      console.log(`Folder is already at the top: ${entity.stringify()}`);
+      return false;
+    }
+
+    // Move the folder up
+    // Swap the folder with the previous one
+    if (arrayIndex < 0 || arrayIndex >= parentFolder.folders.length) {
+      console.error(`Invalid array index: ${arrayIndex} for entityId: ${entity.stringify()}`);
+      return false;
+    }
+    const previousFolder = parentFolder.folders[arrayIndex - 1];
+    parentFolder.folders[arrayIndex - 1] = parentFolder.folders[arrayIndex];
+    parentFolder.folders[arrayIndex] = previousFolder;
+    this.applyStateParentFolderFolders(parentFolder);
+    console.log(`Folder moved up: ${entity.stringify()}`);
+    return true;
   }
 
-  removeFolder(folderName: string): boolean {
-    const removeRecursively = (folders: FolderGroupFolder[], name: string): FolderGroupFolder[] => {
-      return folders.filter(folder => {
-        if (folder.name === name) {
-          return false;
+  moveEntityDown(entity: FolderGroupEntity): boolean {
+    // - use the folder group
+    // if the entity is a file, find the target folder and move the file down
+    if (entity.isFile()) {
+      // Check if the entity is at the root level
+      const targetFolder = entity.getTargetFolder();
+      if (!targetFolder) {
+        console.error(`Target folder not found for file: ${entity.stringify()}`);
+        return false;
+      }
+
+      const arrayIndex = entity.fileArrayIndex();
+      if (arrayIndex >= targetFolder.files.length - 1) {
+        console.log(`File is already at the bottom: ${entity.stringify()}`);
+        return false;
+      }
+
+      // Move the file down
+      const nextFile = targetFolder.files[arrayIndex + 1];
+      targetFolder.files[arrayIndex + 1] = targetFolder.files[arrayIndex];
+      targetFolder.files[arrayIndex] = nextFile;
+      this.applyStateTargetFolderFiles(targetFolder);
+      console.log(`File moved down: ${entity.stringify()}`);
+      return true;
+    }
+
+    // if the entity is a folder, find the parent folder and move the folder down
+    const arrayIndex = entity.folderArrayIndex();
+
+    // if the entity is a folder, find the parent folder and move the folder down
+    const parentFolder = entity.getTargetParentFolder();
+    if (!parentFolder) {
+      // this means we're at the root level
+      // Move the folder down in the root folders
+      if (arrayIndex >= this.folders.length - 1) {
+        console.log(`Folder is already at the bottom: ${entity.stringify()}`);
+        return false;
+      }
+
+      const nextFolder = this.folders[arrayIndex + 1];
+      this.folders[arrayIndex + 1] = this.folders[arrayIndex];
+      this.folders[arrayIndex] = nextFolder;
+      console.log(`Folder moved down: ${entity.stringify()}`);
+      return true;
+    }
+
+    if (arrayIndex >= parentFolder.folders.length - 1) {
+      console.log(`Folder is already at the bottom: ${entity.stringify()}`);
+      return false;
+    }
+
+    // Move the folder down
+    // Swap the folder with the next one
+    if (arrayIndex < 0 || arrayIndex >= parentFolder.folders.length) {
+      console.error(`Invalid array index: ${arrayIndex} for entityId: ${entity.stringify()}`);
+      return false;
+    }
+    const nextFolder = parentFolder.folders[arrayIndex + 1];
+    parentFolder.folders[arrayIndex + 1] = parentFolder.folders[arrayIndex];
+    parentFolder.folders[arrayIndex] = nextFolder;
+    this.applyStateParentFolderFolders(parentFolder);
+    console.log(`Folder moved down: ${entity.stringify()}`);
+    return true;
+  }
+
+  applyStateTargetFolderFiles(targetFolder: FolderGroupFolder): void {
+    // walk to the target folder and overwrite the files with targetFolder.files
+    const walkFolders = (folders: FolderGroupFolder[]) => {
+      folders.forEach(folder => {
+        // Check if the folder is the target folder
+        if (folder.entityId === targetFolder.entityId) {
+          // Overwrite the files
+          folder.files = targetFolder.files;
+          console.log(`Files state applied to target folder: ${folder.name}`);
+          return;
         }
-        if (folder.folders && folder.folders.length > 0) {
-          folder.folders = removeRecursively(folder.folders, name);
+        // Walk the subfolders
+        if (folder.folders) {
+          walkFolders(folder.folders);
         }
-        return true;
       });
     };
 
-    const originalLength = this.folders.length;
-    this.folders = removeRecursively(this.folders, folderName);
-
-    // Return true if the folder was found and removed
-    return this.folders.length < originalLength;
+    // Start walking from the root folders
+    walkFolders(this.folders);
   }
 
-  moveTreeViewItemUp(objId: string): boolean {
-    const targetFolder = this.findTargetFolderByObjectId(objId);
+  applyStateParentFolderFolders(parentFolder: FolderGroupFolder): void {
+    // walk to the parent folder and overwrite the folders with parentFolder.folders
+    const walkFolders = (folders: FolderGroupFolder[]) => {
+      folders.forEach(folder => {
+        // Check if the folder is the parent folder
+        if (folder.entityId === parentFolder.entityId) {
+          // Overwrite the folders
+          folder.folders = parentFolder.folders;
+          console.log(`Folders state applied to parent folder: ${folder.name}`);
+          return;
+        }
+        // Walk the subfolders
+        if (folder.folders) {
+          walkFolders(folder.folders);
+        }
+      });
+    };
+    // Start walking from the root folders
+    walkFolders(this.folders);
+  }
+
+  removeEntity(entity: FolderGroupEntity) {
+    // find the FolderGroupFolder using the entity
+    const targetFolder = entity.getTargetFolder();
     if (!targetFolder) {
-      console.error(`Folder not found for objectId: ${objId}`);
-      return false;
+      console.error(`Folder not found for entityId: ${entity.folderPath}`);
+      return;
     }
 
-    const fileIndex = objectIdFileIndex(objId);
-
-    // if the objId is for a file:
-    if (fileIndex >= 0) {
-      // Move the file up if possible
-      if (targetFolder && targetFolder.files && fileIndex > 0) {
-        // Swap with previous file
-        const temp = targetFolder.files[fileIndex];
-        targetFolder.files[fileIndex] = targetFolder.files[fileIndex - 1];
-        targetFolder.files[fileIndex - 1] = temp;
-        return true;
-      }
-
-      // If the file is already at the top, return false
-      console.log('Item is already at the top');
-      return false;
+    // if the entity is a file, remove it from the folder
+    if (entity.isFile()) {
+      const arrayIndex = entity.fileArrayIndex();
+      const name = targetFolder.files[arrayIndex].name;
+      targetFolder.files.splice(arrayIndex, 1);
+      this.applyStateTargetFolderFiles(targetFolder);
+      console.log(`File removed: ${name}`);
+      return;
     }
 
-    // Handle folder movement
-    // The objectId is the folder path, e.g., "0.1.2"
-    const parentFolder = this.findTargetParentFolderByObjectId(objId);
-    // if we're at the root level, use this.folders for the move
-    // if we're not at the root level, use parentFolder.folders
-    if (parentFolder) {
-      const folderIndex = parentFolder.folders.findIndex(folder => folder.name === targetFolder.name);
-      if (folderIndex > 0) {
-        // Swap with previous folder
-        const temp = parentFolder.folders[folderIndex];
-        parentFolder.folders[folderIndex] = parentFolder.folders[folderIndex - 1];
-        parentFolder.folders[folderIndex - 1] = temp;
+    const arrayIndex = entity.folderArrayIndex();
 
-        console.log('Item moved up successfully');
-        return true;
-      }
-
-      console.log('Item is already at the top');
-      return false;
+    // if the entity is a folder, find the parent folder and remove it
+    const parentFolder = entity.getTargetParentFolder();
+    if (!parentFolder) {
+      // this means we're at the root level
+      // remove the folder from the root folders
+      const name = this.folders[arrayIndex].name;
+      this.folders.splice(arrayIndex, 1);
+      console.log(`Folder removed from root: ${name}`);
+      return;
     }
 
-    // swap with previous folder at root level
-    const folderIndex = this.folders.findIndex(folder => folder.name === targetFolder.name);
-    if (folderIndex > 0) {
-      // Swap with previous folder at root level
-      const temp = this.folders[folderIndex];
-      this.folders[folderIndex] = this.folders[folderIndex - 1];
-      this.folders[folderIndex - 1] = temp;
-      console.log('Item moved up successfully');
-      return true;
+    // not at the root level, so remove the folder from the parent folder
+    if (arrayIndex < 0 || arrayIndex >= parentFolder.folders.length) {
+      console.error(`Invalid array index: ${arrayIndex} for entityId: ${entity.stringify()}`);
+      return;
     }
-
-    console.log('Item is already at the top');
-    return false;
+    const name = parentFolder.folders[arrayIndex].name;
+    parentFolder.folders.splice(arrayIndex, 1);
+    this.applyStateParentFolderFolders(parentFolder);
+    console.log(`Folder removed: ${name}`);
+    return;
   }
 
-  moveTreeViewItemDown(objId: string): boolean {
-    const targetFolder = this.findTargetFolderByObjectId(objId);
-    if (!targetFolder) {
-      console.error(`Folder not found for objectId: ${objId}`);
-      return false;
-    }
-
-    const fileIndex = objectIdFileIndex(objId);
-
-    // if the objId is for a file:
-    if (fileIndex >= 0) {
-      // Move the file down if possible
-      if (targetFolder && targetFolder.files && fileIndex < targetFolder.files.length - 1) {
-        // Swap with next file
-        const temp = targetFolder.files[fileIndex];
-        targetFolder.files[fileIndex] = targetFolder.files[fileIndex + 1];
-        targetFolder.files[fileIndex + 1] = temp;
-        return true;
-      }
-
-      // If the file is already at the bottom or index is invalid, return false
-      console.log('Item is already at the bottom');
-      return false;
-    } else if (objectIdIsFile(objId)) {
-      // If it's a file ID format but index is invalid, return false
-      return false;
-    }
-
-    // Handle folder movement
-    const parentFolder = this.findTargetParentFolderByObjectId(objId);
-    // if we're at the root level, use this.folders for the move
-    // if we're not at the root level, use parentFolder.folders
-    const folderList = parentFolder ? parentFolder.folders : this.folders;
-    const targetIndex = folderList.findIndex(folder => folder.name === targetFolder.name);
-
-    if (targetIndex >= 0 && targetIndex < folderList.length - 1) {
-      // Swap with next folder
-      const temp = folderList[targetIndex];
-      folderList[targetIndex] = folderList[targetIndex + 1];
-      folderList[targetIndex + 1] = temp;
-      console.log('Item moved down successfully');
-      return true;
-    }
-
-    console.log('Folder is already at the bottom');
-    return false;
-  }
-
-  // findTargetFolderByObjectId finds a folder by its objectId.
-  // The objectId is expected to be in the format "folderIndex[fileIndex]", e.g., "0.1[2]".
-  // If the objectId is not in the expected format, it returns undefined.
-  // If the objectId is a file, it returns the folder containing that file.
-  // If the objectId is a folder, it returns that folder.
-  // If the objectId is not a file or folder, it returns undefined.
-  findTargetFolderByObjectId(objId: string): FolderGroupFolder | undefined {
-    // Check if the objectId is a folder or file
-    const folderPath = objectIdFolderPath(objId);
+  // findTargetFolderByEntityId finds a folder by its entityId.
+  // The entityId is expected to be in the format: ""
+  // If the entityId is not in the expected format, it returns undefined.
+  // If the entityId is a file, it returns the folder containing that file.
+  // If the entityId is a folder, it returns that folder.
+  // If the entityId is not a file or folder, it returns undefined.
+  findTargetFolderByEntityId(entId: string): FolderGroupFolder | undefined {
+    // Check if the entityId is a folder or file
+    const folderPath = entId;
     if (!folderPath) {
-      console.error(`Invalid objectId format: ${objId}`);
+      console.error(`Invalid entityId format: ${folderPath}`);
       return undefined;
     }
 
     // Split the folder path into indices
-    const folderIndices = folderPath.split('.').map(index => parseInt(index, 10));
+    // indicies will need to be converted to 0-based
+    const folderIndices = folderPath.split('.').map(index => parseInt(index, 10) - 1);
 
     // Navigate to the target folder
     let currentFolders = this.folders;
@@ -193,30 +349,26 @@ export class FolderGroup {
     return targetFolder;
   }
 
-  // findTargetParentFolderByObjectId finds the parent folder of a file or folder by its objectId.
-  // It works similar to findTargetFolderByObjectId but returns the parent folder of the target folder.
+  // findTargetParentFolderByEntityId finds the parent folder of a file or folder by its entityId.
+  // It works similar to findTargetFolderByEntityId but returns the parent folder of the target folder.
   // If the target folder is at the root level, it returns undefined.
-  findTargetParentFolderByObjectId(objId: string): FolderGroupFolder | undefined {
+  findTargetParentFolderByEntityId(entId: string): FolderGroupFolder | undefined {
     // Get the folder path part of the object ID
-    const targetPath = objectIdFolderPath(objId);
+    const targetPath = entId;
     if (!targetPath) {
-      console.error(`Invalid objectId format: ${objId}`);
+      console.error(`Invalid entityId format: ${targetPath}`);
       return undefined;
     }
 
-    // For root level items (either folders or files at root), return undefined
+    // For root level items (folders at root), return undefined
     if (!targetPath.includes('.')) {
+      console.log(`Target path is at the root level: ${targetPath}`);
       return undefined;
-    }
-
-    // For files, return their containing folder
-    if (objectIdIsFile(objId)) {
-      return this.findTargetFolderByObjectId(targetPath);
     }
 
     // For folders, get the parent path and return that folder
     const parentPath = targetPath.split('.').slice(0, -1).join('.');
-    return this.findTargetFolderByObjectId(parentPath);
+    return this.findTargetFolderByEntityId(parentPath);
   }
 
   // findFolder finds a folder by its name in the folder group
@@ -239,10 +391,10 @@ export class FolderGroup {
     return find(this.folders, folderName);
   }
 
-  // applyChanges applies the current state of the folder group to the .source file
+  // writeChanges applies the current state of the folder group to the .source file
   // find the folderGroup with (index === this.index, name === this.name) - overwrite it
   // and save the file
-  applyChanges(): void {
+  writeChanges(): void {
     // Get current folders from settings
     const configPath = config.getCodebookConfigFilePath();
 
@@ -262,11 +414,16 @@ export class FolderGroup {
       return;
     }
 
-    // find the folder group with the same name and index
-    const existingGroupIndex = codebookConfig.folderGroups.findIndex(group => group.name === this.name && group.index === this.index);
+    // find the folder group with the same index
+    const existingGroupIndex = codebookConfig.folderGroups.findIndex(group => group.index === this.index);
     if (existingGroupIndex !== -1) {
       // Update the existing folder group
+      // console.log(`Running update on FolderGroup (#${this.index} | name: ${this.name})`);
+      // console.log(`Applying changes to config FolderGroup (#${codebookConfig.folderGroups[existingGroupIndex].index} | name: ${codebookConfig.folderGroups[existingGroupIndex].name})`);
+
       codebookConfig.folderGroups[existingGroupIndex].folders = this.folders;
+      // console.log(`FolderGroup json: ${JSON.stringify(this, null, 2)}`);
+      // console.log(`config FolderGroup json: ${JSON.stringify(codebookConfig.folderGroups[existingGroupIndex], null, 2)}`);
       writeCodebookConfig(configPath, codebookConfig);
       console.log('Folder group updated successfully');
       return;
@@ -306,8 +463,13 @@ export class FolderGroupFolder {
   icon: string;
   hide: boolean;
 
-  constructor(name: string) {
+  // entityId is a string that uniquely identifies the folder
+  // it is not included in the json
+  entityId: string;
+
+  constructor(name: string, entityId: string) {
     this.name = name;
+    this.entityId = entityId;
     this.icon = '';
     this.hide = false;
     this.files = [];
@@ -332,10 +494,10 @@ export class FolderGroupFolder {
     return this.files.find(file => file.path === filePath);
   }
 
-  findFileByObjectId(objId: string): FolderGroupFile | undefined {
-    const fileIndex = objectIdFileIndex(objId);
+  findFileByEntityId(entId: string): FolderGroupFile | undefined {
+    const fileIndex = entityIdFileIndex(entId);
     if (fileIndex === -1) {
-      console.error(`Invalid file ID format: ${objId}`);
+      console.error(`Invalid file ID format: ${entId}`);
       return undefined;
     }
 
@@ -348,59 +510,224 @@ export class FolderGroupFolder {
   }
 }
 
-// objectIdIsFile checks if the objectId is a file with a simple check
+// entityIdIsFile checks if the entityId is a file with a simple check
 // for the presence of square brackets
-// The objectId is expected to be in the format "folderIndex[fileIndex]", e.g., "0.1[2]"
-export function objectIdIsFile(objId: string): boolean {
-  return objId.includes('[');
+// The entityId is expected to be in the format "folderIndex[fileIndex]", e.g., "0.1[2]"
+export function entityIdIsFile(entId: string): boolean {
+  return entId.includes('[');
 }
 
 
-// objectIdFileIndex extracts the file index from the objectId
-// The objectId is expected to be in the format "folderIndex[fileIndex]", e.g., "0.1[2]"
-// If the objectId is not in the expected format, it returns -1
-// If the objectId is a file, it returns the file index
-// If the objectId is not a file, it returns -1
-export function objectIdFileIndex(objId: string): number {
-  // Check if the objectId is a file
-  if (!objectIdIsFile(objId)) {
+// entityIdFileIndex extracts the file index from the entityId
+// The entityId is expected to be in the format "folderIndex[fileIndex]", e.g., "0.1[2]"
+// If the entityId is not in the expected format, it returns -1
+// If the entityId is a file, it returns the file index
+// If the entityId is not a file, it returns -1
+export function entityIdFileIndex(entId: string): number {
+  // Check if the entityId is a file
+  if (!entityIdIsFile(entId)) {
     return -1;
   }
 
   // Check for proper bracket format with no nested brackets
-  const matches = objId.match(/\[(\d+)\]/);
-  if (!matches || matches.length !== 2 || objId.indexOf('[') !== objId.lastIndexOf('[') ||
-    objId.indexOf(']') !== objId.lastIndexOf(']')) {
-    console.error(`Invalid file ID format: ${objId}`);
+  const matches = entId.match(/\[(\d+)\]/);
+  if (!matches || matches.length !== 2 || entId.indexOf('[') !== entId.lastIndexOf('[') ||
+    entId.indexOf(']') !== entId.lastIndexOf(']')) {
+    console.error(`Invalid file ID format: ${entId}`);
     return -1;
   }
 
   // Extract and validate the file index
   const index = parseInt(matches[1], 10);
   if (index < 0) {
-    console.error(`Invalid file ID format: ${objId}`);
+    console.error(`Invalid file ID format: ${entId}`);
     return -1;
   }
 
   return index;
 }
 
-// folderPathFromObjectId extracts the folder path from the objectId
-export function objectIdFolderPath(objId: string): string | undefined {
-  return objectIdIsFile(objId) ? objId.split('[')[0] : objId;
+// FolderGroupEntity contains the parts from an entityId representing a folder or file
+// in a FolderGroup.
+// FolderGroup index, Folder path, and File index.
+export class FolderGroupEntity {
+  folderGroupIndex: number;
+  folderPath: string;
+  folderIndex: number;
+  fileIndex: number;
+  source: string;
+
+  constructor(entId: string, source: string) {
+    this.source = source;
+
+    // Clean up the ID to remove potential 'folder-' or 'file-' prefixes
+    const cleanId = entId.replace(/^(folder|file)-/, '');
+
+    const parts = cleanId.split('-');
+    if (parts.length < 2 || parts.length > 3) {
+      throw new Error(`Invalid entityId format: ${entId}`);
+    }
+
+    // the first part is the FolderGroup index
+    this.folderGroupIndex = parseInt(parts[0], 10);
+    if (isNaN(this.folderGroupIndex)) {
+      throw new Error(`Invalid index in entityId: ${entId}`);
+    }
+
+    // the second part is the Folder path (string)
+    this.folderPath = parts[1];
+    if (!this.folderPath) {
+      throw new Error(`Invalid folder path in entityId: ${entId}`);
+    }
+    // the folder index is the last part of the folder path
+    const folderParts = this.folderPath.split('.');
+    this.folderIndex = parseInt(folderParts[folderParts.length - 1], 10);
+    if (isNaN(this.folderIndex)) {
+      throw new Error(`Invalid folder index in entityId: ${entId}`);
+    }
+
+    // the third part is the File index (number)
+    // If there's no third part, it's a folder, so fileIndex = 0
+    this.fileIndex = parts.length === 3 ? parseInt(parts[2], 10) : 0;
+    if (isNaN(this.fileIndex)) {
+      throw new Error(`Invalid file index in entityId: ${entId}`);
+    }
+  }
+
+  idString(): string {
+    return `${this.folderGroupIndex}-${this.folderPath}-${this.fileIndex}`;
+  }
+
+  stringify(): string {
+    return `GroupIndex: ${this.folderGroupIndex}, FolderPath: ${this.folderPath}, FileIndex: ${this.fileIndex}`;
+  }
+
+  isFile(): boolean {
+    return this.fileIndex > 0;
+  }
+
+  fileArrayIndex(): number {
+    return this.fileIndex - 1;
+  }
+
+  isFolder(): boolean {
+    return this.fileIndex === 0;
+  }
+
+  folderArrayIndex(): number {
+    return this.folderIndex - 1;
+  }
+
+  getTargetFolder(): FolderGroupFolder | undefined {
+    const folderGroup = this.getFolderGroup();
+    if (!folderGroup) {
+      console.error(`Folder group not found for index: ${this.folderGroupIndex}`);
+      return;
+    }
+    const folder = folderGroup.findTargetFolderByEntityId(this.folderPath);
+    return folder;
+  }
+
+  getTargetParentFolder(): FolderGroupFolder | undefined {
+    const folderGroup = this.getFolderGroup();
+    if (!folderGroup) {
+      console.error(`Folder group not found for index: ${this.folderGroupIndex}`);
+      return;
+    }
+    const folder = folderGroup.findTargetParentFolderByEntityId(this.folderPath);
+    return folder;
+  }
+
+  folderGroupArrayIndex(): number {
+    return this.folderGroupIndex - 1;
+  }
+
+  // getFolderGroup returns the folder group for this Entity
+  getFolderGroup(): FolderGroup | undefined {
+    const configPath = config.getCodebookConfigFilePath();
+    if (!configPath) {
+      console.error('Config path is undefined or empty');
+      return undefined;
+    }
+
+    // Read the config file to get all folder groups
+    const codebookConfig = readCodebookConfig(configPath);
+    if (!codebookConfig.folderGroups || codebookConfig.folderGroups.length === 0) {
+      console.log('No folder groups found in the config');
+      return undefined;
+    }
+
+    // since the index starts at 1 in the notebooks view, we'll subtract 1 to use it as an array index
+    const folderGroupArrayIndex = this.folderGroupArrayIndex();
+
+    // Find the folder group that contains this file
+    const groupData = codebookConfig.folderGroups[folderGroupArrayIndex];
+    if (!groupData) {
+      console.error(`Folder group not found for arrayIndex: ${folderGroupArrayIndex} | index: ${this.folderGroupIndex}`);
+      return undefined;
+    }
+
+    // Create a proper FolderGroup instance to ensure all prototype methods are available
+    const folderGroup = new FolderGroup(
+      groupData.name,
+      groupData.source || this.source,
+      groupData.description || '',
+      JSON.parse(JSON.stringify(groupData.folders || []))  // Deep clone the folders to ensure we're not modifying the original object
+    );
+
+    // Copy other properties from the loaded data
+    folderGroup.index = groupData.index;
+    folderGroup.icon = groupData.icon;
+    folderGroup.hide = groupData.hide;
+
+    // walk the folders and files to set the entityId on each
+    // we'll start at the folderGroup.folders, then walk all the embedded folder.folders as well
+    // template: {{folderGroupIndex}}-{{folder.tree.path}}-{{fileIndex}}
+    // Base 1 index, not Base 0
+
+    const walkFolders = (folders: FolderGroupFolder[], groupIndex: number) => {
+      folders.forEach((folder, index) => {
+        // Set the entityId for the folder
+        folder.entityId = `${groupIndex + 1}-${index + 1}-0`;
+        // Walk the subfolders
+        if (folder.folders) {
+          walkFolders(folder.folders, groupIndex);
+        }
+        // Set the entityId for each file in the folder
+        folder.files.forEach((file, fileIndex) => {
+          file.entityId = `${groupIndex + 1}-${index + 1}-${fileIndex + 1}`;
+        });
+      });
+    };
+
+    // Walk the folders and set the entityId for each folder and file
+    walkFolders(folderGroup.folders, folderGroupArrayIndex);
+
+    return folderGroup;
+  }
+}
+
+// folderPathFromEntityId extracts the folder path from the entityId
+export function entityIdFolderPath(entId: string): string | undefined {
+  return entityIdIsFile(entId) ? entId.split('[')[0] : entId;
 }
 
 export class FolderGroupFile {
   name: string;
   path: string;
 
-  constructor(name: string, path: string) {
+  // entityId is a string that uniquely identifies the folder
+  // it is not included in the json
+  entityId: string;
+
+  constructor(name: string, path: string, entityId: string) {
     this.name = name;
     this.path = path;
+    this.entityId = entityId;
   }
 }
 
-// getTreeViewFolderGroup is a convenience function to get the tree view folder group from the configuration
+// getWorkspaceFolderGroup is a convenience function to get the FolderGroup from the configuration
 export function getWorkspaceFolderGroup(configPath: string): FolderGroup {
   // Validate the settings path to prevent downstream undefined errors
   if (!configPath) {
@@ -486,10 +813,6 @@ export function suggestedDisplayName(fileName: string): string {
     .join(' '); // Join with spaces
 }
 
-/**
- * Find a folder group by its index and return it
- * This function handles operations on specific folder groups rather than just the Workspace group
- */
 export function getFolderGroupByIndex(configPath: string, groupIndex: number): FolderGroup | undefined {
   if (!configPath) {
     console.error('Config path is undefined or empty');

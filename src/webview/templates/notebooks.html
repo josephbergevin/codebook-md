@@ -34,25 +34,41 @@
       border-radius: 6px;
       overflow: hidden;
       border: 1px solid var(--vscode-panel-border);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
     .folder-group-header {
-      background-color: var(--vscode-sideBar-background);
-      padding: 10px;
+      background-color: color-mix(in srgb, var(--vscode-sideBar-background) 96%, var(--vscode-focusBorder) 4%);
+      padding: 12px;
       border-bottom: 1px solid var(--vscode-panel-border);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .folder-group-header::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 3px;
+      background-color: rgba(25, 136, 158, 0.6);
     }
     .folder-group-title {
-      margin: 0 0 5px 0;
+      margin: 0 0 5px 5px;
       font-size: 1.1em;
       color: var(--vscode-sideBarTitle-foreground);
+      font-weight: 600;
     }
     .folder-group-description {
-      margin: 0 0 10px 0;
+      margin: 0 0 10px 5px;
       font-size: 0.9em;
       opacity: 0.8;
+      line-height: 1.4;
     }
     .folder-group-actions {
       display: flex;
       gap: 5px;
+      margin-left: 5px;
     }
     .folder-group-content {
       padding: 10px;
@@ -276,7 +292,7 @@
         }
         
         vscode.postMessage({
-          command: 'removeObjectFromTreeView',
+          command: 'removeObjectFromFolderGroup',
           objectId: objectId
         });
         return false;
