@@ -74,6 +74,7 @@
       <h2>Documentation Index</h2>
       <ul>
         <li><a href="#virtual-folders">Virtual Folders (My Notebooks)</a></li>
+        <li><a href="#dynamic-folders">Dynamic Folders (Current Context)</a></li>
         <li><a href="#executable-code">Executable Code Blocks</a></li>
         <li><a href="#file-links">File Links &amp; Hover Preview</a></li>
         <li><a href="#codeblock-config">CodeBlock Configuration</a></li>
@@ -112,6 +113,37 @@
           <li><span class="feature-highlight">Workspace-Specific:</span> Each workspace has its own configuration file</li>
         </ul>
         <p>Note: Changes made through the UI are automatically saved to this file.</p>
+      </section>
+
+      <section id="dynamic-folders">
+        <h2>Dynamic Folders (Current Context)</h2>
+        <h3>Overview</h3>
+        <p>The "Current Context" feature automatically creates a dynamic folder group based on your active file, showing relevant markdown files in nearby directories to enhance contextual navigation.</p>
+        
+        <h4>Key Features</h4>
+        <ul>
+          <li><span class="feature-highlight">Context-Aware:</span> Automatically displays folders containing markdown files related to your current file</li>
+          <li><span class="feature-highlight">Dynamic Updates:</span> Changes as you navigate between different files</li>
+          <li><span class="feature-highlight">Directory Hierarchy:</span> Shows parent directories containing markdown files</li>
+          <li><span class="feature-highlight">Visual Distinction:</span> Visually different from regular folder groups to indicate its dynamic nature</li>
+        </ul>
+        
+        <h4>How It Works</h4>
+        <ol>
+          <li>When you open or switch to a markdown file, the dynamic folder group updates automatically</li>
+          <li>The extension traverses up the directory tree from your current file</li>
+          <li>Any directory containing markdown files is included in the dynamic folder group</li>
+          <li>Files are listed with readable names for quick navigation</li>
+        </ol>
+
+        <h4>Benefits</h4>
+        <p>The dynamic folders feature helps you:</p>
+        <ul>
+          <li><span class="feature-highlight">Discover Related Content:</span> See other markdown files in the same context</li>
+          <li><span class="feature-highlight">Faster Navigation:</span> Jump between related files without searching</li>
+          <li><span class="feature-highlight">Understand Structure:</span> Visualize the organization of documentation around your current file</li>
+        </ul>
+        <p>Note: Dynamic folders are temporary and not saved in your configuration file, making them perfect for quick contextual exploration without cluttering your saved folder groups.</p>
       </section>
 
       <section id="executable-code">
@@ -303,6 +335,14 @@ func TestExecNotebook(t *testing.T) {
 
       <section id="recent-updates">
         <h2>Recent Updates</h2>
+        <h4>Version 0.13.0</h4>
+        <ul>
+          <li><span class="feature-highlight">Dynamic Folders:</span> Context-aware folder groups that update based on your active file</li>
+          <li>Visual distinction between dynamic and regular folder groups</li>
+          <li>Automatic discovery of related markdown files in nearby directories</li>
+          <li>Enhanced navigation experience with contextual file organization</li>
+        </ul>
+        
         <h4>New Configuration Location</h4>
         <ul>
           <li>FolderGroup configuration moved to <code>.vscode/codebook-md.json</code></li>

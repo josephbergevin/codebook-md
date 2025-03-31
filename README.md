@@ -32,6 +32,10 @@ Execute code blocks in markdown files by pressing the corresponding Play button 
   - HTTP
     - Executed using the REST Client extension.
 
+### Dynamically Generated Folders in My Notebooks View
+
+Codebook MD provides a "My Notebooks" view and dynamically creates folders based on the currently focused file. This allows you to have easy access to relevant markdown files!
+
 ### Custom Settings
 
 Support for workspace, user, and folder-level configurations
