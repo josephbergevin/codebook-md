@@ -195,6 +195,28 @@
     .folder-icon svg path {
       fill: #19889e;
     }
+    .context-icon path {
+      fill: #90e1f1;
+    }
+    .dynamic-folder-group {
+      border-color: color-mix(in srgb, var(--vscode-sideBar-background) 96%, #60FF67 4%);
+      box-shadow: 0 1px 4px rgba(96, 255, 103, 0.2);
+    }
+    .dynamic-header {
+      background-color: color-mix(in srgb, var(--vscode-sideBar-background) 96%, #60FF67 4%);
+    }
+    .dynamic-header .folder-group-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    /* Keep folder and file icons the same as user-defined FolderGroups */
+    .dynamic-folder-group .folder-icon svg path {
+      fill: #19889e;
+    }
+    .dynamic-folder-group .file-icon svg path {
+      fill: #90e1f1;
+    }
   </style>
 </head>
 <body>

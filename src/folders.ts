@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as config from './config';
+import * as path from 'path';
 
 // FolderGroup represents a group of folders in the codebook-md configuration
 // the OjectId format is used to identify folders and files within the FolderGroups
@@ -63,6 +64,7 @@ export class FolderGroup {
   description: string;
   icon: string;
   hide: boolean;
+  isDynamic?: boolean; // Flag to indicate if this folder group is dynamically generated
   folders: FolderGroupFolder[] = [];
 
   constructor(name: string, source: string, description: string, folders: FolderGroupFolder[]) {
@@ -847,4 +849,150 @@ export function getFolderGroupByIndex(configPath: string, groupIndex: number): F
   folderGroup.hide = group.hide;
 
   return folderGroup;
+}
+
+// findMarkdownContainingFolders finds all folders containing markdown files
+// starting from the current file path and traversing up the directory tree
+export function findMarkdownContainingFolders(startFilePath: string): { path: string, name: string; }[] {
+  const result: { path: string, name: string; }[] = [];
+  if (!startFilePath) {
+    return result;
+  }
+
+  try {
+    // Get the directory of the current file
+    let currentDir = path.dirname(startFilePath);
+    const workspaceFolder = config.getWorkspaceFolder();
+
+    // Keep traversing up until we reach the workspace root or the root of the filesystem
+    while (currentDir && currentDir !== path.dirname(currentDir) &&
+      (workspaceFolder ? currentDir.startsWith(workspaceFolder) : true)) {
+
+      // Check if the current directory contains markdown files
+      if (directoryContainsMarkdownFiles(currentDir)) {
+        result.push({
+          path: currentDir,
+          name: suggestedDisplayName(path.basename(currentDir))
+        });
+      }
+
+      // Move up to the parent directory
+      currentDir = path.dirname(currentDir);
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error finding markdown-containing folders:', error);
+    return [];
+  }
+}
+
+// directoryContainsMarkdownFiles checks if a directory contains markdown files
+// at its root level (not in subdirectories)
+function directoryContainsMarkdownFiles(dirPath: string): boolean {
+  try {
+    if (!fs.existsSync(dirPath)) {
+      return false;
+    }
+
+    const files = fs.readdirSync(dirPath);
+
+    // Check if any file is a markdown file
+    return files.some(file => {
+      const filePath = path.join(dirPath, file);
+      const stats = fs.statSync(filePath);
+      // Only consider files (not directories) and check if they have a markdown extension
+      return stats.isFile() &&
+        (file.toLowerCase().endsWith('.md') || file.toLowerCase().endsWith('.markdown'));
+    });
+  } catch (error) {
+    console.error(`Error checking directory for markdown files: ${dirPath}`, error);
+    return false;
+  }
+}
+
+// createDynamicFolderGroupFromPath creates a dynamic folder group based on the current file
+export function createDynamicFolderGroupFromPath(filePath: string): FolderGroup | undefined {
+  if (!filePath) {
+    return undefined;
+  }
+
+  try {
+    const markdownFolders = findMarkdownContainingFolders(filePath);
+    if (markdownFolders.length === 0) {
+      return undefined;
+    }
+
+    // Create a new folder group
+    const folderGroup = new FolderGroup(
+      'Current Context', // Name for the dynamic folder group
+      '', // No source file as this is dynamic
+      'Auto-generated based on current file', // Description
+      [] // Start with empty folders array
+    );
+
+    // Add folders to the group
+    const workspacePath = config.getWorkspaceFolder() || '';
+
+    markdownFolders.forEach((folder, index) => {
+      const folderGroupFolder = new FolderGroupFolder(folder.name, `dynamic-${index + 1}-0`);
+
+      // Find all markdown files in this folder
+      const markdownFiles = findMarkdownFilesInDirectory(folder.path);
+
+      // Add these files to the folder
+      markdownFiles.forEach((file, fileIndex) => {
+        // Create relative path from workspace
+        const relativePath = path.relative(workspacePath, file.path);
+        folderGroupFolder.files.push(
+          new FolderGroupFile(
+            file.name,
+            relativePath,
+            `dynamic-${index + 1}-${fileIndex + 1}`
+          )
+        );
+      });
+
+      folderGroup.folders.push(folderGroupFolder);
+    });
+
+    // Set special properties to identify this as a dynamic folder group
+    folderGroup.isDynamic = true;
+
+    return folderGroup;
+  } catch (error) {
+    console.error('Error creating dynamic folder group:', error);
+    return undefined;
+  }
+}
+
+// findMarkdownFilesInDirectory finds all markdown files in a directory (not recursive)
+function findMarkdownFilesInDirectory(dirPath: string): { path: string, name: string; }[] {
+  const result: { path: string, name: string; }[] = [];
+
+  try {
+    if (!fs.existsSync(dirPath)) {
+      return result;
+    }
+
+    const files = fs.readdirSync(dirPath);
+
+    files.forEach(file => {
+      const filePath = path.join(dirPath, file);
+      const stats = fs.statSync(filePath);
+
+      if (stats.isFile() &&
+        (file.toLowerCase().endsWith('.md') || file.toLowerCase().endsWith('.markdown'))) {
+        result.push({
+          path: filePath,
+          name: suggestedDisplayName(file)
+        });
+      }
+    });
+
+    return result;
+  } catch (error) {
+    console.error(`Error finding markdown files in directory: ${dirPath}`, error);
+    return [];
+  }
 }
