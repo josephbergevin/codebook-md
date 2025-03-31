@@ -4,32 +4,18 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.12.9] - 2024-07-20
+## [0.13.0] - 2025-03-31
 
 ### Added
 
-- The configuration for the My Notebooks view is now stored in `.vscode/codebook-md.json` for better project-specific customization and portability.
-
-## [0.12.1] - 2024-07-15
-
-### Fixed
-
-- Patch fix for WebViews to resolve rendering issues in certain environments
-- Improved stability and performance of WebView-based Activity Bar interface
-
-## [0.12.0] - 2024-07-01
-
-### Added
-
-- CodeBlock configuration options for customizing code execution environments
-- New settings for specifying default interpreters for different languages
-- Enhanced error handling and reporting for code block execution
-- Support for environment variables in code block execution
+- Dynamically Generated Folders in My Notebooks View - folders are automatically created based on the currently focused file
+- Improved navigation between related markdown files with contextual organization
+- Smart file grouping to enhance workflow and documentation discovery
 
 ### Changed
 
-- Improved UI for configuring code block settings
-- Enhanced documentation for CodeBlock configuration options
+- Refined My Notebooks view UI for better visibility of dynamic folder structures
+- Enhanced folder generation algorithm for more intuitive file organization
 
 ## [0.11.2] - 2024-06-02
 
