@@ -450,6 +450,27 @@ export function writeCodebookConfig(configPath: string, codebookConfig: Codebook
       throw new Error('Configuration path is undefined or empty');
     }
 
+    // walk the folders and files to unset the entityId on each
+    const walkFolders = (folders: FolderGroupFolder[]) => {
+      folders.forEach(folder => {
+        // Unset the entityId for the folder
+        folder.entityId = undefined;
+        // Walk the subfolders
+        if (folder.folders) {
+          walkFolders(folder.folders);
+        }
+        // Unset the entityId for each file in the folder
+        folder.files.forEach(file => {
+          file.entityId = undefined;
+        });
+      });
+    };
+    // walk each FolderGroup and unset the entityId on all folders and files
+    codebookConfig.folderGroups?.forEach(group => {
+      walkFolders(group.folders);
+    });
+
+
     const jsonContent = JSON.stringify(codebookConfig, null, 2);
     fs.writeFileSync(configPath, jsonContent, 'utf8');
     console.log('Configuration saved successfully');
@@ -466,10 +487,10 @@ export class FolderGroupFolder {
   hide: boolean;
 
   // entityId is a string that uniquely identifies the folder
-  // it is not included in the json
-  entityId: string;
+  // it is not included in the json, so we'll allow it to be undefined
+  entityId?: string;
 
-  constructor(name: string, entityId: string) {
+  constructor(name: string, entityId?: string) {
     this.name = name;
     this.entityId = entityId;
     this.icon = '';
@@ -719,10 +740,10 @@ export class FolderGroupFile {
   path: string;
 
   // entityId is a string that uniquely identifies the folder
-  // it is not included in the json
-  entityId: string;
+  // it is not included in the json, so we'll allow it to be undefined
+  entityId?: string;
 
-  constructor(name: string, path: string, entityId: string) {
+  constructor(name: string, path: string, entityId?: string) {
     this.name = name;
     this.path = path;
     this.entityId = entityId;
