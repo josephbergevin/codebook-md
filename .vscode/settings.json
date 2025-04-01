@@ -67,6 +67,23 @@
 		"showExecutableCodeInOutput": true
 		}
 	},
+  "codebook-md": {
+    "dynamicFolderGroup": {
+      "enabled": true,
+      "name": "Relevant Docs",
+      "description": "Relevant docs for the current file",
+      "subFolderInclusions": [
+        ".github",
+        ".vscode",
+        "apiplayground"
+      ],
+      "exclusions": [
+        "node_modules",
+        "out",
+        "dist"
+      ]
+    }
+  },
 	"notebook.experimental.cellChat": true,
 	"notebook.output.scrolling": true,
   "editor.hover.delay": 700,

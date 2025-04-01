@@ -53,6 +53,10 @@ describe('folders.ts Test Suite', () => {
           expected: 'Mixed Case And Separators'
         },
         {
+          input: '.github',
+          expected: 'Github'
+        },
+        {
           input: 'alreadyPascalCase.md',
           expected: 'Already Pascal Case'
         }

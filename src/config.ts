@@ -64,6 +64,34 @@ export function getCodebookConfigFilePath(): string {
     : '';
 }
 
+// Get dynamic folder group settings
+export interface DynamicFolderGroupConfig {
+  enabled: boolean;
+  name: string;
+  description: string;
+  subFolderInclusions: string[];
+  exclusions: string[];
+}
+
+// getDynamicFolderGroupConfig returns the configuration for the dynamic folder group
+export function getDynamicFolderGroupConfig(): DynamicFolderGroupConfig {
+  const config = workspace.getConfiguration('codebook-md');
+
+  // Get the dynamic folder group settings with defaults
+  return {
+    enabled: config.get<boolean>('dynamicFolderGroup.enabled', true),
+    name: config.get<string>('dynamicFolderGroup.name', 'Current Context'),
+    description: config.get<string>('dynamicFolderGroup.description', 'Auto-generated based on the current file'),
+    subFolderInclusions: config.get<string[]>('dynamicFolderGroup.subFolderInclusions', []),
+    exclusions: config.get<string[]>('dynamicFolderGroup.exclusions', ['node_modules', 'out', 'dist'])
+  };
+}
+
+// isDynamicFolderGroupEnabled returns whether the dynamic folder group is enabled
+export function isDynamicFolderGroupEnabled(): boolean {
+  return getDynamicFolderGroupConfig().enabled;
+}
+
 // getWorkspaceFolder returns the actual workspace folder path
 export function getWorkspaceFolder(): string {
   const rootPathSetting = codebookConfig.get<string>('rootPath', '');

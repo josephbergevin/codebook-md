@@ -829,11 +829,13 @@ export function readCodebookConfig(configPath: string): CodebookConfig {
 // 4. Joining with spaces
 export function suggestedDisplayName(fileName: string): string {
   return fileName
+    .replace(/^\./, '') // Remove leading period
     .replace(/\.\w+$/, '') // Remove extension
     .replace(/([a-z])([A-Z])/g, '$1 $2') // Add space between camelCase words
     .split(/[_\-\s.]/) // Split by underscore, dash, space, or period
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize first letter of each word
-    .join(' '); // Join with spaces
+    .join(' ') // Join with spaces
+    .trim(); // Trim any extra whitespace
 }
 
 export function getFolderGroupByIndex(configPath: string, groupIndex: number): FolderGroup | undefined {
@@ -938,17 +940,25 @@ export function createDynamicFolderGroupFromPath(filePath: string): FolderGroup 
     return undefined;
   }
 
+  // Get dynamic folder group configuration
+  const dynamicConfig = config.getDynamicFolderGroupConfig();
+
+  // If dynamic folder group is disabled, return undefined
+  if (!dynamicConfig.enabled) {
+    return undefined;
+  }
+
   try {
     const markdownFolders = findMarkdownContainingFolders(filePath);
     if (markdownFolders.length === 0) {
       return undefined;
     }
 
-    // Create a new folder group
+    // Create a new folder group using configuration values
     const folderGroup = new FolderGroup(
-      'Current Context', // Name for the dynamic folder group
+      dynamicConfig.name,
       '', // No source file as this is dynamic
-      'Auto-generated based on current file', // Description
+      dynamicConfig.description,
       [] // Start with empty folders array
     );
 
@@ -958,8 +968,8 @@ export function createDynamicFolderGroupFromPath(filePath: string): FolderGroup 
     markdownFolders.forEach((folder, index) => {
       const folderGroupFolder = new FolderGroupFolder(folder.name, `dynamic-${index + 1}-0`);
 
-      // Find all markdown files in this folder
-      const markdownFiles = findMarkdownFilesInDirectory(folder.path);
+      // Find all markdown files in this folder and respect exclusions
+      const markdownFiles = findMarkdownFilesInDirectory(folder.path, dynamicConfig.exclusions);
 
       // Add these files to the folder
       markdownFiles.forEach((file, fileIndex) => {
@@ -974,8 +984,27 @@ export function createDynamicFolderGroupFromPath(filePath: string): FolderGroup 
         );
       });
 
-      folderGroup.folders.push(folderGroupFolder);
+      // Check for sub-folders if configured
+      if (dynamicConfig.subFolderInclusions && dynamicConfig.subFolderInclusions.length > 0) {
+        addIncludedSubFolders(
+          folder.path,
+          folderGroupFolder,
+          dynamicConfig.subFolderInclusions,
+          dynamicConfig.exclusions,
+          workspacePath
+        );
+      }
+
+      // Only add folders that have files (directly or in sub-folders)
+      if (folderGroupFolder.files.length > 0 || (folderGroupFolder.folders && folderGroupFolder.folders.length > 0)) {
+        folderGroup.folders.push(folderGroupFolder);
+      }
     });
+
+    // Don't return an empty folder group
+    if (folderGroup.folders.length === 0) {
+      return undefined;
+    }
 
     // Set special properties to identify this as a dynamic folder group
     folderGroup.isDynamic = true;
@@ -987,8 +1016,77 @@ export function createDynamicFolderGroupFromPath(filePath: string): FolderGroup 
   }
 }
 
+// Helper function to add included sub-folders to a folder group folder
+function addIncludedSubFolders(
+  basePath: string,
+  parentFolder: FolderGroupFolder,
+  inclusions: string[],
+  exclusions: string[],
+  workspacePath: string
+): void {
+  try {
+    if (!fs.existsSync(basePath)) {
+      return;
+    }
+
+    const entries = fs.readdirSync(basePath, { withFileTypes: true });
+    const subFolders = entries.filter(entry =>
+      entry.isDirectory() &&
+      inclusions.includes(entry.name) &&
+      !isExcluded(entry.name, exclusions)
+    );
+
+    subFolders.forEach((subFolder, index) => {
+      const subFolderPath = path.join(basePath, subFolder.name);
+      const subFolderGroupFolder = new FolderGroupFolder(
+        suggestedDisplayName(subFolder.name),
+        `${parentFolder.entityId}.${index + 1}`
+      );
+
+      // Find markdown files in this subfolder
+      const markdownFiles = findMarkdownFilesInDirectory(subFolderPath, exclusions);
+
+      // Add files to the subfolder
+      markdownFiles.forEach((file, fileIndex) => {
+        const relativePath = path.relative(workspacePath, file.path);
+        subFolderGroupFolder.files.push(
+          new FolderGroupFile(
+            file.name,
+            relativePath,
+            `${subFolderGroupFolder.entityId}-${fileIndex + 1}`
+          )
+        );
+      });
+
+      // Only add the subfolder if it has files
+      if (subFolderGroupFolder.files.length > 0) {
+        parentFolder.folders.push(subFolderGroupFolder);
+      }
+    });
+  } catch (error) {
+    console.error(`Error adding included sub-folders for ${basePath}:`, error);
+  }
+}
+
+// Helper function to check if a path is excluded
+function isExcluded(pathToCheck: string, exclusions: string[]): boolean {
+  if (!exclusions || exclusions.length === 0) {
+    return false;
+  }
+
+  return exclusions.some(exclusion => {
+    // Simple glob-like pattern matching for * wildcard
+    const pattern = exclusion.replace(/\*/g, '.*');
+    const regex = new RegExp(`^${pattern}$`);
+    return regex.test(pathToCheck);
+  });
+}
+
 // findMarkdownFilesInDirectory finds all markdown files in a directory (not recursive)
-function findMarkdownFilesInDirectory(dirPath: string): { path: string, name: string; }[] {
+function findMarkdownFilesInDirectory(
+  dirPath: string,
+  exclusions: string[] = []
+): { path: string, name: string; }[] {
   const result: { path: string, name: string; }[] = [];
 
   try {
@@ -999,6 +1097,11 @@ function findMarkdownFilesInDirectory(dirPath: string): { path: string, name: st
     const files = fs.readdirSync(dirPath);
 
     files.forEach(file => {
+      // Skip if file/folder name is in exclusions
+      if (isExcluded(file, exclusions)) {
+        return;
+      }
+
       const filePath = path.join(dirPath, file);
       const stats = fs.statSync(filePath);
 
