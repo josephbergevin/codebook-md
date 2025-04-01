@@ -4,6 +4,22 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.1] - 2025-04-01
+
+### Added
+
+- Configuration options for Dynamic Folder Groups in settings.json
+- Customizable name and description for dynamic folder groups
+- Subfolder inclusion configuration for dynamic folder groups
+- Exclusion patterns to filter dynamic folder group content
+- Empty folder filtering for cleaner dynamic folder presentation
+
+### Changed
+
+- Enhanced documentation with detailed configuration examples
+- Improved folder group creation algorithm for better performance
+- Better handling of special folder names (like .github and .vscode)
+
 ## [0.13.0] - 2025-03-31
 
 ### Added
