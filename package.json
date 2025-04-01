@@ -350,6 +350,76 @@
             }
           }
         },
+        "codebook-md.dynamicFolderGroup.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable the Dynamic Folder Group in the My Notebooks webview",
+          "scope": "window"
+        },
+        "codebook-md.dynamicFolderGroup.name": {
+          "type": "string",
+          "default": "Current Context",
+          "description": "Display name for the Dynamic Folder Group",
+          "scope": "window"
+        },
+        "codebook-md.dynamicFolderGroup.description": {
+          "type": "string",
+          "default": "Auto-generated based on the current file",
+          "description": "Description shown when hovering over the Dynamic Folder Group",
+          "scope": "window"
+        },
+        "codebook-md.dynamicFolderGroup.subFolderInclusions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "List of sub-folder names to include when searching for markdown files (e.g., ['.github', '.vscode'])",
+          "scope": "window"
+        },
+        "codebook-md.dynamicFolderGroup.exclusions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "node_modules",
+            "out",
+            "dist"
+          ],
+          "description": "List of patterns to exclude from the Dynamic Folder Group",
+          "scope": "window"
+        },
+        "codebook-md.output.showExecutableCodeInOutput": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the executable code at the top of the output",
+          "scope": "window"
+        },
+        "codebook-md.output.showOutputOnRun": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the output cell on run",
+          "scope": "window"
+        },
+        "codebook-md.output.replaceOutputCell": {
+          "type": "boolean",
+          "default": true,
+          "description": "Prepend the executable code to the output",
+          "scope": "window"
+        },
+        "codebook-md.output.showTimestamp": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the timestamp at the top of the output",
+          "scope": "window"
+        },
+        "codebook-md.output.timestampTimezone": {
+          "type": "string",
+          "default": "",
+          "description": "Timezone to use for the timestamp (e.g., 'America/New_York', leave empty for local timezone)",
+          "scope": "window"
+        },
         "codebook-md.dynamicFolderGroup": {
           "type": "object",
           "description": "Configuration for the Dynamic Folder Group in the My Notebooks webview",
@@ -358,7 +428,11 @@
             "name": "Current Context",
             "description": "Auto-generated based on the current file",
             "subFolderInclusions": [],
-            "exclusions": []
+            "exclusions": [
+              "node_modules",
+              "out",
+              "dist"
+            ]
           },
           "properties": {
             "enabled": {
@@ -383,7 +457,11 @@
             },
             "exclusions": {
               "type": "array",
-              "default": [],
+              "default": [
+                "node_modules",
+                "out",
+                "dist"
+              ],
               "description": "List of folder or file patterns to exclude from the Dynamic Folder Group"
             }
           }
