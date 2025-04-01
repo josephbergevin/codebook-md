@@ -349,6 +349,44 @@
               }
             }
           }
+        },
+        "codebook-md.dynamicFolderGroup": {
+          "type": "object",
+          "description": "Configuration for the Dynamic Folder Group in the My Notebooks webview",
+          "default": {
+            "enabled": true,
+            "name": "Current Context",
+            "description": "Auto-generated based on the current file",
+            "subFolderInclusions": [],
+            "exclusions": []
+          },
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable or disable the Dynamic Folder Group"
+            },
+            "name": {
+              "type": "string",
+              "default": "Current Context",
+              "description": "Name of the Dynamic Folder Group"
+            },
+            "description": {
+              "type": "string",
+              "default": "Auto-generated based on the current file",
+              "description": "Description of the Dynamic Folder Group"
+            },
+            "subFolderInclusions": {
+              "type": "array",
+              "default": [],
+              "description": "List of sub-folder names to include when searching for markdown files"
+            },
+            "exclusions": {
+              "type": "array",
+              "default": [],
+              "description": "List of folder or file patterns to exclude from the Dynamic Folder Group"
+            }
+          }
         }
       }
     },

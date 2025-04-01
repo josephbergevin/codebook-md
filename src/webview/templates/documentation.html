@@ -126,6 +126,7 @@
           <li><span class="feature-highlight">Dynamic Updates:</span> Changes as you navigate between different files</li>
           <li><span class="feature-highlight">Directory Hierarchy:</span> Shows parent directories containing markdown files</li>
           <li><span class="feature-highlight">Visual Distinction:</span> Visually different from regular folder groups to indicate its dynamic nature</li>
+          <li><span class="feature-highlight">Configurable:</span> Customize behavior through settings.json</li>
         </ul>
         
         <h4>How It Works</h4>
@@ -136,12 +137,55 @@
           <li>Files are listed with readable names for quick navigation</li>
         </ol>
 
+        <h4>Configuration Options</h4>
+        <p>You can customize the dynamic folder group through VS Code settings (<code>settings.json</code>):</p>
+        <pre><code>{
+  "codebook-md": {
+    "dynamicFolderGroup": {
+      "enabled": true,
+      "name": "Relevant Docs",
+      "description": "Relevant docs for the current file",
+      "subFolderInclusions": [
+        ".github",
+        ".vscode",
+        "apiplayground"
+      ],
+      "exclusions": [
+        "node_modules",
+        "out",
+        "dist"
+      ]
+    }
+  }
+}</code></pre>
+
+        <h5>Configuration Properties</h5>
+        <ul>
+          <li><code>enabled</code>: Enable or disable the dynamic folder group feature (default: <code>true</code>)</li>
+          <li><code>name</code>: Custom name for the dynamic folder group (default: <code>Current Context</code>)</li>
+          <li><code>description</code>: Description shown when hovering over the folder group (default: <code>Auto-generated based on the current file</code>)</li>
+          <li><code>subFolderInclusions</code>: Array of sub-folder names to include when searching for markdown files
+            <ul>
+              <li>If a folder is included in the dynamic folder group and has a sub-folder matching one of these names, that sub-folder will be searched for markdown files</li>
+              <li>Sub-folders are only included if they contain markdown files after applying exclusions</li>
+            </ul>
+          </li>
+          <li><code>exclusions</code>: Array of patterns to exclude from the search
+            <ul>
+              <li>Exclude specific folders, files, or patterns from the dynamic folder group</li>
+              <li>Supports simple glob patterns (e.g., <code>*.tmp</code>)</li>
+              <li>Default exclusions: <code>["node_modules", "out", "dist"]</code></li>
+            </ul>
+          </li>
+        </ul>
+
         <h4>Benefits</h4>
         <p>The dynamic folders feature helps you:</p>
         <ul>
           <li><span class="feature-highlight">Discover Related Content:</span> See other markdown files in the same context</li>
           <li><span class="feature-highlight">Faster Navigation:</span> Jump between related files without searching</li>
           <li><span class="feature-highlight">Understand Structure:</span> Visualize the organization of documentation around your current file</li>
+          <li><span class="feature-highlight">Filter Irrelevant Content:</span> Exclude unwanted folders and focus on meaningful documentation</li>
         </ul>
         <p>Note: Dynamic folders are temporary and not saved in your configuration file, making them perfect for quick contextual exploration without cluttering your saved folder groups.</p>
       </section>
@@ -338,9 +382,11 @@ func TestExecNotebook(t *testing.T) {
         <h4>Version 0.13.0</h4>
         <ul>
           <li><span class="feature-highlight">Dynamic Folders:</span> Context-aware folder groups that update based on your active file</li>
+          <li><span class="feature-highlight">Configurable Dynamic Folders:</span> New settings to customize name, inclusions, and exclusions</li>
           <li>Visual distinction between dynamic and regular folder groups</li>
           <li>Automatic discovery of related markdown files in nearby directories</li>
           <li>Enhanced navigation experience with contextual file organization</li>
+          <li>Performance improvements with empty folder filtering</li>
         </ul>
         
         <h4>New Configuration Location</h4>

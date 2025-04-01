@@ -24,7 +24,7 @@ Execute code blocks in markdown files by pressing the corresponding Play button 
   - TypeScript
     - Executed from a .ts file.
   - SQL
-    - Executed using a specified cli client.    
+    - Executed using a specified cli client.
 
 - Languages supported with an accompanying extension:
   - SQL
@@ -35,6 +35,34 @@ Execute code blocks in markdown files by pressing the corresponding Play button 
 ### Dynamically Generated Folders in My Notebooks View
 
 Codebook MD provides a "My Notebooks" view and dynamically creates folders based on the currently focused file. This allows you to have easy access to relevant markdown files!
+
+#### Dynamic Folder Group Configuration
+
+You can customize the dynamic folder group through VS Code settings (`settings.json`):
+
+```json
+{
+  "codebook-md": {
+    "dynamicFolderGroup": {
+      "enabled": true,
+      "name": "Relevant Docs",
+      "description": "Relevant docs for the current file",
+      "subFolderInclusions": [".github", ".vscode", "apiplayground"],
+      "exclusions": ["node_modules", "out", "dist"]
+    }
+  }
+}
+```
+
+**Configuration Options:**
+
+- `enabled`: Enable or disable the dynamic folder group (default: `true`)
+- `name`: Custom name for the dynamic folder group (default: `Current Context`)
+- `description`: Description shown when hovering over the folder group (default: `Auto-generated based on the current file`)
+- `subFolderInclusions`: Sub-folders to include when searching for markdown files (default: `[]`)
+- `exclusions`: Patterns to exclude from the search (default: `["node_modules", "out", "dist"]`)
+
+The dynamic folder group will only show folders that contain markdown files after applying exclusions, providing a clean and focused view of relevant documentation.
 
 ### Custom Settings
 
@@ -67,6 +95,7 @@ This project is open to collaboration! If you have an idea for a feature, or wou
 ## Inspiration
 
 This extension was inspired by the Jupyter notebook, which allows for the execution of code blocks in a notebook environment. The goal of this extension is to bring that functionality to markdown files in VS Code. While some inspiration was also drawn from existing markdown extensions in the VS Code marketplace, I wanted to have the ability to move quicker with adding new features and languages. More specifically, I wanted to implement a way to interact with local files from within the markdown file itself.
+
 - Extensions of Note:
   - [Go Notebook](https://marketplace.visualstudio.com/items?itemName=gobookdev.gobook)
     - Last updated in 2022, no public repository
@@ -115,12 +144,14 @@ The Tree View is accessible from the VS Code activity bar. Click on the Codebook
 #### Renaming Items
 
 ##### Renaming Files:
+
 1. Right-click on a file in the Tree View
 2. Select "Rename" from the context menu
 3. Enter a new display name for the file
 4. The file will be shown with the new name in the Tree View
 
 ##### Renaming Folders:
+
 1. Right-click on a folder in the Tree View
 2. Select "Rename Folder" from the context menu
 3. Enter a new display name for the folder
@@ -137,6 +168,7 @@ The Tree View is accessible from the VS Code activity bar. Click on the Codebook
 The Tree View structure is stored in the `.vscode/codebook-md.json` file within your workspace. This configuration file manages your virtual folders, their hierarchical structure, and file references.
 
 Benefits of this configuration approach include:
+
 - **Version Control Integration**: The configuration file can be committed to your repository, allowing team sharing of notebook organization
 - **Workspace-Specific**: Each workspace has its own configuration file, allowing for project-specific organization
 - **Manual Editing**: Advanced users can directly edit the configuration file for bulk changes
@@ -227,11 +259,13 @@ The Tree View extension provides several commands, which you can access via the 
 Right-click on items in the Tree View to access context-specific actions:
 
 #### Folder Context Menu:
+
 - Add File
 - Add Sub-folder
 - Rename Folder
 
 #### File Context Menu:
+
 - Remove from Tree View
 - Rename
 
@@ -240,3 +274,5 @@ Right-click on items in the Tree View to access context-specific actions:
 - Use descriptive display names to make your documents easier to find
 - Create a logical folder hierarchy based on your projects or document types
 - Regularly refresh the Tree View if you make changes to files outside VS Code
+- Configure dynamic folder groups to focus on relevant documentation folders and exclude noise
+- Use the `subFolderInclusions` setting to include specific sub-folders like `.github` for documentation
