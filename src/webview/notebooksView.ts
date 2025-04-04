@@ -375,7 +375,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
             </button>
           </div>
         </div>
-        <div class="folder-content ${level > 0 ? 'hidden' : ''}">
+        <div class="folder-content">
     `;
 
     // Add sub-folders
@@ -505,7 +505,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
           </span>
           <span class="folder-name">${this._escapeHtml(folder.name)}</span>
         </div>
-        <div class="folder-content ${level > 0 ? 'hidden' : ''}">
+        <div class="folder-content">
     `;
 
     // Add sub-folders
