@@ -1035,8 +1035,27 @@ export function createDynamicFolderGroupFromPath(filePath: string): FolderGroup 
     // Find and process folders containing markdown files
     const markdownFolders = findMarkdownContainingFolders(filePath);
 
-    // Process folders with markdown files
-    markdownFolders.forEach((folder, index) => {
+    // Find parent folders with included subfolders containing markdown files
+    const parentFoldersWithInclusions: { path: string, name: string; }[] = [];
+    if (dynamicConfig.subFolderInclusions && dynamicConfig.subFolderInclusions.length > 0) {
+      const extraFolders = findParentFoldersWithIncludedSubfolders(
+        filePath,
+        dynamicConfig.subFolderInclusions,
+        dynamicConfig.exclusions
+      );
+
+      // Add to our list of folders to process, avoiding duplicates
+      extraFolders.forEach(folder => {
+        if (!markdownFolders.some(mf => mf.path === folder.path) &&
+          !parentFoldersWithInclusions.some(pf => pf.path === folder.path)) {
+          parentFoldersWithInclusions.push(folder);
+        }
+      });
+    }
+
+    // Process all folders with markdown files
+    const allFolders = [...markdownFolders, ...parentFoldersWithInclusions];
+    allFolders.forEach((folder, index) => {
       const folderGroupFolder = new FolderGroupFolder(folder.name, `dynamic-${index + 1}-0`);
 
       // Find all markdown files in this folder and respect exclusions
@@ -1078,7 +1097,7 @@ export function createDynamicFolderGroupFromPath(filePath: string): FolderGroup 
         dynamicConfig.subFolderInclusions,
         dynamicConfig.exclusions,
         workspacePath,
-        markdownFolders
+        allFolders // Use the combined list to avoid duplicates
       );
     }
 
@@ -1247,4 +1266,90 @@ function cleanupEmptyFolders(folders: FolderGroupFolder[]): FolderGroupFolder[] 
     // so we should filter it out
     return false;
   });
+}
+
+// findParentFoldersWithIncludedSubfolders finds parent folders that have subfolders
+// from the inclusion list containing markdown files, even if the parent folder itself
+// doesn't directly contain markdown files
+export function findParentFoldersWithIncludedSubfolders(
+  startFilePath: string,
+  inclusions: string[],
+  exclusions: string[]
+): { path: string, name: string; }[] {
+  const result: { path: string, name: string; }[] = [];
+  if (!startFilePath || !inclusions || inclusions.length === 0) {
+    return result;
+  }
+
+  try {
+    // Get the directory of the current file
+    let currentDir = path.dirname(startFilePath);
+    const workspaceFolder = config.getWorkspaceFolder();
+
+    // Keep traversing up until we reach the workspace root or the root of the filesystem
+    while (currentDir && currentDir !== path.dirname(currentDir) &&
+      (workspaceFolder ? currentDir.startsWith(workspaceFolder) : true)) {
+
+      // Check if the current directory contains any included subfolders with markdown files
+      if (hasIncludedSubfoldersWithMarkdown(currentDir, inclusions, exclusions)) {
+        // Only add if not already in the result (to avoid duplicates)
+        if (!result.some(folder => folder.path === currentDir)) {
+          result.push({
+            path: currentDir,
+            name: suggestedDisplayName(path.basename(currentDir))
+          });
+        }
+      }
+
+      // Move up to the parent directory
+      currentDir = path.dirname(currentDir);
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error finding parent folders with included subfolders:', error);
+    return [];
+  }
+}
+
+// hasIncludedSubfoldersWithMarkdown checks if a directory contains any subfolders
+// from the inclusion list that have markdown files
+function hasIncludedSubfoldersWithMarkdown(
+  dirPath: string,
+  inclusions: string[],
+  exclusions: string[]
+): boolean {
+  try {
+    if (!fs.existsSync(dirPath)) {
+      return false;
+    }
+
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+
+    // Check each subfolder in the inclusions list
+    for (const entry of entries) {
+      if (!entry.isDirectory() ||
+        !inclusions.includes(entry.name) ||
+        isExcluded(entry.name, exclusions)) {
+        continue;
+      }
+
+      const subFolderPath = path.join(dirPath, entry.name);
+
+      // Check if the subfolder contains markdown files
+      if (directoryContainsMarkdownFiles(subFolderPath)) {
+        return true;
+      }
+
+      // Recursively check nested subfolders
+      if (hasIncludedSubfoldersWithMarkdown(subFolderPath, inclusions, exclusions)) {
+        return true;
+      }
+    }
+
+    return false;
+  } catch (error) {
+    console.error(`Error checking for included subfolders with markdown in: ${dirPath}`, error);
+    return false;
+  }
 }
