@@ -12,7 +12,7 @@ Bring your markdown to life with this VS Code extension! Execute code blocks and
 
 Execute code blocks in markdown files by pressing the corresponding Play button at the top of the code block.
 
-- Languages to be supported:
+- Languages supported:
 
   - Golang
     - Executed from a main.go file.
@@ -28,7 +28,7 @@ Execute code blocks in markdown files by pressing the corresponding Play button 
 
 - Languages supported with an accompanying extension:
   - SQL
-    - Executed using a SQL extension.
+    - Executed using a SQL extension offering Codelens functionality.
   - HTTP
     - Executed using the REST Client extension.
 
@@ -47,8 +47,16 @@ You can customize the dynamic folder group through VS Code settings (`settings.j
       "enabled": true,
       "name": "Relevant Docs",
       "description": "Relevant docs for the current file",
-      "subFolderInclusions": [".github", ".vscode", "apiplayground"],
-      "exclusions": ["node_modules", "out", "dist"]
+      "subFolderInclusions": [
+        ".github",
+        ".vscode",
+        "apiplayground"
+      ],
+      "exclusions": [
+        "node_modules",
+        "out",
+        "dist"
+      ]
     }
   }
 }
