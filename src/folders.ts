@@ -934,6 +934,78 @@ function directoryContainsMarkdownFiles(dirPath: string): boolean {
   }
 }
 
+// directoryContainsIncludedSubfolders checks if a directory contains any subfolders 
+// that are in the inclusion list
+function directoryContainsIncludedSubfolders(dirPath: string, inclusions: string[], exclusions: string[]): boolean {
+  try {
+    if (!fs.existsSync(dirPath) || !inclusions || inclusions.length === 0) {
+      return false;
+    }
+
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+
+    // Check if any subfolder is in the inclusion list and not in the exclusion list
+    return entries.some(entry =>
+      entry.isDirectory() &&
+      inclusions.includes(entry.name) &&
+      !isExcluded(entry.name, exclusions)
+    );
+  } catch (error) {
+    console.error(`Error checking directory for included subfolders: ${dirPath}`, error);
+    return false;
+  }
+}
+
+// addCurrentFolderIfNeeded adds the current directory to the folder group if it contains
+// included subfolders with markdown files, even if it doesn't have markdown files itself
+function addCurrentFolderIfNeeded(
+  filePath: string,
+  folderGroup: FolderGroup,
+  inclusions: string[],
+  exclusions: string[],
+  workspacePath: string,
+  existingFolders: { path: string, name: string; }[]
+): void {
+  try {
+    // Get the directory of the current file
+    const currentDir = path.dirname(filePath);
+
+    // Skip if this folder is already included (has markdown files directly)
+    if (existingFolders.some(folder => folder.path === currentDir)) {
+      return;
+    }
+
+    // Check if the current directory contains any included subfolders
+    if (!directoryContainsIncludedSubfolders(currentDir, inclusions, exclusions)) {
+      return;
+    }
+
+    // Create folder for current directory
+    const folderName = suggestedDisplayName(path.basename(currentDir));
+    const folderIndex = folderGroup.folders.length + 1; // Next available index
+    const folderGroupFolder = new FolderGroupFolder(folderName, `dynamic-${folderIndex}-0`);
+
+    // No markdown files to add directly as this folder doesn't have any
+
+    // Add included subfolders
+    addIncludedSubFolders(
+      currentDir,
+      folderGroupFolder,
+      inclusions,
+      exclusions,
+      workspacePath
+    );
+
+    // Only add this folder if subfolders with markdown files were found
+    // This is determined by checking if any subfolders were added
+    if (folderGroupFolder.folders.length > 0) {
+      folderGroup.folders.push(folderGroupFolder);
+    }
+  } catch (error) {
+    console.error('Error adding current folder:', error);
+  }
+}
+
 // createDynamicFolderGroupFromPath creates a dynamic folder group based on the current file
 export function createDynamicFolderGroupFromPath(filePath: string): FolderGroup | undefined {
   if (!filePath) {
@@ -949,11 +1021,6 @@ export function createDynamicFolderGroupFromPath(filePath: string): FolderGroup 
   }
 
   try {
-    const markdownFolders = findMarkdownContainingFolders(filePath);
-    if (markdownFolders.length === 0) {
-      return undefined;
-    }
-
     // Create a new folder group using configuration values
     const folderGroup = new FolderGroup(
       dynamicConfig.name,
@@ -962,9 +1029,13 @@ export function createDynamicFolderGroupFromPath(filePath: string): FolderGroup 
       [] // Start with empty folders array
     );
 
-    // Add folders to the group
+    // Get the workspace path
     const workspacePath = config.getWorkspaceFolder() || '';
 
+    // Find and process folders containing markdown files
+    const markdownFolders = findMarkdownContainingFolders(filePath);
+
+    // Process folders with markdown files
     markdownFolders.forEach((folder, index) => {
       const folderGroupFolder = new FolderGroupFolder(folder.name, `dynamic-${index + 1}-0`);
 
@@ -995,14 +1066,30 @@ export function createDynamicFolderGroupFromPath(filePath: string): FolderGroup 
         );
       }
 
-      // Only add folders that have files (directly or in sub-folders)
-      if (folderGroupFolder.files.length > 0 || (folderGroupFolder.folders && folderGroupFolder.folders.length > 0)) {
-        folderGroup.folders.push(folderGroupFolder);
-      }
+      folderGroup.folders.push(folderGroupFolder);
     });
 
+    // Handle the current folder even if it doesn't contain markdown files directly
+    // but might have included subfolders with markdown files
+    if (dynamicConfig.subFolderInclusions && dynamicConfig.subFolderInclusions.length > 0) {
+      addCurrentFolderIfNeeded(
+        filePath,
+        folderGroup,
+        dynamicConfig.subFolderInclusions,
+        dynamicConfig.exclusions,
+        workspacePath,
+        markdownFolders
+      );
+    }
+
+    // Clean up any empty folders in the dynamic structure
+    // This ensures we don't display folders that have no markdown files or valuable subfolders
+    if (folderGroup.folders && folderGroup.folders.length > 0) {
+      folderGroup.folders = cleanupEmptyFolders(folderGroup.folders);
+    }
+
     // Don't return an empty folder group
-    if (folderGroup.folders.length === 0) {
+    if (!folderGroup.folders || folderGroup.folders.length === 0) {
       return undefined;
     }
 
@@ -1058,9 +1145,19 @@ function addIncludedSubFolders(
         );
       });
 
-      // Only add the subfolder if it has files
-      if (subFolderGroupFolder.files.length > 0) {
-        parentFolder.folders.push(subFolderGroupFolder);
+      // Always add the subfolder if it's in the inclusions list,
+      // even if it doesn't contain any markdown files directly
+      parentFolder.folders.push(subFolderGroupFolder);
+
+      // Recursively scan for nested subfolders
+      if (inclusions.length > 0) {
+        addIncludedSubFolders(
+          subFolderPath,
+          subFolderGroupFolder,
+          inclusions,
+          exclusions,
+          workspacePath
+        );
       }
     });
   } catch (error) {
@@ -1119,4 +1216,35 @@ function findMarkdownFilesInDirectory(
     console.error(`Error finding markdown files in directory: ${dirPath}`, error);
     return [];
   }
+}
+
+// cleanupEmptyFolders recursively removes empty folders from a dynamic folder group
+// A folder is considered empty if it has no files and no non-empty subfolders
+function cleanupEmptyFolders(folders: FolderGroupFolder[]): FolderGroupFolder[] {
+  if (!folders || folders.length === 0) {
+    return [];
+  }
+
+  return folders.filter(folder => {
+    // First, recursively clean up subfolders if they exist
+    if (folder.folders && folder.folders.length > 0) {
+      const cleanedSubfolders = cleanupEmptyFolders(folder.folders);
+      // Update the folder's subfolders with the cleaned result
+      folder.folders = cleanedSubfolders;
+    }
+
+    // A folder should be kept if it has any files
+    if (folder.files && folder.files.length > 0) {
+      return true;
+    }
+
+    // A folder should be kept if it has any remaining subfolders after cleanup
+    if (folder.folders && folder.folders.length > 0) {
+      return true;
+    }
+
+    // If we reach here, the folder is empty (no files, no subfolders after cleanup)
+    // so we should filter it out
+    return false;
+  });
 }
