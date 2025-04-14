@@ -17,20 +17,23 @@ CodebookMD is a VS Code extension that brings Jupyter-like notebook functionalit
 - Use meaningful descriptive names for functions and variables
 - Comments should be added for complex logic or non-obvious functionality
 - Ensure all code adheres to the established coding standards and practices
-  
+
 #### Code Quality Checks:
-  - Ensure all generated code passes the following checks (vscode tasks)
-    - `npm run compile` for building the extension
-    - `npm install` for installing dependencies
-    - `npm run lint` for linting
-    - `npm test` for unit tests - all tests should pass
+
+- Ensure all generated code passes the following checks (vscode tasks)
+  - `npm run compile` for building the extension
+  - `npm install` for installing dependencies
+  - `npm run lint` for linting
+  - `npm test` for unit tests - all tests should pass
 
 ### Testing
 
 - Test files should mirror the structure of their implementation files
-  - Test Folder Location: src/test/
+  - Test Folder Location: `#file: ../src/test/`
   - Test File Naming: <filename>.test.ts
+    - For example, if the implementation file is `src/languages/codebook.ts`, the test file should be `#file:../src/test/languages/codebook.test.ts`
   - Tests are written in TypeScript
+  - Test files should mirror the structure of their implementation files
 - Use Jest for unit testing
 - Each test should focus on a single piece of functionality
 - Use descriptive test names that explain the scenario being tested
