@@ -66,6 +66,14 @@
     .content section {
       margin-bottom: 2em;
     }
+    .section-highlight {
+      animation: highlight-pulse 2s ease-in-out;
+    }
+    @keyframes highlight-pulse {
+      0% { background-color: transparent; }
+      30% { background-color: var(--vscode-editor-selectionBackground); }
+      100% { background-color: transparent; }
+    }
   </style>
 </head>
 <body>
@@ -473,6 +481,26 @@ echo $PATH
             behavior: 'smooth'
           });
         });
+      });
+
+      // Listen for messages from the extension
+      window.addEventListener('message', event => {
+        const message = event.data;
+        
+        // Handle scrollToSection message
+        if (message.command === 'scrollToSection' && message.sectionId) {
+          const section = document.getElementById(message.sectionId);
+          if (section) {
+            // Scroll to the section with smooth animation
+            section.scrollIntoView({ behavior: 'smooth' });
+            
+            // Add a temporary highlight to make the section more visible
+            section.classList.add('section-highlight');
+            setTimeout(() => {
+              section.classList.remove('section-highlight');
+            }, 2000);
+          }
+        }
       });
     })();
   </script>

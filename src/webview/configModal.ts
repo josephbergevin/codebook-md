@@ -1,22 +1,41 @@
-import { window, WebviewPanel, ViewColumn, Uri, ExtensionContext, env } from 'vscode';
+import { window, WebviewPanel, ViewColumn, Uri, ExtensionContext, env, commands } from 'vscode';
 import * as path from 'path';
 import * as codebook from '../codebook';
 
 let currentPanel: WebviewPanel | undefined = undefined;
 
-export function openConfigModal(execCell: codebook.ExecutableCell, context?: ExtensionContext) {
+export function openConfigModal(execCell: codebook.ExecutableCell, context?: ExtensionContext): void {
+  // Get active editor's column to position our modal adjacent to it
+  const activeColumn = window.activeTextEditor?.viewColumn || ViewColumn.One;
+  // Use the next column (or wrap around to One if at Three)
+  const modalColumn = activeColumn === ViewColumn.Three ?
+    ViewColumn.One :
+    (activeColumn + 1) as ViewColumn;
+
   if (currentPanel) {
-    currentPanel.reveal(ViewColumn.One);
+    // If panel exists, reveal it in the appropriate column
+    currentPanel.reveal(modalColumn, true); // Second parameter makes it preserve focus on the editor
   } else {
+    // Create a compact modal-like panel
     currentPanel = window.createWebviewPanel(
       'codeBlockConfig',
       'Code Block Config',
-      ViewColumn.One,
+      {
+        viewColumn: modalColumn,
+        preserveFocus: true // Keep focus on the editor
+      },
       {
         enableScripts: true,
-        localResourceRoots: context ? [Uri.file(path.join(context.extensionPath, 'src', 'img'))] : undefined
+        localResourceRoots: context ? [Uri.file(path.join(context.extensionPath, 'src', 'img'))] : undefined,
+        retainContextWhenHidden: true // Keep the webview's state when hidden
       }
     );
+
+    // Make the panel behave more like a modal by setting a fixed size
+    currentPanel.webview.options = {
+      ...currentPanel.webview.options,
+      enableForms: true
+    };
 
     currentPanel.onDidDispose(
       () => {
@@ -33,6 +52,12 @@ export function openConfigModal(execCell: codebook.ExecutableCell, context?: Ext
             // Handle saving the configuration
             window.showInformationMessage('Configuration saved');
             return;
+          case 'close':
+            // Close the panel when requested from the webview
+            if (currentPanel) {
+              currentPanel.dispose();
+            }
+            return;
           case 'reset':
             // Handle resetting the configuration
             window.showInformationMessage('Configuration reset to defaults');
@@ -42,15 +67,25 @@ export function openConfigModal(execCell: codebook.ExecutableCell, context?: Ext
             env.clipboard.writeText(message.text);
             window.showInformationMessage(`Copied to clipboard: ${message.text}`);
             return;
+          case 'openDocumentation':
+            // Open documentation view with focus on specific section
+            commands.executeCommand('codebook-md.openDocumentation', message.section);
+            return;
         }
       }
     );
 
-    currentPanel.webview.html = getWebviewContent(execCell, currentPanel, context);
+    currentPanel.webview.html = getWebviewContent(execCell);
   }
 }
 
-function getWebviewContent(execCell: codebook.ExecutableCell, panel: WebviewPanel, context?: ExtensionContext): string {
+/**
+ * Generate the HTML content for the code block configuration modal
+ * 
+ * @param execCell The executable cell to configure
+ * @returns HTML content for the webview
+ */
+function getWebviewContent(execCell: codebook.ExecutableCell): string {
   const cellConfig = execCell.codeBlockConfig();
   let commentPrefix = execCell.defaultCommentPrefix();
   if (commentPrefix === '') {
@@ -59,13 +94,6 @@ function getWebviewContent(execCell: codebook.ExecutableCell, panel: WebviewPane
   const availableCommands = cellConfig.availableCommands().map(cmd => `${commentPrefix} [>]${cmd}`);
   const codeBlockCommands = cellConfig.commands.map(cmd => `${commentPrefix} [>]${cmd}`);
   const languageId = cellConfig.languageId;
-
-  // Create gear icon URI if context is available (only using this for reference in this function)
-  let gearIconSrc = '';
-  if (context) {
-    const gearIconPath = Uri.file(path.join(context.extensionPath, 'extension', 'src', 'img', 'icon_gear.svg'));
-    gearIconSrc = panel.webview.asWebviewUri(gearIconPath).toString();
-  }
 
   // Create available commands HTML
   const availableCommandsHTML = availableCommands.map(cmd => {
@@ -96,11 +124,35 @@ function getWebviewContent(execCell: codebook.ExecutableCell, panel: WebviewPane
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Code Block Config</title>
       <style>
+        @import url("https://cdn.jsdelivr.net/npm/vscode-codicons@0.0.17/dist/codicon.css");
         body {
           font-family: var(--vscode-font-family);
           font-size: var(--vscode-font-size);
           color: var(--vscode-foreground);
-          padding: 20px;
+          padding: 16px;
+          /* Set max dimensions to make it more modal-like */
+          max-width: 500px;
+          margin: 0 auto;
+          box-sizing: border-box;
+        }
+        .codicon {
+          font-size: 16px;
+          margin-right: 8px;
+        }
+        .help-link {
+          display: inline-flex;
+          align-items: center;
+          color: var(--vscode-textLink-foreground);
+          text-decoration: none;
+          cursor: pointer;
+          margin-bottom: 12px;
+        }
+        .help-link:hover {
+          color: var(--vscode-textLink-activeForeground);
+          text-decoration: underline;
+        }
+        .help-link .codicon {
+          margin-right: 4px;
         }
         .form-group {
           margin-bottom: 15px;
@@ -138,12 +190,43 @@ function getWebviewContent(execCell: codebook.ExecutableCell, panel: WebviewPane
         .header {
           display: flex;
           align-items: center;
-          margin-bottom: 20px;
+          justify-content: space-between;
+          margin-bottom: 16px;
+          border-bottom: 1px solid var(--vscode-panel-border);
+          padding-bottom: 8px;
+        }
+        .header-left {
+          display: flex;
+          align-items: center;
         }
         .header img {
-          width: 24px;
-          height: 24px;
-          margin-right: 10px;
+          width: 20px;
+          height: 20px;
+          margin-right: 8px;
+        }
+        .header h1 {
+          font-size: 1.2em;
+          margin: 0;
+        }
+        .close-button {
+          background: transparent;
+          border: none;
+          color: var(--vscode-foreground);
+          cursor: pointer;
+          font-size: 1.2em;
+          padding: 4px 8px;
+          margin: 0;
+        }
+        .close-button:hover {
+          background: var(--vscode-toolbar-hoverBackground);
+          border-radius: 3px;
+        }
+        .modal-actions {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: 16px;
+          padding-top: 10px;
+          border-top: 1px solid var(--vscode-panel-border);
         }
         .command-list {
           border: 1px solid var(--vscode-input-border);
@@ -189,9 +272,18 @@ function getWebviewContent(execCell: codebook.ExecutableCell, panel: WebviewPane
     </head>
     <body>
       <div class="header">
-        ${gearIconSrc ? `<img src="${gearIconSrc}" alt="Settings" />` : ''}
-        <h1>Code Block Config - Language: ${languageId}</h1>
+        <div class="header-left">
+          <span class="codicon codicon-gear"></span>
+          <h1>Code Block Config - Language: ${languageId}</h1>
+        </div>
+        <button type="button" class="close-button" onclick="closeModal()" title="Close">×</button>
       </div>
+      
+      <div class="help-link" onclick="openDocumentation('executable-code')">
+        <span class="codicon codicon-question"></span>
+        <span>Learn more about executable code blocks</span>
+      </div>
+      
       <form id="configForm">
         <div class="form-group">
           <label for="languageId">Language ID</label>
@@ -216,6 +308,11 @@ function getWebviewContent(execCell: codebook.ExecutableCell, panel: WebviewPane
           </div>
         </div>
       </form>
+      
+      <div class="modal-actions">
+        <button type="button" onclick="closeModal()">Close</button>
+      </div>
+      
       <script>
         const vscode = acquireVsCodeApi();
         
@@ -279,6 +376,21 @@ function getWebviewContent(execCell: codebook.ExecutableCell, panel: WebviewPane
               </div>
             \`;
           }).join('');
+        }
+        
+        function closeModal() {
+          // Send a message to the extension to close this panel
+          vscode.postMessage({
+            command: 'close'
+          });
+        }
+        
+        function openDocumentation(section) {
+          // Send a message to open the documentation at a specific section
+          vscode.postMessage({
+            command: 'openDocumentation',
+            section: section
+          });
         }
       </script>
     </body>

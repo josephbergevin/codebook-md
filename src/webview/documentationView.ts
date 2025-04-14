@@ -46,6 +46,19 @@ export class DocumentationViewProvider implements WebviewViewProvider, Disposabl
   }
 
   /**
+   * Scroll to a specific section in the documentation
+   * @param sectionId The ID of the section to scroll to
+   */
+  public scrollToSection(sectionId: string): void {
+    if (this._view) {
+      this._view.webview.postMessage({
+        command: 'scrollToSection',
+        sectionId: sectionId
+      });
+    }
+  }
+
+  /**
    * Update the webview content
    */
   private _updateWebview() {
