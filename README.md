@@ -72,6 +72,36 @@ You can customize the dynamic folder group through VS Code settings (`settings.j
 
 The dynamic folder group will only show folders that contain markdown files after applying exclusions, providing a clean and focused view of relevant documentation.
 
+### Environment Variables Support
+
+Shell scripts executed in CodebookMD now have access to environment variables set in VS Code settings:
+
+- Automatically detects and uses variables from `terminal.integrated.env.*` settings
+- Platform-specific support for macOS, Windows, and Linux
+- VS Code environment variables take precedence over system environment variables
+- Secure storage of credentials and configuration without hardcoding in markdown files
+
+Configure environment variables in your VS Code settings:
+
+```json
+{
+  "terminal.integrated.env.osx": {
+    "API_KEY": "your-api-key",
+    "DATABASE_URL": "postgres://user:password@localhost:5432/mydb",
+    "PATH": "${env:PATH}:/custom/path"
+  }
+}
+```
+
+These variables are automatically available in your shell code blocks:
+
+```shellscript
+# This code block will have access to API_KEY, DATABASE_URL, and the extended PATH
+echo $API_KEY
+echo $DATABASE_URL
+echo $PATH
+```
+
 ### Custom Settings
 
 Support for workspace, user, and folder-level configurations

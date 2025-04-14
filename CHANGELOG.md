@@ -4,6 +4,21 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2025-04-14
+
+### Added
+
+- VS Code environment variables support for shell scripts
+- Access to terminal.integrated.env.\* settings in shell code blocks
+- Platform-specific environment variables detection (macOS, Windows, Linux)
+- Environment variables documentation in built-in documentation view
+
+### Changed
+
+- Improved shell script execution with merged environment variables
+- Enhanced output handling for environment-sensitive commands
+- Updated documentation with environment variables examples and best practices
+
 ## [0.13.3] - 2025-04-01
 
 ### Added
