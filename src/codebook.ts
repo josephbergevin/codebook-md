@@ -205,7 +205,13 @@ export class Command implements Executable {
       // Log with source map information before spawning the process
       console.log(`Spawning process in ${this.cwd}: ${this.command} ${this.args.join(' ')}`);
 
-      this.childProcess = spawn(this.command, this.args, { cwd: this.cwd });
+      // Get merged environment variables from VS Code settings and process.env
+      const mergedEnv = io.getMergedEnvironmentVariables();
+
+      this.childProcess = spawn(this.command, this.args, {
+        cwd: this.cwd,
+        env: mergedEnv
+      });
 
       // Apply output transformers if any exist
       if (this.outputTransformers.length > 0) {
