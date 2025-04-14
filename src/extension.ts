@@ -251,11 +251,16 @@ export function activate(context: ExtensionContext) {
   );
 
   // Add commands to show and focus webviews
-  let disposable = commands.registerCommand('codebook-md.openDocumentation', async () => {
+  let disposable = commands.registerCommand('codebook-md.openDocumentation', async (sectionId?: string) => {
     // First show the activity bar view container
     await commands.executeCommand('workbench.view.extension.codebook-md-activitybar');
     // Then focus the documentation view
     await commands.executeCommand('codebook-md-documentation-view.focus');
+
+    // If a specific section ID was provided, tell the documentation view to scroll to it
+    if (sectionId && documentationViewProvider) {
+      documentationViewProvider.scrollToSection(sectionId);
+    }
   });
   context.subscriptions.push(disposable);
 
