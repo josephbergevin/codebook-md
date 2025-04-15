@@ -201,60 +201,129 @@
 
       <section id="executable-code">
         <h2>Executable Code Blocks</h2>
-        <p>Execute code blocks directly in your markdown files.</p>
+        <p>CodebookMD brings interactive computing to Markdown files by letting you execute code blocks directly in your documents.</p>
 
-        <h4>Supported Languages</h4>
+        <h3>Getting Started</h3>
+        <p>To execute a code block in your markdown file:</p>
+        <ol>
+            <li>Code blocks are automatically detected by CodebookMD when opening a markdown file.</li>
+            <li>Here is a simple example for a shellscript code block that would be executable in CodebookMD</li>
+            <pre><code>```shellscript
+      echo "Hello, CodebookMD!"
+```</code></pre>
+          </li>
+          <li>Click the "Run" triangle button that appears in the upper-left corner of the code block.</li>
+          <li>The code will execute and display its output directly below the code block</li>
+          <li>Tip: To create a new code block within a markdown file (already opened in CodebookMD), click on the "+ Code" button found above or below an existing cell in the notebook.</li>
+        </ol>
+
+        <h3>Supported Languages</h3>
+        <p>CodebookMD supports executing code in multiple languages:</p>
         <ul>
-          <li><strong>Go:</strong> Run as main.go or test files</li>
+          <li><strong>Go:</strong> Run code as main.go or test files</li>
           <li><strong>Shell/Bash:</strong> Execute shell commands</li>
           <li><strong>JavaScript/TypeScript:</strong> Run JS/TS code</li>
+          <li><strong>Python:</strong> Execute Python scripts</li>
           <li><strong>SQL:</strong> Execute database queries</li>
           <li><strong>HTTP:</strong> Make API requests (with REST Client extension)</li>
         </ul>
-      </section>
 
-      <section id="codeblock-config">
-        <h2>CodeBlock Configuration</h2>
-        <p>Configure individual code blocks using special comment syntax or through the configuration modal. Each language supports its own comment style while maintaining consistent configuration options.</p>
+        <h3 id="codeblock-config">CodeBlock Configuration</h3>
+        <p>There are two ways to configure code blocks in CodebookMD:</p>
         
-        <h4>Configuration Methods</h4>
-        <ul>
-          <li><strong>Comment Syntax:</strong> Add configuration commands directly in code block comments</li>
-          <li><strong>Configuration Modal:</strong> Click the gear icon (<svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align: middle;"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>) in the code block toolbar</li>
-        </ul>
-
         <h4>Using the Configuration Modal</h4>
-        <p>The configuration modal provides a user-friendly interface to manage code block settings:</p>
-        <ul>
-          <li><strong>Available Commands:</strong> List of configuration commands you can add to your code block</li>
-          <li><strong>Code Block Commands:</strong> Commands already configured in your code block</li>
-          <li><strong>Command Actions:</strong>
-            <ul>
-              <li>Add (+): Move a command from available to code block commands (only moves in modal)</li>
-              <li>Remove (-): Remove a command from your code block (only moves in modal)</li>
-              <li>Copy (📋): Copy command syntax to clipboard for manual insertion</li>
-            </ul>
-          </li>
-        </ul>
-        <p>Changes made in the configuration modal are automatically reflected in your code block as comment commands.</p>
+        <p>The easiest way to configure a code block is through the configuration modal:</p>
+        <ol>
+          <li>Click the gear icon (<svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align: middle;"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>) in the code block toolbar</li>
+          <li>Browse available commands and add them to your code block</li>
+          <li>Copy command syntax to clipboard for manual insertion</li>
+        </ol>
 
-        <h4>Configuration Syntax</h4>
-        <p>Add configuration using comments with the <code>[>]</code> prefix followed by the configuration command:</p>
-        
-        <h4>Language-Specific Examples</h4>
+        <h4>Using Comment Syntax</h4>
+        <p>You can also configure code blocks directly in your markdown by adding special comments:</p>
         <ul>
-          <li id="codeblock-config-go"><strong>Go:</strong>
-            <p>Basic configuration:</p>
-            <pre><code>// [>].output.showExecutableCodeInOutput(true)
+          <li>Add configuration using comments with the <code>[>]</code> prefix followed by the configuration command</li>
+          <li>Each language uses its own comment style (// for Go/JS, # for Python/Bash, -- for SQL)</li>
+        </ul>
+
+        <h4>Common Configuration Options</h4>
+        <p>These options work for all supported languages:</p>
+        <ul>
+          <li><code>showExecutableCodeInOutput(boolean)</code>: Show/hide the executed code in output</li>
+          <li><code>showOutputOnRun(boolean)</code>: Control whether output is shown after execution</li>
+          <li><code>replaceOutputCell(boolean)</code>: Replace existing output or append new output</li>
+          <li><code>showTimestamp(boolean)</code>: Show/hide execution timestamp in output</li>
+        </ul>
+
+        <h3 id="output-config">Output Configuration</h3>
+        <p>CodebookMD provides several ways to customize how execution results are displayed:</p>
+        
+        <h4>Output Location and Format</h4>
+        <ul>
+          <li><strong>Location:</strong> Output appears below the code block</li>
+          <li><strong>Code Inclusion:</strong> You can show or hide the executed code in the output</li>
+          <li><strong>Timestamps:</strong> Add execution timestamps to track when code was run</li>
+          <li><strong>Output Mode:</strong> Choose to replace or append output for iterative development</li>
+        </ul>
+
+        <h4>Configuring Output Globally</h4>
+        <p>Set default output behavior in VS Code settings (<code>settings.json</code>):</p>
+        <pre><code>{
+  "codebook-md.output": {
+    "showExecutableCodeInOutput": true,
+    "showOutputOnRun": true,
+    "replaceOutputCell": true,
+    "showTimestamp": true
+  }
+}</code></pre>
+
+        <h4>Configuring Output Per Language</h4>
+        <p>Override global settings with language-specific configurations:</p>
+        <pre><code>{
+  "codebook-md.go.output": {
+    "showExecutableCodeInOutput": false,
+    "showTimestamp": false
+  },
+  "codebook-md.bash.output": {
+    "showTimestamp": true
+  }
+}</code></pre>
+
+        <h3>Language-Specific Documentation</h3>
+        <p>Each supported language has its own specific configuration options and execution behavior:</p>
+        
+        <h4 id="codeblock-config-go">Go</h4>
+        <p>Execute Go code directly in markdown with two execution modes.</p>
+        
+        <h5>Basic Usage</h5>
+        <pre><code>```go
+fmt.Println("Hello, CodebookMD!")
+```</code></pre>
+
+        <h5>VS Code Settings Configuration</h5>
+        <p>Configure Go execution behavior in VS Code settings:</p>
+        <pre><code>{
+  "codebook-md.go": {
+    "execType": "run",              // "run" or "test"
+    "execTypeRunFilename": "main.go",
+    "execTypeTestFilename": "codebook_md_exec_test.go",
+    "execTypeTestBuildTag": "playground",
+    "goimportsCmd": "gopls imports"  // or "goimports"
+  }
+}</code></pre>
+
+        <h5>Code Block Configuration</h5>
+        <p>Configure individual Go code blocks with comments:</p>
+        <pre><code>// [>].output.showExecutableCodeInOutput(true)
 // [>].execFrom:./path/to/main.go
 fmt.Println("Hello")</code></pre>
             
-            <p>Go-specific configuration options:</p>
+        <h5>Go-specific Options</h5>
+        <ul>
+          <li><strong>Execution Type:</strong> Run code as a main file or test file
             <ul>
-              <li><h4>Execution Type (<code>execType</code>)</h4>
-                <ul>
-                  <li>Run Mode (<code>execType: run</code>):
-                    <pre><code>// Execute in main.go (default)
+              <li>Run Mode (default):
+                <pre><code>// Execute in main.go (default)
 fmt.Println("Hello")
 
 // Specify custom filename
@@ -266,9 +335,9 @@ package main
 func main() {
     fmt.Println("Hello")
 }</code></pre>
-                  </li>
-                  <li>Test Mode (<code>execType: test</code>):
-                    <pre><code>// Execute in test file
+              </li>
+              <li>Test Mode:
+                <pre><code>// Execute in test file
 // [>].execTypeTestFilename("custom_test.go")
 // [>].execTypeTestBuildTag("playground")
 
@@ -280,56 +349,70 @@ package mypackage
 func TestExecNotebook(t *testing.T) {
     // your test code
 }</code></pre>
-                  </li>
-                </ul>
               </li>
-              <li><h4>Code Import Management</h4>
-                <ul>
-                  <li>goimports Command:
-                    <pre><code>// Use faster goimports instead of gopls
+            </ul>
+          </li>
+          <li><strong>Import Management:</strong> CodebookMD automatically manages imports
+            <pre><code>// Use faster goimports instead of gopls
 // [>].goimportsCmd("goimports")
 
 // Default uses gopls (slower but more reliable)
 // [>].goimportsCmd("gopls imports")</code></pre>
-                  </li>
-                  <li>Imports are automatically managed and formatted before execution</li>
-                </ul>
-              </li>
-              <li><h4>Output Filtering</h4>
-                <pre><code>// Filter unwanted output prefixes
-// [>].excludeOutputPrefixes(["mysql: ", "W0626 ", "DEBUG: ", "INFO: "])</code></pre>
-              </li>
-              <li><h4>Configuration Properties Summary</h4>
-                <ul>
-                  <li><code>execTypeRunFilename</code>: Name of the file for run mode (default: "main.go")</li>
-                  <li><code>execTypeTestFilename</code>: Name of the test file (default: "codebook_md_exec_test.go")</li>
-                  <li><code>execTypeTestBuildTag</code>: Build tag for test isolation (default: "playground")</li>
-                  <li><code>goimportsCmd</code>: Command for import formatting ("gopls imports" or "goimports")</li>
-                  <li><code>excludeOutputPrefixes</code>: Array of prefixes to filter from output</li>
-                </ul>
-              </li>
-              <li><h4>Best Practices</h4>
-                <ul>
-                  <li>Add test files to .gitignore to prevent test pollution</li>
-                  <li>Use build tags to isolate notebook tests from package tests</li>
-                  <li>Consider using goimports for faster import resolution</li>
-                  <li>Use output filtering for cleaner execution results</li>
-                </ul>
-              </li>
-            </ul>
           </li>
-          <li id="codeblock-config-javascript"><strong>JavaScript/TypeScript:</strong>
-            <p>Basic configuration:</p>
-            <pre><code>console.log("Hello");
-// [>].output.replaceOutputCell(false)
+          <li><strong>Output Filtering:</strong> Remove unwanted prefixes from output
+            <pre><code>// Filter unwanted output prefixes
+// [>].excludeOutputPrefixes(["mysql: ", "W0626 ", "DEBUG: ", "INFO: "])</code></pre>
+          </li>
+        </ul>
+
+        <h5>Best Practices for Go</h5>
+        <ul>
+          <li>Add test files to .gitignore to prevent test pollution</li>
+          <li>Use build tags to isolate notebook tests from package tests</li>
+          <li>Consider using goimports for faster import resolution</li>
+          <li>Use output filtering for cleaner execution results</li>
+        </ul>
+
+        <h4 id="codeblock-config-javascript">JavaScript/TypeScript</h4>
+        <p>Execute JavaScript or TypeScript code with Node.js integration.</p>
+        
+        <h5>Basic Usage</h5>
+        <pre><code>```javascript
+console.log("Hello from JavaScript!");
+```</code></pre>
+
+        <pre><code>```typescript
+const greeting: string = "Hello from TypeScript!";
+console.log(greeting);
+```</code></pre>
+
+        <h5>VS Code Settings Configuration</h5>
+        <p>Configure JavaScript/TypeScript behavior in VS Code settings:</p>
+        <pre><code>{
+  "codebook-md.javascript": {
+    "output": {
+      "showExecutableCodeInOutput": true,
+      "replaceOutputCell": true
+    }
+  },
+  "codebook-md.typescript": {
+    "output": {
+      "showExecutableCodeInOutput": true,
+      "replaceOutputCell": true
+    }
+  }
+}</code></pre>
+
+        <h5>Code Block Configuration</h5>
+        <p>Configure individual JavaScript/TypeScript code blocks with comments:</p>
+        <pre><code>// [>].output.replaceOutputCell(false)
+console.log("Hello");
 // Your regular comments here</code></pre>
             
-            <p>JavaScript/TypeScript-specific configuration options:</p>
-            <ul>
-              <li><h4>Output Configuration</h4>
-                <ul>
-                  <li>Control output behavior:
-                    <pre><code>// Show code in output
+        <h5>JavaScript/TypeScript-specific Options</h5>
+        <ul>
+          <li><strong>Output Configuration:</strong>
+            <pre><code>// Show code in output
 // [>].output.showExecutableCodeInOutput(true)
 
 // Don't replace output cell on each run (append instead)
@@ -340,42 +423,54 @@ func TestExecNotebook(t *testing.T) {
 
 // Show timestamp with execution results
 // [>].output.showTimestamp(true)</code></pre>
-                  </li>
-                </ul>
-              </li>
-              <li><h4>Best Practices</h4>
-                <ul>
-                  <li>Use <code>console.log()</code> for output</li>
-                  <li>For async code, ensure promises are resolved before the code block ends</li>
-                  <li>TypeScript code will be automatically transpiled before execution</li>
-                  <li>Node.js built-in modules are available (fs, path, etc.)</li>
-                </ul>
-              </li>
-            </ul>
           </li>
-          <li id="codeblock-config-python"><strong>Python:</strong>
-            <p>Basic configuration:</p>
-            <pre><code>print("Hello")
-# [>].output.showOutputOnRun(true)
+        </ul>
+
+        <h5>Best Practices for JavaScript/TypeScript</h5>
+        <ul>
+          <li>Use <code>console.log()</code> for output</li>
+          <li>For async code, ensure promises are resolved before the code block ends</li>
+          <li>TypeScript code will be automatically transpiled before execution</li>
+          <li>Node.js built-in modules are available (fs, path, etc.)</li>
+        </ul>
+
+        <h4 id="codeblock-config-python">Python</h4>
+        <p>Execute Python scripts with customizable interpreter settings.</p>
+        
+        <h5>Basic Usage</h5>
+        <pre><code>```python
+print("Hello from Python!")
+```</code></pre>
+
+        <h5>VS Code Settings Configuration</h5>
+        <p>Configure Python behavior in VS Code settings:</p>
+        <pre><code>{
+  "codebook-md.python": {
+    "pythonCmd": "python3",
+    "output": {
+      "showExecutableCodeInOutput": true,
+      "showOutputOnRun": true
+    }
+  }
+}</code></pre>
+
+        <h5>Code Block Configuration</h5>
+        <p>Configure individual Python code blocks with comments:</p>
+        <pre><code># [>].output.showOutputOnRun(true)
+print("Hello")
 # Your regular comments here</code></pre>
             
-            <p>Python-specific configuration options:</p>
-            <ul>
-              <li><h4>Execution Configuration</h4>
-                <ul>
-                  <li>Custom Python command:
-                    <pre><code># Use a specific Python interpreter
+        <h5>Python-specific Options</h5>
+        <ul>
+          <li><strong>Interpreter Selection:</strong>
+            <pre><code># Use a specific Python interpreter
 # [>].pythonCmd("python3.9")
 
 # Default uses system Python command
 # [>].pythonCmd("python3")</code></pre>
-                  </li>
-                </ul>
-              </li>
-              <li><h4>Output Configuration</h4>
-                <ul>
-                  <li>Control output behavior:
-                    <pre><code># Show executed code in output
+          </li>
+          <li><strong>Output Configuration:</strong>
+            <pre><code># Show executed code in output
 # [>].output.showExecutableCodeInOutput(true)
 
 # Show output after running
@@ -386,50 +481,57 @@ func TestExecNotebook(t *testing.T) {
 
 # Show timestamp with execution results
 # [>].output.showTimestamp(true)</code></pre>
-                  </li>
-                </ul>
-              </li>
-              <li><h4>Best Practices</h4>
-                <ul>
-                  <li>Use <code>print()</code> for output that should be captured</li>
-                  <li>For matplotlib or other visualizations, save images to file or use inline display libraries</li>
-                  <li>Python code is executed as a script file</li>
-                  <li>Standard libraries are available; third-party packages require installation on your system</li>
-                </ul>
-              </li>
-            </ul>
           </li>
-          <li id="codeblock-config-bash"><strong>Bash/Shell:</strong>
-            <p>Basic configuration:</p>
-            <pre><code>echo "Hello"
-# [>].output.showTimestamp(true)
+        </ul>
+
+        <h5>Best Practices for Python</h5>
+        <ul>
+          <li>Use <code>print()</code> for output that should be captured</li>
+          <li>For matplotlib or other visualizations, save images to file or use inline display libraries</li>
+          <li>Python code is executed as a script file</li>
+          <li>Standard libraries are available; third-party packages require installation on your system</li>
+        </ul>
+
+        <h4 id="codeblock-config-bash">Bash/Shell</h4>
+        <p>Execute shell commands with environment variable integration.</p>
+        
+        <h5>Basic Usage</h5>
+        <pre><code>```bash
+echo "Hello from Bash!"
+```</code></pre>
+
+        <h5>VS Code Settings Configuration</h5>
+        <p>Configure Bash/Shell behavior in VS Code settings:</p>
+        <pre><code>{
+  "codebook-md.bash": {
+    "execSingleLineAsCommand": false,
+    "output": {
+      "showExecutableCodeInOutput": true,
+      "showTimestamp": true
+    }
+  }
+}</code></pre>
+
+        <h5>Code Block Configuration</h5>
+        <p>Configure individual Bash/Shell code blocks with comments:</p>
+        <pre><code># [>].output.showTimestamp(true)
+echo "Hello"
 # Your regular comments here</code></pre>
             
-            <p>Bash/Shell-specific configuration options:</p>
-            <ul>
-              <li><h4>Execution Configuration</h4>
-                <ul>
-                  <li>Single line execution:
-                    <pre><code># Run single-line code blocks as commands instead of scripts
+        <h5>Bash/Shell-specific Options</h5>
+        <ul>
+          <li><strong>Execution Mode:</strong>
+            <pre><code># Run single-line code blocks as commands instead of scripts
 # [>].execSingleLineAsCommand(true)</code></pre>
-                  </li>
-                </ul>
-              </li>
-              <li><h4>Environment Variables</h4>
-                <ul>
-                  <li>Automatic integration with VS Code environment variables:
-                    <pre><code># Environment variables from VS Code settings are automatically available
+          </li>
+          <li><strong>Environment Variables:</strong> Automatic integration with VS Code environment variables
+            <pre><code># Environment variables from VS Code settings are automatically available
 echo $API_KEY
 echo $DATABASE_URL
 echo $PATH</code></pre>
-                  </li>
-                  <li>Variables from <code>terminal.integrated.env.osx</code>, <code>terminal.integrated.env.windows</code>, or <code>terminal.integrated.env.linux</code> are available depending on your platform</li>
-                </ul>
-              </li>
-              <li><h4>Output Configuration</h4>
-                <ul>
-                  <li>Control output behavior:
-                    <pre><code># Show executed code in output
+          </li>
+          <li><strong>Output Configuration:</strong>
+            <pre><code># Show executed code in output
 # [>].output.showExecutableCodeInOutput(true)
 
 # Show output after running
@@ -440,39 +542,50 @@ echo $PATH</code></pre>
 
 # Show timestamp with execution results
 # [>].output.showTimestamp(true)</code></pre>
-                  </li>
-                </ul>
-              </li>
-              <li><h4>Best Practices</h4>
-                <ul>
-                  <li>Use <code>echo</code> for output that should be captured</li>
-                  <li>For complex commands, use multiline scripts rather than single-line commands</li>
-                  <li>Consider using <code>set -e</code> to fail on errors</li>
-                  <li>Use environment variables from VS Code settings for sensitive data</li>
-                </ul>
-              </li>
-            </ul>
           </li>
-          <li id="codeblock-config-sql"><strong>SQL:</strong>
-            <p>Basic configuration:</p>
-            <pre><code>SELECT * FROM users;
--- [>].output.showExecutableCodeInOutput(true)
+        </ul>
+
+        <h5>Best Practices for Bash/Shell</h5>
+        <ul>
+          <li>Use <code>echo</code> for output that should be captured</li>
+          <li>For complex commands, use multiline scripts rather than single-line commands</li>
+          <li>Consider using <code>set -e</code> to fail on errors</li>
+          <li>Use environment variables from VS Code settings for sensitive data</li>
+        </ul>
+
+        <h4 id="codeblock-config-sql">SQL</h4>
+        <p>Execute SQL queries with database connection options.</p>
+        
+        <h5>Basic Usage</h5>
+        <pre><code>```sql
+SELECT 'Hello from SQL!' AS greeting;
+```</code></pre>
+
+        <h5>VS Code Settings Configuration</h5>
+        <p>Configure SQL behavior in VS Code settings:</p>
+        <pre><code>{
+  "codebook-md.sql": {
+    "execOptions": ["--defaults-file=~/.my.cnf"],
+    "output": {
+      "showExecutableCodeInOutput": true
+    }
+  }
+}</code></pre>
+
+        <h5>Code Block Configuration</h5>
+        <p>Configure individual SQL code blocks with comments:</p>
+        <pre><code>-- [>].output.showExecutableCodeInOutput(true)
+SELECT * FROM users;
 -- Your regular comments here</code></pre>
             
-            <p>SQL-specific configuration options:</p>
-            <ul>
-              <li><h4>Connection Configuration</h4>
-                <ul>
-                  <li>Configure execution options:
-                    <pre><code>-- Set connection options
+        <h5>SQL-specific Options</h5>
+        <ul>
+          <li><strong>Connection Configuration:</strong>
+            <pre><code>-- Set connection options
 -- [>].execOptions(["--defaults-file=~/.my.cnf", "--database=testdb"])</code></pre>
-                  </li>
-                </ul>
-              </li>
-              <li><h4>Output Configuration</h4>
-                <ul>
-                  <li>Control output behavior:
-                    <pre><code>-- Show executed SQL in output
+          </li>
+          <li><strong>Output Configuration:</strong>
+            <pre><code>-- Show executed SQL in output
 -- [>].output.showExecutableCodeInOutput(true)
 
 -- Show output after running
@@ -483,40 +596,15 @@ echo $PATH</code></pre>
 
 -- Show timestamp with execution results
 -- [>].output.showTimestamp(true)</code></pre>
-                  </li>
-                </ul>
-              </li>
-              <li><h4>Best Practices</h4>
-                <ul>
-                  <li>Use comments to document complex queries</li>
-                  <li>Consider using <code>LIMIT</code> clauses for large result sets</li>
-                  <li>Use connection options to configure database connections</li>
-                  <li>Structure complex queries with proper indentation and line breaks</li>
-                </ul>
-              </li>
-            </ul>
           </li>
         </ul>
-        <h4>Available Configuration Options</h4>
-        <ul>
-          <li><code>showExecutableCodeInOutput(boolean)</code>: Show/hide the executed code in output</li>
-          <li><code>showOutputOnRun(boolean)</code>: Control whether output is shown after execution</li>
-          <li><code>replaceOutputCell(boolean)</code>: Replace existing output or append new output</li>
-          <li><code>showTimestamp(boolean)</code>: Show/hide execution timestamp in output</li>
-        </ul>
-        <p>These configurations can be set per code block, overriding the global settings for that specific block.</p>
-      </section>
 
-      <section id="output-config">
-        <h2>Output Configuration</h2>
-        <p>Configure how code execution results are displayed.</p>
-
-        <h4>Output Options</h4>
+        <h5>Best Practices for SQL</h5>
         <ul>
-          <li>Below code block (default)</li>
-          <li>Show/hide executable code</li>
-          <li>Show/hide timestamps</li>
-          <li>Replace or append output</li>
+          <li>Use comments to document complex queries</li>
+          <li>Consider using <code>LIMIT</code> clauses for large result sets</li>
+          <li>Use connection options to configure database connections</li>
+          <li>Structure complex queries with proper indentation and line breaks</li>
         </ul>
       </section>
 
