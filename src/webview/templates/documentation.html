@@ -84,9 +84,9 @@
         <li><a href="#virtual-folders">Virtual Folders (My Notebooks)</a></li>
         <li><a href="#dynamic-folders">Dynamic Folders (Current Context)</a></li>
         <li><a href="#executable-code">Executable Code Blocks</a></li>
-        <li><a href="#file-links">File Links &amp; Hover Preview</a></li>
         <li><a href="#codeblock-config">CodeBlock Configuration</a></li>
         <li><a href="#output-config">Output Configuration</a></li>
+        <li><a href="#file-links">File Links &amp; Hover Preview</a></li>
         <li><a href="#custom-settings">Custom Settings</a></li>
         <li><a href="#env-variables">Environment Variables</a></li>
         <li><a href="#recent-updates">Recent Updates</a></li>
@@ -213,18 +213,6 @@
         </ul>
       </section>
 
-      <section id="file-links">
-        <h2>File Links &amp; Hover Preview</h2>
-        <p>Hover over file links in markdown to preview contents.</p>
-        
-        <h4>Link Formats</h4>
-        <ul>
-          <li>Basic file link: <code>[open](./file.md)</code></li>
-          <li>With line number: <code>[open](./file.md:5)</code></li>
-          <li>Line range: <code>[open](./file.md:5-8)</code></li>
-        </ul>
-      </section>
-
       <section id="codeblock-config">
         <h2>CodeBlock Configuration</h2>
         <p>Configure individual code blocks using special comment syntax or through the configuration modal. Each language supports its own comment style while maintaining consistent configuration options.</p>
@@ -255,7 +243,7 @@
         
         <h4>Language-Specific Examples</h4>
         <ul>
-          <li><strong>Go:</strong>
+          <li id="codeblock-config-go"><strong>Go:</strong>
             <p>Basic configuration:</p>
             <pre><code>// [>].output.showExecutableCodeInOutput(true)
 // [>].execFrom:./path/to/main.go
@@ -330,25 +318,183 @@ func TestExecNotebook(t *testing.T) {
               </li>
             </ul>
           </li>
-          <li><strong>JavaScript/TypeScript:</strong>
+          <li id="codeblock-config-javascript"><strong>JavaScript/TypeScript:</strong>
+            <p>Basic configuration:</p>
             <pre><code>console.log("Hello");
 // [>].output.replaceOutputCell(false)
 // Your regular comments here</code></pre>
+            
+            <p>JavaScript/TypeScript-specific configuration options:</p>
+            <ul>
+              <li><h4>Output Configuration</h4>
+                <ul>
+                  <li>Control output behavior:
+                    <pre><code>// Show code in output
+// [>].output.showExecutableCodeInOutput(true)
+
+// Don't replace output cell on each run (append instead)
+// [>].output.replaceOutputCell(false)
+
+// Hide output after running
+// [>].output.showOutputOnRun(false)
+
+// Show timestamp with execution results
+// [>].output.showTimestamp(true)</code></pre>
+                  </li>
+                </ul>
+              </li>
+              <li><h4>Best Practices</h4>
+                <ul>
+                  <li>Use <code>console.log()</code> for output</li>
+                  <li>For async code, ensure promises are resolved before the code block ends</li>
+                  <li>TypeScript code will be automatically transpiled before execution</li>
+                  <li>Node.js built-in modules are available (fs, path, etc.)</li>
+                </ul>
+              </li>
+            </ul>
           </li>
-          <li><strong>Python:</strong>
+          <li id="codeblock-config-python"><strong>Python:</strong>
+            <p>Basic configuration:</p>
             <pre><code>print("Hello")
 # [>].output.showOutputOnRun(true)
 # Your regular comments here</code></pre>
+            
+            <p>Python-specific configuration options:</p>
+            <ul>
+              <li><h4>Execution Configuration</h4>
+                <ul>
+                  <li>Custom Python command:
+                    <pre><code># Use a specific Python interpreter
+# [>].pythonCmd("python3.9")
+
+# Default uses system Python command
+# [>].pythonCmd("python3")</code></pre>
+                  </li>
+                </ul>
+              </li>
+              <li><h4>Output Configuration</h4>
+                <ul>
+                  <li>Control output behavior:
+                    <pre><code># Show executed code in output
+# [>].output.showExecutableCodeInOutput(true)
+
+# Show output after running
+# [>].output.showOutputOnRun(true)
+
+# Replace output cell on each run
+# [>].output.replaceOutputCell(true)
+
+# Show timestamp with execution results
+# [>].output.showTimestamp(true)</code></pre>
+                  </li>
+                </ul>
+              </li>
+              <li><h4>Best Practices</h4>
+                <ul>
+                  <li>Use <code>print()</code> for output that should be captured</li>
+                  <li>For matplotlib or other visualizations, save images to file or use inline display libraries</li>
+                  <li>Python code is executed as a script file</li>
+                  <li>Standard libraries are available; third-party packages require installation on your system</li>
+                </ul>
+              </li>
+            </ul>
           </li>
-          <li><strong>Bash/Shell:</strong>
+          <li id="codeblock-config-bash"><strong>Bash/Shell:</strong>
+            <p>Basic configuration:</p>
             <pre><code>echo "Hello"
 # [>].output.showTimestamp(true)
 # Your regular comments here</code></pre>
+            
+            <p>Bash/Shell-specific configuration options:</p>
+            <ul>
+              <li><h4>Execution Configuration</h4>
+                <ul>
+                  <li>Single line execution:
+                    <pre><code># Run single-line code blocks as commands instead of scripts
+# [>].execSingleLineAsCommand(true)</code></pre>
+                  </li>
+                </ul>
+              </li>
+              <li><h4>Environment Variables</h4>
+                <ul>
+                  <li>Automatic integration with VS Code environment variables:
+                    <pre><code># Environment variables from VS Code settings are automatically available
+echo $API_KEY
+echo $DATABASE_URL
+echo $PATH</code></pre>
+                  </li>
+                  <li>Variables from <code>terminal.integrated.env.osx</code>, <code>terminal.integrated.env.windows</code>, or <code>terminal.integrated.env.linux</code> are available depending on your platform</li>
+                </ul>
+              </li>
+              <li><h4>Output Configuration</h4>
+                <ul>
+                  <li>Control output behavior:
+                    <pre><code># Show executed code in output
+# [>].output.showExecutableCodeInOutput(true)
+
+# Show output after running
+# [>].output.showOutputOnRun(true)
+
+# Replace output cell on each run
+# [>].output.replaceOutputCell(true)
+
+# Show timestamp with execution results
+# [>].output.showTimestamp(true)</code></pre>
+                  </li>
+                </ul>
+              </li>
+              <li><h4>Best Practices</h4>
+                <ul>
+                  <li>Use <code>echo</code> for output that should be captured</li>
+                  <li>For complex commands, use multiline scripts rather than single-line commands</li>
+                  <li>Consider using <code>set -e</code> to fail on errors</li>
+                  <li>Use environment variables from VS Code settings for sensitive data</li>
+                </ul>
+              </li>
+            </ul>
           </li>
-          <li><strong>SQL:</strong>
+          <li id="codeblock-config-sql"><strong>SQL:</strong>
+            <p>Basic configuration:</p>
             <pre><code>SELECT * FROM users;
 -- [>].output.showExecutableCodeInOutput(true)
 -- Your regular comments here</code></pre>
+            
+            <p>SQL-specific configuration options:</p>
+            <ul>
+              <li><h4>Connection Configuration</h4>
+                <ul>
+                  <li>Configure execution options:
+                    <pre><code>-- Set connection options
+-- [>].execOptions(["--defaults-file=~/.my.cnf", "--database=testdb"])</code></pre>
+                  </li>
+                </ul>
+              </li>
+              <li><h4>Output Configuration</h4>
+                <ul>
+                  <li>Control output behavior:
+                    <pre><code>-- Show executed SQL in output
+-- [>].output.showExecutableCodeInOutput(true)
+
+-- Show output after running
+-- [>].output.showOutputOnRun(true)
+
+-- Replace output cell on each run
+-- [>].output.replaceOutputCell(true)
+
+-- Show timestamp with execution results
+-- [>].output.showTimestamp(true)</code></pre>
+                  </li>
+                </ul>
+              </li>
+              <li><h4>Best Practices</h4>
+                <ul>
+                  <li>Use comments to document complex queries</li>
+                  <li>Consider using <code>LIMIT</code> clauses for large result sets</li>
+                  <li>Use connection options to configure database connections</li>
+                  <li>Structure complex queries with proper indentation and line breaks</li>
+                </ul>
+              </li>
+            </ul>
           </li>
         </ul>
         <h4>Available Configuration Options</h4>
@@ -371,6 +517,18 @@ func TestExecNotebook(t *testing.T) {
           <li>Show/hide executable code</li>
           <li>Show/hide timestamps</li>
           <li>Replace or append output</li>
+        </ul>
+      </section>
+
+      <section id="file-links">
+        <h2>File Links &amp; Hover Preview</h2>
+        <p>Hover over file links in markdown to preview contents.</p>
+        
+        <h4>Link Formats</h4>
+        <ul>
+          <li>Basic file link: <code>[open](./file.md)</code></li>
+          <li>With line number: <code>[open](./file.md:5)</code></li>
+          <li>Line range: <code>[open](./file.md:5-8)</code></li>
         </ul>
       </section>
 
