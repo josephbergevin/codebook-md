@@ -284,6 +284,41 @@ function getWebviewContent(execCell: codebook.ExecutableCell): string {
         <span>Learn more about executable code blocks</span>
       </div>
       
+      ${languageId === 'go' ? `
+      <div class="help-link language-specific" onclick="openDocumentation('codeblock-config-go')">
+        <span class="codicon codicon-symbol-property"></span>
+        <span>Go-specific configuration options</span>
+      </div>
+      ` : ''}
+      
+      ${languageId === 'sql' ? `
+      <div class="help-link language-specific" onclick="openDocumentation('codeblock-config-sql')">
+        <span class="codicon codicon-symbol-property"></span>
+        <span>SQL-specific configuration options</span>
+      </div>
+      ` : ''}
+      
+      ${languageId === 'javascript' || languageId === 'typescript' ? `
+      <div class="help-link language-specific" onclick="openDocumentation('codeblock-config-javascript')">
+        <span class="codicon codicon-symbol-property"></span>
+        <span>${languageId === 'javascript' ? 'JavaScript' : 'TypeScript'}-specific configuration options</span>
+      </div>
+      ` : ''}
+      
+      ${languageId === 'python' ? `
+      <div class="help-link language-specific" onclick="openDocumentation('codeblock-config-python')">
+        <span class="codicon codicon-symbol-property"></span>
+        <span>Python-specific configuration options</span>
+      </div>
+      ` : ''}
+      
+      ${languageId === 'bash' || languageId === 'shellscript' || languageId === 'shell' ? `
+      <div class="help-link language-specific" onclick="openDocumentation('codeblock-config-bash')">
+        <span class="codicon codicon-symbol-property"></span>
+        <span>Shell/Bash-specific configuration options</span>
+      </div>
+      ` : ''}
+      
       <form id="configForm">
         <div class="form-group">
           <label for="languageId">Language ID</label>
