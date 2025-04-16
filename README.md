@@ -32,11 +32,21 @@ Execute code blocks in markdown files by pressing the corresponding Play button 
   - HTTP
     - Executed using the REST Client extension.
 
-### Dynamically Generated Folders in My Notebooks View
+### Notebook Organization in Activity Bar
+
+The Codebook MD extension provides a tree view in the activity bar for organizing your markdown files. This allows you to configure dynamically generated notebooks, as well as create virtual folders, to help organize your markdown files for quick and easy access.
+
+#### Dynamically Generated Folders in My Notebooks View
 
 Codebook MD provides a "My Notebooks" view and dynamically creates folders based on the currently focused file. This allows you to have easy access to relevant markdown files!
 
-#### Dynamic Folder Group Configuration
+- **Dynamic Folder Group**: Automatically generates a folder based on the currently focused file
+- **Virtual Folders**: Create custom folder hierarchies to organize your markdown files
+- **Custom Display Names**: Rename files and folders with descriptive names without changing the actual files
+- **Hierarchical Structure**: Create nested folders for organized categorization
+- **Quick Access**: Access your important markdown documents with one click
+
+##### Dynamic Folder Group Configuration
 
 You can customize the dynamic folder group through VS Code settings (`settings.json`):
 
@@ -49,8 +59,7 @@ You can customize the dynamic folder group through VS Code settings (`settings.j
       "description": "Relevant docs for the current file",
       "subFolderInclusions": [
         ".github",
-        ".vscode",
-        "apiplayground"
+        ".vscode"
       ],
       "exclusions": [
         "node_modules",
@@ -71,6 +80,94 @@ You can customize the dynamic folder group through VS Code settings (`settings.j
 - `exclusions`: Patterns to exclude from the search (default: `["node_modules", "out", "dist"]`)
 
 The dynamic folder group will only show folders that contain markdown files after applying exclusions, providing a clean and focused view of relevant documentation.
+
+#### User-Defined Virtual Folders
+
+The Codebook MD extension allows you to create user-defined virtual folders in the activity bar. This feature enables you to organize your markdown files into a hierarchical structure, making it easier to navigate and access your documentation.
+
+- **Version Control Integration**: The configuration file can be committed to your repository, allowing team sharing of notebook organization
+- **Workspace-Specific**: Each workspace has its own configuration file, allowing for project-specific organization
+- **Manual Editing**: Advanced users can directly edit the configuration file for bulk changes
+
+##### Configuration File
+
+The configuration for user-defined virtual folders is stored in a JSON file located at `.vscode/codebook-md.json` in your workspace. This file contains the structure and organization of your virtual folders, including their names, descriptions, and the markdown files they contain. All changes made through the Tree View UI are automatically saved to this file.
+
+- Folders:
+
+  - `name`: Display name for the folder
+  - `folderPath`: Hierarchical path (using dots as separators)
+  - `icon`: Optional path to a custom icon for the folder
+  - `hide`: Optional boolean to hide a folder in the UI
+  - `files`: Array of file entries in this folder
+
+- Files:
+
+  - `name`: Display name for the file
+  - `path`: Path to the markdown file (absolute or relative to workspace root)
+
+- Config Tips:
+
+  - Use descriptive display names to make your documents easier to find
+  - Create a logical folder hierarchy based on your projects or document types
+  - Regularly refresh the Tree View if you make changes to files outside VS Code
+  - Configure dynamic folder groups to focus on relevant documentation folders and exclude noise
+  - Use the `subFolderInclusions` setting to include specific sub-folders like `.github` for documentation
+
+- Example configuration format:
+
+```json
+{
+  "folderGroups": [
+    {
+      "name": "Workspace",
+      "description": "Workspace folder group",
+      "folders": [
+        {
+          "name": "Projects",
+          "folders": [
+            {
+              "name": "SubProject1",
+              "files": [
+                {
+                  "name": "Overview",
+                  "path": "projects/subproject1/overview.md"
+                }
+              ]
+            }
+          ],
+          "files": [
+            {
+              "name": "Project Plan",
+              "path": "projects/project-plan.md"
+            }
+          ]
+        },
+        {
+          "name": "Documentation",
+          "folders": [
+            {
+              "name": "Guides",
+              "files": [
+                {
+                  "name": "Getting Started",
+                  "path": "docs/guides/getting-started.md"
+                }
+              ]
+            }
+          ],
+          "files": [
+            {
+              "name": "Readme",
+              "path": "docs/readme.md"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
 
 ### Environment Variables Support
 
@@ -140,177 +237,3 @@ This extension was inspired by the Jupyter notebook, which allows for the execut
   - [Codebook](https://marketplace.visualstudio.com/items?itemName=gobookdev.gobook)
     - Last updated in 2022, no public repository
   - [md-notebook](https://marketplace.visualstudio.com/items?itemName=jackos.md-notebook)
-
-## Tree View Feature Documentation
-
-The Tree View feature in [CodebookMD](https://github.com/josephbergevin/codebook-md) allows you to organize markdown files into a customizable hierarchical structure for easy access and navigation. This feature is especially useful when working with many markdown documents across multiple projects.
-
-### Features
-
-- **Virtual Folders**: Create custom folder hierarchies to organize your markdown files
-- **Custom Display Names**: Rename files and folders with descriptive names without changing the actual files
-- **Hierarchical Structure**: Create nested folders for organized categorization
-- **Quick Access**: Access your important markdown documents with one click
-
-### Using the Tree View
-
-#### Opening the Tree View
-
-The Tree View is accessible from the VS Code activity bar. Click on the CodebookMD icon in the activity bar to see your organized markdown files.
-
-#### Adding Virtual Folders
-
-1. Click on the "New Folder" icon (📁) at the top of the Tree View
-2. Enter a display name for your folder (e.g., "Projects")
-3. The new virtual folder will be added to the top-level of the Tree View
-
-#### Creating Sub-folders
-
-1. Right-click on any folder in the Tree View
-2. Select "Add Sub-folder" from the context menu
-3. Enter a display name for the sub-folder (e.g., "Documentation")
-4. The sub-folder will be created inside the selected parent folder
-
-#### Adding Files to Folders
-
-1. Right-click on a folder where you want to add a file
-2. Select "Add File" from the context menu
-3. Choose a markdown file from the file picker dialog
-4. Enter a display name for the file
-5. The file will appear under the selected folder in the Tree View
-
-#### Renaming Items
-
-##### Renaming Files:
-
-1. Right-click on a file in the Tree View
-2. Select "Rename" from the context menu
-3. Enter a new display name for the file
-4. The file will be shown with the new name in the Tree View
-
-##### Renaming Folders:
-
-1. Right-click on a folder in the Tree View
-2. Select "Rename Folder" from the context menu
-3. Enter a new display name for the folder
-4. The folder will be shown with the new name in the Tree View
-
-#### Removing Files
-
-1. Right-click on a file in the Tree View
-2. Select "Remove from Tree View" from the context menu
-3. The file will be removed from the Tree View (the actual file is not deleted)
-
-### Configuration
-
-The Tree View structure is stored in the `.vscode/codebook-md.json` file within your workspace. This configuration file manages your virtual folders, their hierarchical structure, and file references.
-
-Benefits of this configuration approach include:
-
-- **Version Control Integration**: The configuration file can be committed to your repository, allowing team sharing of notebook organization
-- **Workspace-Specific**: Each workspace has its own configuration file, allowing for project-specific organization
-- **Manual Editing**: Advanced users can directly edit the configuration file for bulk changes
-
-All changes made through the Tree View UI are automatically saved to this file.
-
-Example configuration format:
-
-```json
-{
-  "folderGroups": [
-    {
-      "name": "Workspace",
-      "description": "Workspace folder group",
-      "folders": [
-        {
-          "name": "Projects",
-          "folders": [
-            {
-              "name": "SubProject1",
-              "files": [
-                {
-                  "name": "Overview",
-                  "path": "projects/subproject1/overview.md"
-                }
-              ]
-            }
-          ],
-          "files": [
-            {
-              "name": "Project Plan",
-              "path": "projects/project-plan.md"
-            }
-          ]
-        },
-        {
-          "name": "Documentation",
-          "folders": [
-            {
-              "name": "Guides",
-              "files": [
-                {
-                  "name": "Getting Started",
-                  "path": "docs/guides/getting-started.md"
-                }
-              ]
-            }
-          ],
-          "files": [
-            {
-              "name": "Readme",
-              "path": "docs/readme.md"
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-```
-
-#### Configuration Properties
-
-##### Folders:
-
-- `name`: Display name for the folder
-- `folderPath`: Hierarchical path (using dots as separators)
-- `icon`: Optional path to a custom icon for the folder
-- `hide`: Optional boolean to hide a folder in the UI
-- `files`: Array of file entries in this folder
-
-##### Files:
-
-- `name`: Display name for the file
-- `path`: Path to the markdown file (absolute or relative to workspace root)
-
-### Commands
-
-The Tree View extension provides several commands, which you can access via the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on Mac):
-
-- `Codebook: Add File to Tree View`
-- `Codebook: Add Virtual Folder to Tree View`
-- `Codebook: Add Current File to Tree View`
-- `Refresh Tree View`
-
-### Context Menu Actions
-
-Right-click on items in the Tree View to access context-specific actions:
-
-#### Folder Context Menu:
-
-- Add File
-- Add Sub-folder
-- Rename Folder
-
-#### File Context Menu:
-
-- Remove from Tree View
-- Rename
-
-### Tips
-
-- Use descriptive display names to make your documents easier to find
-- Create a logical folder hierarchy based on your projects or document types
-- Regularly refresh the Tree View if you make changes to files outside VS Code
-- Configure dynamic folder groups to focus on relevant documentation folders and exclude noise
-- Use the `subFolderInclusions` setting to include specific sub-folders like `.github` for documentation

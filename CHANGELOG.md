@@ -4,6 +4,23 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2025-04-16
+
+### Added
+
+- Enhanced notebook creation functionality with improved templates
+- Multiple creation methods: Command Palette, Context Menu, and My Notebooks view
+- Creation from selection feature to convert existing code to notebooks
+- Comprehensive documentation on notebook creation workflows
+- Best practices section for effective notebook organization
+
+### Changed
+
+- Improved notebook template structure with better examples
+- Enhanced user interface for notebook creation workflow
+- Streamlined process for adding notebooks to My Notebooks view
+- Updated documentation with detailed notebook creation instructions
+
 ## [0.14.0] - 2025-04-14
 
 ### Added

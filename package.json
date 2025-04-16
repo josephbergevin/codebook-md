@@ -1,7 +1,7 @@
 {
   "name": "codebook-md",
-  "displayName": "Codebook MD - Run Notebook Code-Blocks",
-  "description": "Execute notebook code-blocks directly in markdown docs! Supports Go, JavaScript, TypeScript, Bash, Python - and more to come!",
+  "displayName": "Codebook MD - Organize Notebooks & Execute Code-Blocks",
+  "description": "Organize your notebooks and execute notebook code-blocks directly in markdown docs! Supports Go, JavaScript, TypeScript, Bash, Python, SQL - and more to come!",
   "icon": "extension/src/img/logo_3_128x128.png",
   "publisher": "josephbergevin",
   "repository": {
@@ -30,9 +30,13 @@
     "sql",
     "rust"
   ],
-  "version": "0.14.0",
+  "version": "0.15.0",
   "categories": [
-    "Notebooks"
+    "Notebooks",
+    "Education",
+    "Programming Languages",
+    "Formatters",
+    "Other"
   ],
   "activationEvents": [
     "onLanguage:markdown"
@@ -470,6 +474,18 @@
     },
     "commands": [
       {
+        "command": "codebook-md.createNewNotebook",
+        "title": "New CodebookMD Notebook",
+        "shortTitle": "CodebookMD Notebook",
+        "category": "Create"
+      },
+      {
+        "command": "codebook-md.createNotebookFromSelection",
+        "title": "New CodebookMD Notebook from Selection",
+        "shortTitle": "CodebookMD from Selection",
+        "category": "Create"
+      },
+      {
         "command": "codebook-md.openFileAtLine",
         "title": "Codebook: Open File at Line"
       },
@@ -527,6 +543,24 @@
           "command": "codebook-md.addCurrentFileToFavorites",
           "when": "resourceExtname == .md",
           "group": "codebook"
+        },
+        {
+          "command": "codebook-md.createNotebookFromSelection",
+          "when": "editorHasSelection",
+          "group": "codebook"
+        }
+      ],
+      "file/newFile": [
+        {
+          "command": "codebook-md.createNewNotebook",
+          "when": "workbenchState != empty"
+        }
+      ],
+      "welcome.showNewFileEntries": [
+        {
+          "command": "codebook-md.createNewNotebook",
+          "title": "Create a new CodebookMD Notebook",
+          "when": "workbenchState != empty"
         }
       ]
     },
