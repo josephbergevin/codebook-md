@@ -15,6 +15,7 @@ import { NotebooksViewProvider } from './webview/notebooksView';
 import { WelcomeViewProvider } from './webview/welcomeView';
 import { DocumentationViewProvider } from './webview/documentationView';
 import * as configModal from './webview/configModal';
+import { createNewNotebook, createNotebookFromSelection } from './createNotebook';
 
 const kernel = new Kernel();
 
@@ -845,6 +846,15 @@ export function activate(context: ExtensionContext) {
       notebooksViewProvider.updateWebview();
     }
   });
+  context.subscriptions.push(disposable);
+
+  // Register the command to create a new CodebookMD notebook
+  // Uses the improved implementation from createNotebook.ts
+  disposable = commands.registerCommand('codebook-md.createNewNotebook', createNewNotebook);
+  context.subscriptions.push(disposable);
+
+  // Register the command to create a new CodebookMD notebook from selection
+  disposable = commands.registerCommand('codebook-md.createNotebookFromSelection', createNotebookFromSelection);
   context.subscriptions.push(disposable);
 }
 
