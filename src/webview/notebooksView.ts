@@ -101,6 +101,14 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
           this._updateWebview();
           break;
         }
+        case 'createNewNotebook': {
+          commands.executeCommand('codebook-md.createNewNotebook');
+          break;
+        }
+        case 'createNotebookFromSelection': {
+          commands.executeCommand('codebook-md.createNotebookFromSelection');
+          break;
+        }
         case 'addFolder':
           commands.executeCommand('codebook-md.addFolderToFolderGroup', data.groupIndex);
           break;
@@ -200,18 +208,6 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
 
     // Build HTML for the folder groups
     let folderGroupsHtml = '';
-
-    // Add a refresh button at the top
-    folderGroupsHtml += `
-      <div class="top-actions">
-        <button class="action-button refresh-button" title="Refresh View" onclick="refresh()">
-          <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-            <path d="M13.451 5.609l-.579-.939-1.068.812-.076.094c-.335.415-.927 1.341-1.124 2.876l-.021.165.033.163.071.345c0 1.654-1.346 3-3 3-.795 0-1.545-.311-2.107-.868-.563-.567-.873-1.317-.873-2.111 0-1.431 1.007-2.632 2.351-2.929v2.926s2.528-2.087 2.984-2.461c.456-.373.202-.746-.254-.373-.354.287-2.984 2.461-2.984 2.461v-2.926c-2.077.463-3.635 2.319-3.635 4.544 0 2.559 2.087 4.646 4.647 4.646 2.559 0 4.646-2.088 4.646-4.646 0-.598-.127-1.631-.484-2.606-.229-.486-.471-.961-.846-1.351-.463-.489-.075-.952.397-.452.472.478.785.942 1.056 1.368.418.713.589 1.356.589 3.041 0 3.206-2.607 5.813-5.813 5.813-3.206 0-5.813-2.607-5.813-5.813 0-3.206 2.607-5.813 5.813-5.813 1.859 0 3.516.886 4.572 2.256l.169.216.035-.18c.233-.535.496-.858.872-1.016.13-.055.21-.031.137.043z"/>
-          </svg>
-          Refresh
-        </button>
-      </div>
-    `;
 
     // Create and add the dynamic folder group based on current editor
     if (this._currentEditorFile) {
