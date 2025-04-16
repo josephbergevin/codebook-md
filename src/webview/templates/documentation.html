@@ -82,6 +82,7 @@
       <h2>Documentation Index</h2>
       <ul>
         <li><a href="#virtual-folders">Virtual Folders (My Notebooks)</a></li>
+        <li><a href="#create-notebooks">Creating New Notebooks</a></li>
         <li><a href="#dynamic-folders">Dynamic Folders (Current Context)</a></li>
         <li><a href="#executable-code">Executable Code Blocks</a></li>
         <li><a href="#codeblock-config">CodeBlock Configuration</a></li>
@@ -122,6 +123,123 @@
           <li><span class="feature-highlight">Workspace-Specific:</span> Each workspace has its own configuration file</li>
         </ul>
         <p>Note: Changes made through the UI are automatically saved to this file.</p>
+      </section>
+
+      <section id="create-notebooks">
+        <h2>Creating New Notebooks</h2>
+        <h3>Overview</h3>
+        <p>CodebookMD makes it easy to create new interactive notebooks that combine documentation and executable code. There are multiple ways to create new notebooks based on your workflow.</p>
+        
+        <h4>Key Features</h4>
+        <ul>
+          <li><span class="feature-highlight">Multiple Creation Methods:</span> Create notebooks from the command palette, context menu, or My Notebooks view</li>
+          <li><span class="feature-highlight">Creation from Selection:</span> Convert selected code or text into a new notebook</li>
+          <li><span class="feature-highlight">Template Structure:</span> New notebooks include helpful starter content</li>
+          <li><span class="feature-highlight">Seamless Integration:</span> Notebooks are automatically opened in the CodebookMD editor</li>
+        </ul>
+        
+        <h4>Creation Methods</h4>
+        <p>There are several ways to create a new CodebookMD notebook:</p>
+        
+        <h5>From Command Palette</h5>
+        <ol>
+          <li>Press <code>Ctrl+Shift+P</code> (Windows/Linux) or <code>Cmd+Shift+P</code> (macOS) to open the Command Palette</li>
+          <li>Type "CodebookMD" to see available commands</li>
+          <li>Select <span class="feature-highlight">CodebookMD: Create New Notebook</span> to create a blank notebook</li>
+          <li>Select <span class="feature-highlight">CodebookMD: Create Notebook from Selection</span> to convert selected text into a notebook</li>
+        </ol>
+        
+        <h5>From Context Menu</h5>
+        <ol>
+          <li>Select text or code in an editor</li>
+          <li>Right-click to open the context menu</li>
+          <li>Select <span class="feature-highlight">Create CodebookMD Notebook from Selection</span></li>
+        </ol>
+        
+        <h5>From My Notebooks View</h5>
+        <ol>
+          <li>Click on the CodebookMD icon in the Activity Bar to open the My Notebooks view</li>
+          <li>In the top action bar, click either:
+            <ul>
+              <li>The <span class="feature-highlight">New Notebook</span> button to create a blank notebook</li>
+              <li>The <span class="feature-highlight">From Selection</span> button to create a notebook from your current selection</li>
+            </ul>
+          </li>
+        </ol>
+        
+        <h4>Creating a Blank Notebook</h4>
+        <p>When creating a new blank notebook:</p>
+        <ol>
+          <li>You'll be prompted to enter a name for your notebook file</li>
+          <li>You can select a location to save the notebook</li>
+          <li>A default template will be created with example content</li>
+          <li>The notebook will automatically open in the CodebookMD editor</li>
+        </ol>
+        
+        <h4>Creating a Notebook from Selection</h4>
+        <p>When creating a notebook from selected text or code:</p>
+        <ol>
+          <li>First, select the text or code you want to include in your notebook</li>
+          <li>Trigger the "Create Notebook from Selection" command via any of the methods above</li>
+          <li>Enter a name for your new notebook file</li>
+          <li>The selected content will be formatted appropriately in the new notebook</li>
+          <li>The notebook will automatically open in the CodebookMD editor</li>
+        </ol>
+        
+        <h4>Default Template Structure</h4>
+        <p>New CodebookMD notebooks include the following template structure:</p>
+        <pre><code># Notebook Name
+
+## Introduction
+
+This is a new CodebookMD notebook. You can add content and executable code blocks below.
+
+## Code Blocks
+
+### Example Markdown
+
+You can write regular markdown content with formatting like **bold**, *italic*, or `code`.
+
+### Example Code Block
+
+```shellscript
+# This is an example code block
+echo "Hello from CodebookMD!"
+# Click the play button to run this code
+```
+
+## Quick Tips
+
+- Use the gear icon (⚙️) to configure code blocks
+- Hover over file links to preview their content
+- Add this notebook to your My Notebooks view for quick access</code></pre>
+        
+        <h4>Adding a Notebook to My Notebooks View</h4>
+        <p>After creating a notebook, you can add it to your My Notebooks view for easy access:</p>
+        <ol>
+          <li>Go to the My Notebooks view in the Activity Bar</li>
+          <li>Click the "+" button next to an existing folder group or create a new folder group</li>
+          <li>Select your notebook file to add it to the folder group</li>
+        </ol>
+        
+        <h4>Best Practices</h4>
+        <ul>
+          <li><span class="feature-highlight">Descriptive Names:</span> Use clear, descriptive names for your notebooks to make them easy to find</li>
+          <li><span class="feature-highlight">Organize in Sections:</span> Structure your notebooks with clear headings and sections</li>
+          <li><span class="feature-highlight">Combine Code and Documentation:</span> Pair code blocks with explanatory text for better understanding</li>
+          <li><span class="feature-highlight">Add to My Notebooks:</span> Add frequently used notebooks to your My Notebooks view for quick access</li>
+          <li><span class="feature-highlight">Use File Links:</span> Reference other files using file links to create connected documentation</li>
+        </ul>
+        
+        <h4>Tips for Effective Notebooks</h4>
+        <ul>
+          <li>Start with a clear introduction explaining the notebook's purpose</li>
+          <li>Add executable examples that demonstrate concepts</li>
+          <li>Include both success and error cases in examples</li>
+          <li>Keep code blocks focused on a single task or concept</li>
+          <li>Add comments to explain complex code segments</li>
+          <li>Use proper markdown formatting for readability</li>
+        </ul>
       </section>
 
       <section id="dynamic-folders">

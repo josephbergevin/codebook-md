@@ -217,10 +217,41 @@
     .dynamic-folder-group .file-icon svg path {
       fill: #90e1f1;
     }
+    .new-notebook-button, .selection-notebook-button {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
+    <div class="top-actions">
+      <button class="action-button refresh-button" title="Refresh View" onclick="refresh()">
+        <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+          <path d="M13.451 5.609l-.579-.939-1.068.812-.076.094c-.335.415-.927 1.341-1.124 2.876l-.021.165.033.163.071.345c0 1.654-1.346 3-3 3-.795 0-1.545-.311-2.107-.868-.563-.567-.873-1.317-.873-2.111 0-1.431 1.007-2.632 2.351-2.929v2.926s2.528-2.087 2.984-2.461c.456-.373.202-.746-.254-.373-.354.287-2.984 2.461-2.984 2.461v-2.926c-2.077.463-3.635 2.319-3.635 4.544 0 2.559 2.087 4.646 4.647 4.646 2.559 0 4.646-2.088 4.646-4.646 0-.598-.127-1.631-.484-2.606-.229-.486-.471-.961-.846-1.351-.463-.489-.075-.952.397-.452.472.478.785.942 1.056 1.368.418.713.589 1.356.589 3.041 0 3.206-2.607 5.813-5.813 5.813-3.206 0-5.813-2.607-5.813-5.813 0-3.206 2.607-5.813 5.813-5.813 1.859 0 3.516.886 4.572 2.256l.169.216.035-.18c.233-.535.496-.858.872-1.016.13-.055.21-.031.137.043z"/>
+        </svg>
+        Refresh
+      </button>
+      <button class="action-button new-notebook-button" title="Create New Notebook" onclick="createNewNotebook()">
+        <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 1H3L2 2v11l1 1h11l1-1V2l-1-1zM13 13H4V3h1v3l1-1h1l1 1V3h1v3l1-1h1l1 1V3h1v10z"/>
+          <path d="M7 10h3v1H7z"/>
+          <path d="M11 7H8v1h3z"/>
+        </svg>
+        New Notebook
+      </button>
+      <button class="action-button selection-notebook-button" title="Create Notebook from Selection" onclick="createNotebookFromSelection()">
+        <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 1H3L2 2v11l1 1h11l1-1V2l-1-1zM13 13H4V3h1v3l1-1h1l1 1V3h1v3l1-1h1l1 1V3h1v10z"/>
+          <path d="M7 11h3v1H7z"/>
+          <path d="M11 8H8v1h3z"/>
+          <path d="M4.5 7h4v1h-4z"/>
+          <path d="M4.5 9h5v1h-5z"/>
+        </svg>
+        From Selection
+      </button>
+    </div>
     {{folders}}
   </div>
   <script>
@@ -243,6 +274,18 @@
       window.refresh = function() {
         vscode.postMessage({
           command: 'refresh'
+        });
+      };
+      
+      window.createNewNotebook = function() {
+        vscode.postMessage({
+          command: 'createNewNotebook'
+        });
+      };
+      
+      window.createNotebookFromSelection = function() {
+        vscode.postMessage({
+          command: 'createNotebookFromSelection'
         });
       };
       
