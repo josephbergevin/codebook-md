@@ -71,6 +71,10 @@ export function openConfigModal(execCell: codebook.ExecutableCell, context?: Ext
             // Open documentation view with focus on specific section
             commands.executeCommand('codebook-md.openDocumentation', message.section);
             return;
+          case 'openSettings':
+            // Open VS Code settings with codebook-md filter
+            commands.executeCommand('workbench.action.openSettings', 'codebook-md');
+            return;
         }
       }
     );
@@ -284,6 +288,11 @@ function getWebviewContent(execCell: codebook.ExecutableCell): string {
         <span>Learn more about executable code blocks</span>
       </div>
       
+      <div class="help-link" onclick="openVSCodeSettings()">
+        <span class="codicon codicon-settings-gear"></span>
+        <span>Open VS Code settings for CodebookMD</span>
+      </div>
+      
       ${languageId === 'go' ? `
       <div class="help-link language-specific" onclick="openDocumentation('codeblock-config-go')">
         <span class="codicon codicon-symbol-property"></span>
@@ -425,6 +434,13 @@ function getWebviewContent(execCell: codebook.ExecutableCell): string {
           vscode.postMessage({
             command: 'openDocumentation',
             section: section
+          });
+        }
+        
+        function openVSCodeSettings() {
+          // Send a message to open VS Code settings for CodebookMD
+          vscode.postMessage({
+            command: 'openSettings'
           });
         }
       </script>
