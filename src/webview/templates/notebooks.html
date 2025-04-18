@@ -222,6 +222,47 @@
       align-items: center;
       gap: 5px;
     }
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      right: 0;
+      background-color: var(--vscode-editor-background);
+      min-width: 200px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      z-index: 15;
+      border-radius: 4px;
+      border: 1px solid var(--vscode-panel-border);
+    }
+    .dropdown-content button {
+      width: 100%;
+      text-align: left;
+      padding: 10px 12px;
+      justify-content: flex-start;
+      border-radius: 0;
+    }
+    .dropdown-content button:hover {
+      background-color: var(--vscode-list-hoverBackground);
+      color: var(--vscode-button-foreground);
+      border-left: 3px solid var(--vscode-button-background);
+      padding-left: 9px; /* Compensate for the border */
+    }
+    .dropdown-content.show {
+      display: block;
+    }
+    .dropdown-button {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .dropdown-icon {
+      width: 10px;
+      height: 10px;
+      margin-left: 5px;
+    }
   </style>
 </head>
 <body>
@@ -233,30 +274,67 @@
         </svg>
         Refresh
       </button>
-      <button class="action-button new-notebook-button" title="Create New Notebook" onclick="createNewNotebook()">
-        <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-          <path d="M14 1H3L2 2v11l1 1h11l1-1V2l-1-1zM13 13H4V3h1v3l1-1h1l1 1V3h1v3l1-1h1l1 1V3h1v10z"/>
-          <path d="M7 10h3v1H7z"/>
-          <path d="M11 7H8v1h3z"/>
-        </svg>
-        New Notebook
-      </button>
-      <button class="action-button selection-notebook-button" title="Create Notebook from Selection" onclick="createNotebookFromSelection()">
-        <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-          <path d="M14 1H3L2 2v11l1 1h11l1-1V2l-1-1zM13 13H4V3h1v3l1-1h1l1 1V3h1v3l1-1h1l1 1V3h1v10z"/>
-          <path d="M7 11h3v1H7z"/>
-          <path d="M11 8H8v1h3z"/>
-          <path d="M4.5 7h4v1h-4z"/>
-          <path d="M4.5 9h5v1h-5z"/>
-        </svg>
-        From Selection
-      </button>
+      <div class="dropdown">
+        <button class="action-button dropdown-button" title="Create New Notebook">
+          <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 1H3L2 2v11l1 1h11l1-1V2l-1-1zM13 13H4V3h1v3l1-1h1l1 1V3h1v3l1-1h1l1 1V3h1v10z"/>
+            <path d="M7 10h3v1H7z"/>
+            <path d="M11 7H8v1h3z"/>
+          </svg>
+          New Notebook
+          <svg class="dropdown-icon" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z" transform="rotate(180 8 8)"/>
+          </svg>
+        </button>
+        <div class="dropdown-content">
+          <button class="action-button new-notebook-button" title="Create New Notebook" onclick="createNewNotebook()">
+            <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+              <path d="M14 1H3L2 2v11l1 1h11l1-1V2l-1-1zM13 13H4V3h1v3l1-1h1l1 1V3h1v3l1-1h1l1 1V3h1v10z"/>
+              <path d="M7 10h3v1H7z"/>
+              <path d="M11 7H8v1h3z"/>
+            </svg>
+            New Notebook
+          </button>
+          <button class="action-button selection-notebook-button" title="Create Notebook from Selection" onclick="createNotebookFromSelection()">
+            <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+              <path d="M14 1H3L2 2v11l1 1h11l1-1V2l-1-1zM13 13H4V3h1v3l1-1h1l1 1V3h1v3l1-1h1l1 1V3h1v10z"/>
+              <path d="M7 11h3v1H7z"/>
+              <path d="M11 8H8v1h3z"/>
+              <path d="M4.5 7h4v1h-4z"/>
+              <path d="M4.5 9h5v1h-5z"/>
+            </svg>
+            From Selection
+          </button>
+        </div>
+      </div>
     </div>
     {{folders}}
   </div>
   <script>
     (function() {
       const vscode = acquireVsCodeApi();
+      
+      // Setup dropdown toggle functionality
+      document.addEventListener('DOMContentLoaded', function() {
+        const dropdownButton = document.querySelector('.dropdown-button');
+        const dropdownContent = document.querySelector('.dropdown-content');
+        
+        // Toggle dropdown when clicking the dropdown button
+        if (dropdownButton && dropdownContent) {
+          dropdownButton.addEventListener('click', function(event) {
+            event.stopPropagation();
+            dropdownContent.classList.toggle('show');
+          });
+          
+          // Close dropdown when clicking outside
+          document.addEventListener('click', function(event) {
+            if (!event.target.closest('.dropdown')) {
+              dropdownContent.classList.remove('show');
+            }
+          });
+        }
+      });
+      
       window.toggleFolder = function(header) {
         const content = header.nextElementSibling;
         if (content) {
