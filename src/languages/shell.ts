@@ -4,6 +4,7 @@ import * as io from "../io";
 import { existsSync } from "fs";
 import { NotebookCell, WorkspaceConfiguration } from "vscode";
 import { workspace } from "vscode";
+import * as config from "../config";
 
 export class Cell implements codebook.ExecutableCell {
   innerScope: string;
@@ -95,13 +96,14 @@ export class Config {
 
   constructor(shellConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell | undefined) {
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.shell.output'), "#");
-    // First try to get the configured root path, then fall back to workspace folder
-    const rootPath = workspace.getConfiguration('codebook-md').get<string>('rootPath');
-    const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath;
 
-    // If rootPath is '${workspaceFolder}', use the actual workspace folder path
-    this.execDir = (rootPath === '${workspaceFolder}' ? workspaceFolder : rootPath) ||
-      workspaceFolder ||
-      codebook.newCodeDocumentCurrentFile().fileDir;
+    // Use the config.getWorkspaceFolder() function which properly handles ${workspaceFolder} variable expansion
+    try {
+      this.execDir = config.getWorkspaceFolder();
+    } catch (error) {
+      // Fallback path if getWorkspaceFolder() throws an error
+      const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath;
+      this.execDir = workspaceFolder || codebook.newCodeDocumentCurrentFile().fileDir;
+    }
   }
 }
