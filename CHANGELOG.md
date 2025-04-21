@@ -4,6 +4,20 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.1] - 2025-04-21
+
+### Added
+
+- Collapsible folder groups in My Notebooks webview
+- Dynamic folder group collapsible functionality for better workspace organization
+- Visual indicators for expanded and collapsed states
+
+### Fixed
+
+- Improved interaction with folder group headers
+- Better event handling to prevent overlapping click actions
+- Enhanced UI responsiveness for notebook organization view
+
 ## [0.15.0] - 2025-04-16
 
 ### Added
