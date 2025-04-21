@@ -216,9 +216,12 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
 
       if (this._dynamicFolderGroup && this._dynamicFolderGroup.folders.length > 0) {
         folderGroupsHtml += `
-          <div class="folder-group dynamic-folder-group">
-            <div class="folder-group-header dynamic-header">
+          <div class="folder-group dynamic-folder-group" id="dynamic-folder-group">
+            <div class="folder-group-header dynamic-header" onclick="toggleFolderGroup(this.parentElement, event)">
               <h2 class="folder-group-title">
+                <svg class="folder-group-chevron icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z" />
+                </svg>
                 <svg class="icon-svg context-icon" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                   <path d="M8 1.2c-.68 0-1.33.13-1.92.36L5.2 1.13a6.8 6.8 0 0 0-3.1 10.18l.89-.99a5.3 5.3 0 0 1 2.42-7.9l2 .4A4.8 4.8 0 0 0 3.2 8c0 2.66 2.16 4.8 4.8 4.8a4.8 4.8 0 0 0 4.24-7.02l.77-.64A6.78 6.78 0 0 1 14.8 8a6.78 6.78 0 0 1-6.8 6.8A6.78 6.78 0 0 1 1.2 8 6.83 6.83 0 0 1 8 1.2z"/>
                   <path d="M6.5 6h4l1 2-3.5 3.5L5 9l1.5-3z"/>
@@ -276,10 +279,15 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
         // Start the folder group with its title and description
         folderGroupsHtml += `
           <div class="folder-group" id="folder-group-${this._escapeHtml(groupIndex.toString())}">
-            <div class="folder-group-header">
-              <h2 class="folder-group-title">${this._escapeHtml(folderGroup.name)}</h2>
+            <div class="folder-group-header" onclick="toggleFolderGroup(this.parentElement, event)">
+              <h2 class="folder-group-title">
+                <svg class="folder-group-chevron icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z" />
+                </svg>
+                ${this._escapeHtml(folderGroup.name)}
+              </h2>
               ${folderGroup.description ? `<p class="folder-group-description">${this._escapeHtml(folderGroup.description)}</p>` : ''}
-              <div class="folder-group-actions">
+              <div class="folder-group-actions" onclick="event.stopPropagation()">
                 <button class="action-button" title="Add Folder" onclick="addFolderToGroup(${groupIndex})">
                   <svg class="icon-svg icon-folder" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                     <path d="M14.5 3H7.71l-2-2H1.5l-.5.5v11l.5.5h13l.5-.5v-9l-.5-.5zM14 13H2V4h5.71l2 2H14v7z"/>

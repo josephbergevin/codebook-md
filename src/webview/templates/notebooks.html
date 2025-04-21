@@ -270,6 +270,27 @@
       height: 10px;
       margin-left: 5px;
     }
+    
+    /* Styles for collapsible folder groups */
+    .folder-group-header {
+      cursor: pointer;
+    }
+    .folder-group-title {
+      display: flex;
+      align-items: center;
+    }
+    .folder-group-chevron {
+      width: 16px;
+      height: 16px;
+      margin-right: 5px;
+      transition: transform 0.2s ease;
+    }
+    .folder-group.collapsed .folder-group-chevron {
+      transform: rotate(-90deg);
+    }
+    .folder-group.collapsed .folder-group-content {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -487,6 +508,18 @@
           objectId: objectId
         });
         return false;
+      };
+      
+      // Function to toggle folder group expansion
+      window.toggleFolderGroup = function(folderGroupElement, event) {
+        if (event) {
+          event.stopPropagation();
+        }
+        
+        // Toggle the collapsed class on the folder group
+        folderGroupElement.classList.toggle('collapsed');
+        
+        // We don't need to return anything as we're just toggling a class
       };
     })();
   </script>
