@@ -302,6 +302,13 @@
         </svg>
         Refresh
       </button>
+      <button class="action-button new-folder-group-button" title="Create New Folder Group" onclick="createNewFolderGroup()">
+        <svg class="icon-svg icon-folder" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14.5 3H7.71l-2-2H1.5l-.5.5v11l.5.5h13l.5-.5v-9l-.5-.5zM14 13H2V4h5.71l2 2H14v7z"/>
+          <path d="M8.5 8v-1h-1v1h-1v1h1v1h1v-1h1v-1h-1z"/>
+        </svg>
+        New Folder Group
+      </button>
       <div class="dropdown">
         <button class="action-button dropdown-button" title="Create New Notebook">
           <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
@@ -380,6 +387,12 @@
       window.refresh = function() {
         vscode.postMessage({
           command: 'refresh'
+        });
+      };
+      
+      window.createNewFolderGroup = function() {
+        vscode.postMessage({
+          command: 'createNewFolderGroup'
         });
       };
       

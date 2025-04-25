@@ -101,6 +101,10 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
           this._updateWebview();
           break;
         }
+        case 'createNewFolderGroup': {
+          this._createNewFolderGroup();
+          break;
+        }
         case 'createNewNotebook': {
           commands.executeCommand('codebook-md.createNewNotebook');
           break;
@@ -490,6 +494,86 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
     if (this._isViewVisible) {
       this._updateWebview();
     }
+  }
+
+  /**
+   * Create a new folder group
+   * Prompts the user for a name and creates a new folder group in the configuration
+   */
+  private async _createNewFolderGroup(): Promise<void> {
+    // Prompt the user for a folder group name
+    const folderGroupName = await window.showInputBox({
+      prompt: 'Enter a name for the new folder group',
+      placeHolder: 'My Folder Group'
+    });
+
+    if (!folderGroupName) {
+      // User cancelled the input
+      return;
+    }
+
+    // Get the config path
+    const configPath = config.getCodebookConfigFilePath();
+    const configDir = path.dirname(configPath);
+
+    // Check if the .vscode directory exists
+    if (!fs.existsSync(configDir)) {
+      // Confirm with the user if they want to create the directory
+      const createDirResponse = await window.showInformationMessage(
+        `The ${configDir} directory does not exist. Create it?`,
+        'Yes', 'No'
+      );
+
+      if (createDirResponse !== 'Yes') {
+        return;
+      }
+
+      // Create the .vscode directory
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+
+    // Check if the config file exists
+    let codebookConfig: folders.CodebookConfig;
+    if (!fs.existsSync(configPath)) {
+      // Confirm with the user if they want to create the config file
+      const createFileResponse = await window.showInformationMessage(
+        `The ${configPath} file does not exist. Create it?`,
+        'Yes', 'No'
+      );
+
+      if (createFileResponse !== 'Yes') {
+        return;
+      }
+
+      // Create a new empty config
+      codebookConfig = { folderGroups: [] };
+    } else {
+      // Read the existing config
+      codebookConfig = folders.readCodebookConfig(configPath);
+    }
+
+    // Create a new folder group with the given name using the constructor
+    const newFolderGroup = new folders.FolderGroup(
+      folderGroupName,
+      'user-defined',
+      `Created on ${new Date().toLocaleDateString()}`,
+      []
+    );
+
+    // Add the new folder group to the config
+    if (!codebookConfig.folderGroups) {
+      codebookConfig.folderGroups = [];
+    }
+    codebookConfig.folderGroups.push(newFolderGroup);
+
+    // Write the updated config to the file
+    fs.writeFileSync(configPath, JSON.stringify(codebookConfig, null, 2), 'utf8');
+
+    // Show a success message
+    window.showInformationMessage(`Folder group "${folderGroupName}" created successfully.`);
+
+    // Refresh the webview to show the new folder group
+    this._updateWebview();
   }
 
   /**
