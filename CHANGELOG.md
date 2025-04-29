@@ -4,6 +4,18 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2025-04-30
+
+### Added
+
+- Codebook Prompts feature for interactive input in code blocks
+- String and Date input types with validation
+- Multiple prompts support in a single code block
+- Date formatting options for flexible output
+- Interactive prompts with custom placeholder text
+- Comprehensive documentation with examples for all supported languages
+- Enhanced user experience with intuitive prompt workflow
+
 ## [0.15.2] - 2025-04-25
 
 ### Added
@@ -166,14 +178,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial implementation of code block execution
-- Basic markdown file support
-- Core extension functionality
-
-## [0.0.1-0.0.3] - 2024
-
-### Added
-
-- Initial extension setup
-- Basic project structure
-- Development environment configuration
+- Development environment configuration- Basic project structure- Initial extension setup### Added## [0.0.1-0.0.3] - 2024- Core extension functionality- Basic markdown file support- Initial implementation of code block execution
