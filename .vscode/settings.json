@@ -75,7 +75,8 @@
       "subFolderInclusions": [
         ".github",
         ".vscode",
-        "apiplayground"
+        "apiplayground",
+        "tooling"
       ],
       "exclusions": []
     }

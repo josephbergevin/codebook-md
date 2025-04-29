@@ -37,5 +37,20 @@ export default [
     rules: {
       "@typescript-eslint/no-var-requires": "off"
     }
+  },
+  {
+    files: ["__mocks__/*.js"],
+    languageOptions: {
+      sourceType: "commonjs",
+      globals: {
+        ...globals.node,
+        jest: "readonly",
+        require: "readonly",
+        module: "readonly"
+      }
+    },
+    rules: {
+      "@typescript-eslint/no-var-requires": "off"
+    }
   }
 ];

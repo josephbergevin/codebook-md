@@ -90,6 +90,7 @@
         <li><a href="#file-links">File Links &amp; Hover Preview</a></li>
         <li><a href="#custom-settings">Custom Settings</a></li>
         <li><a href="#env-variables">Environment Variables</a></li>
+        <li><a href="#codebook-prompts">Codebook Prompts</a></li>
         <li><a href="#recent-updates">Recent Updates</a></li>
       </ul>
     </nav>
@@ -808,8 +809,104 @@ echo $PATH
         <p>Note: Environment variables are merged at execution time, with VS Code settings taking precedence over system environment variables when there are conflicts.</p>
       </section>
 
+      <section id="codebook-prompts">
+        <h2>Codebook Prompts</h2>
+        <p>Codebook Prompts allow you to create interactive code blocks that request user input before execution.</p>
+
+        <h3>Why Use Codebook Prompts?</h3>
+        <ul>
+          <li><span class="feature-highlight">Interactive Execution:</span> Prompt for user input when running code blocks</li>
+          <li><span class="feature-highlight">Dynamic Parameters:</span> Easily update dates, filters, or other values without modifying code</li>
+          <li><span class="feature-highlight">Streamlined Workflow:</span> No need to track and change hardcoded values for repeated executions</li>
+          <li><span class="feature-highlight">Enhanced Documentation:</span> Create more interactive and user-friendly notebooks</li>
+        </ul>
+
+        <h3>How to Use Codebook Prompts</h3>
+        <p>Add prompt commands in your code blocks using the <code>[>].prompt</code> syntax.</p>
+
+        <h4>Syntax</h4>
+        <p>The syntax for Codebook Prompts is:</p>
+        <pre><code>[>].prompt.Type(placeholder text)</code></pre>
+        <p>Where:</p>
+        <ul>
+          <li><code>Type</code> is the type of prompt (String or Date)</li>
+          <li><code>placeholder text</code> is the message shown to the user</li>
+        </ul>
+
+        <h4>Supported Prompt Types</h4>
+        <ul>
+          <li><code>String</code>: For general text input
+            <pre><code># Example with String prompt
+echo "My favorite color is [>].prompt.String(enter your favorite color)"</code></pre>
+          </li>
+          <li><code>Date</code>: For date input (with YYYY-MM-DD validation)
+            <pre><code># Example with Date prompt
+echo "Report for: [>].prompt.Date(enter report date)"</code></pre>
+          </li>
+        </ul>
+
+        <h4>Using Multiple Prompts</h4>
+        <p>You can include multiple prompts in a single code block:</p>
+        <pre><code># Example with multiple prompts
+echo "Name: [>].prompt.String(enter your name)"
+echo "Birthday: [>].prompt.Date(enter your birthday)"</code></pre>
+
+        <h3>How It Works</h3>
+        <ol>
+          <li>When you execute a code block containing prompts, CodebookMD detects them and shows input dialogs</li>
+          <li>As you provide input for each prompt, the values replace the prompt syntax in the code</li>
+          <li>Once all prompts are filled, the code executes with your provided values</li>
+          <li>The output shows the code with your values substituted for the prompts</li>
+        </ol>
+
+        <h3>Best Practices</h3>
+        <ul>
+          <li>Use descriptive placeholder text to clearly indicate what input is expected</li>
+          <li>For dates, remember the required format is YYYY-MM-DD</li>
+          <li>Consider using prompts for values that change frequently between executions</li>
+          <li>Combine with environment variables for a powerful execution workflow</li>
+        </ul>
+
+        <h3>Examples</h3>
+        <h4>Shell Script Example</h4>
+        <pre><code>```shellscript
+# Script to create a dated log file
+FILENAME="log-[>].prompt.Date(enter log date)"
+echo "Creating log file: $FILENAME.txt"
+echo "Log created by [>].prompt.String(enter your name)" > $FILENAME.txt
+cat $FILENAME.txt
+```</code></pre>
+
+        <h4>SQL Example</h4>
+        <pre><code>```sql
+-- Query data within a date range
+SELECT * FROM orders 
+WHERE order_date BETWEEN '[>].prompt.Date(enter start date)' 
+AND '[>].prompt.Date(enter end date)'
+LIMIT 10;
+```</code></pre>
+
+        <h4>JavaScript Example</h4>
+        <pre><code>```javascript
+// Generate a personalized greeting
+const name = "[>].prompt.String(enter your name)";
+const favoriteColor = "[>].prompt.String(enter your favorite color)";
+
+console.log(`Hello ${name}!`);
+console.log(`I've been told that your favorite color is ${favoriteColor}.`);
+```</code></pre>
+      </section>
+
       <section id="recent-updates">
         <h2>Recent Updates</h2>
+        <h4>New in Latest Version</h4>
+        <ul>
+          <li><span class="feature-highlight">Codebook Prompts:</span> Interactive prompts for dynamic user input in code blocks</li>
+          <li><span class="feature-highlight">String and Date Inputs:</span> Support for text and date input types with validation</li>
+          <li><span class="feature-highlight">Multiple Prompts:</span> Use multiple prompts in a single code block</li>
+          <li>Enhanced documentation with examples for all supported languages</li>
+        </ul>
+        
         <h4>Version 0.13.0</h4>
         <ul>
           <li><span class="feature-highlight">Dynamic Folders:</span> Context-aware folder groups that update based on your active file</li>
