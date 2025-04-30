@@ -21,6 +21,7 @@ import * as typescript from "./languages/typescript";
 import * as python from "./languages/python";
 import * as shell from "./languages/shell";
 import * as sql from "./languages/sql";
+import * as http from "./languages/http";
 import * as unsupported from "./languages/unsupported";
 import * as io from './io';
 
@@ -300,7 +301,7 @@ export const languageSQL = new Language("SQL", ["mysql", "postgres"], true);
 export const languageTypeScript = new Language("TypeScript", ["ts"], true);
 
 // non-executable languages
-export const languageHttp = new Language("Http", [], false);
+export const languageHttp = new Language("Http", [], true);
 export const languageRust = new Language("Rust", [], false);
 
 const languages = [
@@ -343,7 +344,10 @@ export function NewExecutableCell(notebookCell: NotebookCell): ExecutableCell {
       return new go.Cell(notebookCell);
 
     case languageHttp.nameId:
-      return new unsupported.Cell(notebookCell);
+      if (io.commandNotOnPath("curl", "https://curl.se/")) {
+        return new unsupported.Cell(notebookCell);
+      }
+      return new http.Cell(notebookCell);
 
     case languageJavaScript.nameId:
       if (io.commandNotOnPath("node", "https://nodejs.org/")) {

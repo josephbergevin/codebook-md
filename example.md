@@ -51,9 +51,27 @@ fmt.Println("hello, go!")
 
 <a href="https://marketplace.visualstudio.com/items?itemName=josephbergevin.codebook-md">Joe woz ere</a>
 
-```rust
-fn main() {
-    println!("hello, rust!");
+#### HTTP Requests
+
+Below are examples of HTTP requests that can be executed directly from the markdown file:
+
+```http
+# Simple GET Request 
+# [>].output.showExecutableCodeInOutput(true)
+GET https://jsonplaceholder.typicode.com/todos/1
+```
+
+```http
+# POST Request Example with JSON body
+# [>].output.showTimestamp(true)
+POST https://jsonplaceholder.typicode.com/posts
+Content-Type: application/json
+Accept: application/json
+
+{
+  "title": "Test Post",
+  "body": "This is a test post created from CodebookMD HTTP code block",
+  "userId": 1
 }
 ```
 
