@@ -354,7 +354,7 @@ echo "Hello from CodebookMD!"
           <li><strong>JavaScript/TypeScript:</strong> Run JS/TS code</li>
           <li><strong>Python:</strong> Execute Python scripts</li>
           <li><strong>SQL:</strong> Execute database queries</li>
-          <li><strong>HTTP:</strong> Make API requests (with REST Client extension)</li>
+          <li><strong>HTTP:</strong> Execute HTTP requests directly from code blocks</li>
         </ul>
 
         <h3 id="codeblock-config">CodeBlock Configuration</h3>
@@ -734,6 +734,76 @@ SELECT * FROM users;
           <li>Consider using <code>LIMIT</code> clauses for large result sets</li>
           <li>Use connection options to configure database connections</li>
           <li>Structure complex queries with proper indentation and line breaks</li>
+        </ul>
+
+        <h4 id="codeblock-config-http">HTTP</h4>
+        <p>Execute HTTP requests directly from your markdown files.</p>
+        
+        <h5>Basic Usage</h5>
+        <pre><code>```http
+# Simple GET Request
+GET https://example.com
+```</code></pre>
+
+        <h5>Advanced Usage with Headers and Body</h5>
+        <pre><code>```http
+# POST Request with JSON body
+POST https://api.example.com/data
+Content-Type: application/json
+Authorization: Bearer {{YOUR_TOKEN}}
+
+{
+  "name": "Example",
+  "value": 123
+}
+```</code></pre>
+
+        <h5>VS Code Settings Configuration</h5>
+        <p>Configure HTTP behavior in VS Code settings:</p>
+        <pre><code>{
+  "codebook-md.http": {
+    "execCmd": "curl",
+    "verbose": true,
+    "output": {
+      "showExecutableCodeInOutput": true
+    }
+  }
+}</code></pre>
+
+        <h5>Code Block Configuration</h5>
+        <p>Configure individual HTTP code blocks with comments:</p>
+        <pre><code># [>].output.showExecutableCodeInOutput(true)
+GET https://example.com
+# Your regular comments here</code></pre>
+            
+        <h5>HTTP-specific Options</h5>
+        <ul>
+          <li><strong>Command Configuration:</strong>
+            <pre><code># Set curl command options
+# [>].verbose(false)</code></pre>
+          </li>
+          <li><strong>Output Configuration:</strong>
+            <pre><code># Show executed curl command in output
+# [>].output.showExecutableCodeInOutput(true)
+
+# Show output after running
+# [>].output.showOutputOnRun(true)
+
+# Replace output cell on each run
+# [>].output.replaceOutputCell(true)
+
+# Show timestamp with execution results
+# [>].output.showTimestamp(true)</code></pre>
+          </li>
+        </ul>
+
+        <h5>Best Practices for HTTP</h5>
+        <ul>
+          <li>Use comments to document the purpose of each request</li>
+          <li>Use headers to set proper content types and authentication</li>
+          <li>Format JSON and XML bodies for readability</li>
+          <li>Group related requests together</li>
+          <li>Use environment variables or placeholders for tokens and sensitive data</li>
         </ul>
       </section>
 

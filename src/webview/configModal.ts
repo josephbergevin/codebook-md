@@ -321,6 +321,13 @@ function getWebviewContent(execCell: codebook.ExecutableCell): string {
       </div>
       ` : ''}
       
+      ${languageId === 'http' ? `
+      <div class="help-link language-specific" onclick="openDocumentation('codeblock-config-http')">
+        <span class="codicon codicon-symbol-property"></span>
+        <span>HTTP-specific configuration options</span>
+      </div>
+      ` : ''}
+      
       ${languageId === 'bash' || languageId === 'shellscript' || languageId === 'shell' ? `
       <div class="help-link language-specific" onclick="openDocumentation('codeblock-config-bash')">
         <span class="codicon codicon-symbol-property"></span>

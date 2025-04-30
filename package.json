@@ -354,6 +354,56 @@
             }
           }
         },
+        "codebook-md.http": {
+          "type": "object",
+          "properties": {
+            "execCmd": {
+              "type": "string",
+              "default": "curl",
+              "description": "Command to use for HTTP requests (default: curl)."
+            },
+            "execFilename": {
+              "type": "string",
+              "default": "codebook_md_exec_http.sh",
+              "description": "Filename for the executable HTTP script."
+            },
+            "verbose": {
+              "type": "boolean",
+              "default": true,
+              "description": "Whether to use verbose mode for HTTP requests (adds -v flag to curl)."
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "showExecutableCodeInOutput": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Show the executable code at the top of the output (default: true)."
+                },
+                "showOutputOnRun": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Show the output cell on run (default: true)."
+                },
+                "replaceOutputCell": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Prepend the executable code to the output (default: true)."
+                },
+                "showTimestamp": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Show the timestamp at the top of the output (default: true)."
+                },
+                "timestampTimezone": {
+                  "type": "string",
+                  "default": true,
+                  "description": "Timezone to use for the timestamp."
+                }
+              }
+            }
+          }
+        },
         "codebook-md.dynamicFolderGroup.enabled": {
           "type": "boolean",
           "default": true,

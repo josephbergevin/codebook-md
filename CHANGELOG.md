@@ -4,6 +4,18 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0]
+
+### Added
+
+- Native HTTP language support for executing HTTP requests
+  - Support for all HTTP methods (GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS)
+  - Header and request body support
+  - Environment variable substitution in headers using {{VARIABLE_NAME}} syntax
+  - JSON response formatting
+  - Cookie support for maintaining session state
+  - Configuration options for timeouts, formatting, and request/response logging
+
 ## [0.16.0] - 2025-04-30
 
 ### Added
