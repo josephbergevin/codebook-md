@@ -56,7 +56,7 @@
           "description": "Path where temporary exec-related file(s) will be stored.",
           "type": "string",
           "scope": "window",
-          "default": "/tmp"
+          "default": "./codebook-md/"
         },
         "codebook-md.permalinkPrefix": {
           "description": "Prefix for identifying permalinks. When matched in a markdown, the permalink will be converted to a link to the same file/lines in VS Code.",
