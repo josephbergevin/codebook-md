@@ -335,6 +335,9 @@ function findLanguageId(language: string): string {
 // NewCell returns a new Cell object based on the language of the notebook cell - if the language
 // is not supported, it returns an unsupported cell
 export function NewExecutableCell(notebookCell: NotebookCell): ExecutableCell {
+  const metadataJson = JSON.stringify(notebookCell.metadata);
+  console.log(`NewExecutableCell | index:${notebookCell.index} | languageId:${notebookCell.document.languageId} | kind:${notebookCell.kind} | metadata:${metadataJson}`);
+
   const lang = notebookCell.document.languageId;
   switch (lang) {
     case languageGo.nameId:
@@ -861,9 +864,10 @@ export class CodeBlockConfig {
   commands: string[]; // lines from the cell that are commands - prefixed with a commentPrefix followed by [>]
   comments: string[]; // lines from the cell that are comments - prefixed with a commentPrefix
   innerScope: string; // the rest of the cell content
+  cellConfig: any; // the cell configuration as found in the CellConfiguations at the bottom of the notebook
 
   execFrom: string; // the file location where the cell executable code should be executed from
-  output: OutputConfig; // the output configuration for the cell
+  outputConfig: OutputConfig; // the output configuration for the cell
 
   constructor(notebookCell: NotebookCell | undefined, languageOutputConfig: WorkspaceConfiguration | undefined, ...commentPrefixes: string[]) {
     if (!notebookCell) {
@@ -873,7 +877,7 @@ export class CodeBlockConfig {
       this.comments = [];
       this.innerScope = "";
       this.execFrom = "";
-      this.output = new OutputConfig(languageOutputConfig, []);
+      this.outputConfig = new OutputConfig(languageOutputConfig, []);
       return;
     }
     this.notebookCell = notebookCell;
@@ -897,7 +901,9 @@ export class CodeBlockConfig {
     this.innerScope = this.innerScope.trim();
 
     this.execFrom = this.commands.find(command => command.startsWith(".execFrom"))?.split(" ").pop() || "";
-    this.output = new OutputConfig(languageOutputConfig, this.commands);
+    // get the cell configuration from the cell
+    this.cellConfig = getCellConfig(notebookCell);
+    this.outputConfig = new OutputConfig(languageOutputConfig, this.commands, this.cellConfig);
   }
 
   // availableCommands returns the available commands for the command based on the given languageId
@@ -946,15 +952,63 @@ export class CodeBlockConfig {
       innerScope: this.innerScope,
       execFrom: this.execFrom,
       output: {
-        showExecutableCodeInOutput: this.output.showExecutableCodeInOutput,
-        showOutputOnRun: this.output.showOutputOnRun,
-        prependToOutputStrings: this.output.prependToOutputStrings,
-        appendToOutputStrings: this.output.appendToOutputStrings,
-        replaceOutputCell: this.output.replaceOutputCell,
-        showTimestamp: this.output.showTimestamp,
-        timestampTimezone: this.output.timestampTimezone,
+        showExecutableCodeInOutput: this.outputConfig.showExecutableCodeInOutput,
+        showOutputOnRun: this.outputConfig.showOutputOnRun,
+        prependToOutputStrings: this.outputConfig.prependToOutputStrings,
+        appendToOutputStrings: this.outputConfig.appendToOutputStrings,
+        replaceOutputCell: this.outputConfig.replaceOutputCell,
+        showTimestamp: this.outputConfig.showTimestamp,
+        timestampTimezone: this.outputConfig.timestampTimezone,
       }
     });
+  }
+}
+
+// getCellConfig finds the cell configuration for the given 
+export function getCellConfig(notebookCell: NotebookCell): any {
+  // Check if the notebook property is defined
+  if (!notebookCell.notebook) {
+    return null;
+  }
+
+  const lastCellIndex = notebookCell.notebook.cellCount - 1;
+  const cellIndex = notebookCell.index;
+
+  // Find the last cell that may contain the configurations
+  const lastCell = notebookCell.notebook.cellAt(lastCellIndex);
+  // If the current cell is the last one, no configurations would apply to it
+  if (cellIndex === lastCellIndex) {
+    return null;
+  }
+
+  // Check if the last cell contains the configuration marker
+  const lastCellText = lastCell.document.getText();
+  if (!lastCellText.includes('<!-- CodebookMD Cell Configurations -->')) {
+    return null;
+  }
+
+  try {
+    // Extract the JSON configuration from the script tag
+    const jsonMatch = lastCellText.match(/<script type="application\/json">([\s\S]*?)<\/script>/);
+    if (!jsonMatch || !jsonMatch[1]) {
+      console.error('No JSON configuration found CodebookMD Cell Configurations');
+      return null;
+    }
+
+    // Parse the JSON configuration
+    const cellConfigs = JSON.parse(jsonMatch[1].trim());
+
+    // Look for a configuration for the current cell index
+    if (cellConfigs[cellIndex.toString()]) {
+      return cellConfigs[cellIndex.toString()].config;
+    }
+
+    console.log(`No configuration found for cell index ${cellIndex}`, cellConfigs);
+
+    return null;
+  } catch (error) {
+    console.error('Error parsing cell configuration:', error);
+    return null;
   }
 }
 
@@ -970,7 +1024,7 @@ export class OutputConfig {
   prependToOutputStrings: string[]; // the strings to prepend to the output
   appendToOutputStrings: string[]; // the strings to append to the output
 
-  constructor(languageOutputConfig: WorkspaceConfiguration | undefined = undefined, commands: string[]) {
+  constructor(languageOutputConfig: WorkspaceConfiguration | undefined = undefined, commands: string[], cellConfig: any = undefined) {
     const outputConfig = workspace.getConfiguration('codebook-md.output');
     // initialize the output configuration with the default values
     this.showExecutableCodeInOutput = outputConfig.get('showExecutableCodeInOutput') || false;
@@ -1025,6 +1079,33 @@ export class OutputConfig {
             window.showWarningMessage(`output command unknown: ${command}`);
         }
       });
+    }
+
+    // check all .output configurations and override the default output config (only if they are set)
+    if (cellConfig && cellConfig.output) {
+      console.log(`checking for cell config overrides - cellConfig.output: ${JSON.stringify(cellConfig.output)}`);
+
+      if (cellConfig.output.showExecutableCodeInOutput !== undefined) {
+        this.showExecutableCodeInOutput = cellConfig.output.showExecutableCodeInOutput;
+      }
+      if (cellConfig.output.showOutputOnRun !== undefined) {
+        this.showOutputOnRun = cellConfig.output.showOutputOnRun;
+      }
+      if (cellConfig.output.replaceOutputCell !== undefined) {
+        this.replaceOutputCell = cellConfig.output.replaceOutputCell;
+      }
+      if (cellConfig.output.showTimestamp !== undefined) {
+        this.showTimestamp = cellConfig.output.showTimestamp;
+      }
+      if (cellConfig.output.timestampTimezone !== undefined) {
+        this.timestampTimezone = validTimezone(cellConfig.output.timestampTimezone);
+      }
+      if (cellConfig.output.prependToOutputStrings !== undefined) {
+        this.prependToOutputStrings = cellConfig.output.prependToOutputStrings;
+      }
+      if (cellConfig.output.appendToOutputStrings !== undefined) {
+        this.appendToOutputStrings = cellConfig.output.appendToOutputStrings;
+      }
     }
   }
 }
