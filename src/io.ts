@@ -39,7 +39,7 @@ export function getMergedEnvironmentVariables(): { [key: string]: string | undef
 
     // Merge platform-specific environment variables if they exist
     if (platformEnv) {
-      console.log(`Found terminal.integrated.env.${platformKey} settings:`, platformEnv);
+      console.log(`Found terminal.integrated.env.${platformKey} settings`);
       Object.keys(platformEnv).forEach(key => {
         mergedEnv[key] = platformEnv[key];
       });
