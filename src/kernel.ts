@@ -72,7 +72,7 @@ export class Kernel {
         codebookCell = codebook.NewExecutableCell(notebookCell);
       }
 
-      const outputConfig = codebookCell.codeBlockConfig().output;
+      const outputConfig = codebookCell.codeBlockConfig().outputConfig;
 
       // If the executables length is more than 1, then we'll need to ensure the output is replaced
       console.log(`executables length: ${codebookCell.executables().length} | replaceOutputCell: ${outputConfig.replaceOutputCell}`);
