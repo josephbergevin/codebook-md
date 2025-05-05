@@ -532,6 +532,26 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
           margin-bottom: 5px;
           font-weight: bold;
         }
+        details summary {
+          padding: 8px;
+          background: var(--vscode-button-secondaryBackground);
+          color: var(--vscode-button-secondaryForeground);
+          border-radius: 3px;
+          cursor: pointer;
+          font-weight: bold;
+          margin-bottom: 5px;
+          display: flex;
+          align-items: center;
+        }
+        details summary:hover {
+          background: var(--vscode-button-secondaryHoverBackground);
+        }
+        details summary::marker {
+          color: var(--vscode-button-secondaryForeground);
+        }
+        details summary .summary-icon {
+          margin-right: 8px;
+        }
         .form-section {
           margin-bottom: 20px;
           padding: 10px;
@@ -624,19 +644,29 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
 
         <div class="form-group">
           <div class="list-container">
-            <div class="list-title">Available Commands</div>
-            <div class="command-list" id="availableCommandsList">
-              ${availableCommandsHTML}
-            </div>
+            <details>
+              <summary>
+                <span class="codicon codicon-list-unordered"></span>
+                <span>Available Commands</span>
+              </summary>
+              <div class="command-list" id="availableCommandsList">
+                ${availableCommandsHTML}
+              </div>
+            </details>
           </div>
         </div>
 
         <div class="form-group">
           <div class="list-container">
-            <div class="list-title">Code Block Commands (already found in this code-block)</div>
-            <div class="command-list" id="codeBlockCommandsList">
-              ${codeBlockCommandsHTML}
-            </div>
+            <details>
+              <summary>
+                <span class="codicon codicon-code"></span>
+                <span>Code Block Commands (already found in this code-block)</span>
+              </summary>
+              <div class="command-list" id="codeBlockCommandsList">
+                ${codeBlockCommandsHTML}
+              </div>
+            </details>
           </div>
         </div>
       </form>
