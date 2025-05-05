@@ -16,17 +16,17 @@ jest.mock('vscode', () => ({
 describe('config.ts Test Suite', () => {
   const workspacePath = '/Users/tijoe/go/src/github.com/josephbergevin/codebook-md';
 
-  it('fullTempPath with relative folder', () => {
-    const tempPath = './temp';
+  it('fullExecPath with relative folder', () => {
+    const execPath = './temp';
     const currentFile = '/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/src/extension.ts';
-    const message = config.fullTempPath(tempPath, currentFile, workspacePath);
+    const message = config.fullExecPath(execPath, currentFile, workspacePath);
     expect(message).toBe('/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/src/temp');
   });
 
-  it('fullTempPath with empty tempPath', () => {
-    const tempPath = '';
+  it('fullExecPath with empty execPath', () => {
+    const execPath = '';
     const currentFile = '/Users/tijoe/go/src/github.com/josephbergevin/codebook-md/src/extension.ts';
-    const message = config.fullTempPath(tempPath, currentFile, workspacePath);
+    const message = config.fullExecPath(execPath, currentFile, workspacePath);
     expect(message).toBe('/Users/tijoe/go/src/github.com/josephbergevin/codebook-md');
   });
 

@@ -45,10 +45,10 @@ export class Cell implements codebook.ExecutableCell {
     this.execArgs = [this.config.execFile];
 
     // set the mainExecutable to the bash script
-    this.mainExecutable = new codebook.Command(this.execCmd, this.execArgs, this.config.execDir);
+    this.mainExecutable = new codebook.Command(this.execCmd, this.execArgs, this.config.execPath);
     this.mainExecutable.addBeforeExecuteFunc(() => {
       // create the directory and main file
-      io.writeDirAndFileSyncSafe(this.config.execDir, this.config.execFile, this.executableCode);
+      io.writeDirAndFileSyncSafe(this.config.execPath, this.config.execFile, this.executableCode);
     });
   }
 
@@ -89,7 +89,7 @@ export class Cell implements codebook.ExecutableCell {
 
 export class Config {
   contentConfig: codebook.CodeBlockConfig;
-  execDir: string;
+  execPath: string;
   execFile: string;
   execSingleLineAsCommand: boolean;
 
@@ -100,10 +100,10 @@ export class Config {
     const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath;
 
     // If rootPath is '${workspaceFolder}', use the actual workspace folder path
-    this.execDir = (rootPath === '${workspaceFolder}' ? workspaceFolder : rootPath) ||
+    this.execPath = (rootPath === '${workspaceFolder}' ? workspaceFolder : rootPath) ||
       workspaceFolder ||
-      config.getTempPath();
-    this.execFile = path.join(this.execDir, bashConfig?.get('execFilename') || 'codebook_md_exec.sh');
+      config.getExecPath();
+    this.execFile = path.join(this.execPath, bashConfig?.get('execFilename') || 'codebook_md_exec.sh');
     this.execSingleLineAsCommand = bashConfig?.get('execSingleLineAsCommand') || false;
   }
 }

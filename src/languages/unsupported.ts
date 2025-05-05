@@ -25,7 +25,7 @@ export class Cell implements codebook.ExecutableCell {
     this.language = notebookCell.document.languageId;
 
     // set the mainExecutable to a new Command with the executable code
-    this.mainExecutable = new codebook.Command(`echo "Unsupported language '${this.language}'"`, [], config.getTempPath());
+    this.mainExecutable = new codebook.Command(`echo "Unsupported language '${this.language}'"`, [], config.getExecPath());
   }
 
   codeBlockConfig(): codebook.CodeBlockConfig {

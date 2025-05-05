@@ -38,11 +38,11 @@ export class Cell implements codebook.ExecutableCell {
     this.execArgs = [this.config.execFile];
 
     // Set the mainExecutable to the bash script
-    this.mainExecutable = new codebook.Command(this.execCmd, this.execArgs, this.config.execDir);
+    this.mainExecutable = new codebook.Command(this.execCmd, this.execArgs, this.config.execPath);
     this.mainExecutable.addBeforeExecuteFunc(() => {
       // Create the directory and main file
       // Run in a try-catch block to avoid errors if the directory already exists
-      io.writeDirAndFileSyncSafe(this.config.execDir, this.config.execFile, this.executableCode);
+      io.writeDirAndFileSyncSafe(this.config.execPath, this.config.execFile, this.executableCode);
     });
     this.mainExecutable.setCommandToDisplay(curlCommand);
   }
@@ -127,7 +127,7 @@ export class Cell implements codebook.ExecutableCell {
 
       // Write the body to a temporary file to handle complex body data
       const bodyFileName = 'http_request_body.json';
-      const bodyFilePath = path.join(this.config.execDir, bodyFileName);
+      const bodyFilePath = path.join(this.config.execPath, bodyFileName);
 
       // Add a step to create this file in the BeforeExecute function
       this.mainExecutable.addBeforeExecuteFunc(() => {
@@ -172,7 +172,7 @@ export class Cell implements codebook.ExecutableCell {
 
 export class Config {
   contentConfig: codebook.CodeBlockConfig;
-  execDir: string;
+  execPath: string;
   execFile: string;
   execFilename: string;
   execCmd: string;
@@ -180,9 +180,9 @@ export class Config {
 
   constructor(httpConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.http.output'), "#");
-    this.execDir = config.getTempPath();
+    this.execPath = config.getExecPath();
     this.execFilename = httpConfig?.get('execFilename') || 'codebook_md_exec_http.sh';
-    this.execFile = path.join(this.execDir, this.execFilename);
+    this.execFile = path.join(this.execPath, this.execFilename);
     this.execCmd = httpConfig?.get('execCmd') || 'curl';
     this.verbose = httpConfig?.get('verbose') || true;
   }

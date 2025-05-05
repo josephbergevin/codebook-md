@@ -45,11 +45,11 @@ export class Cell implements codebook.ExecutableCell {
     this.execArgs = [this.config.execFile];
 
     // set the mainExecutable to the bash script
-    this.mainExecutable = new codebook.Command(this.execCmd, this.execArgs, this.config.execDir);
+    this.mainExecutable = new codebook.Command(this.execCmd, this.execArgs, this.config.execPath);
     this.mainExecutable.addBeforeExecuteFunc(() => {
       // create the directory and main file
       // run in a try-catch block to avoid errors if the directory already exists
-      io.writeDirAndFileSyncSafe(this.config.execDir, this.config.execFile, this.executableCode);
+      io.writeDirAndFileSyncSafe(this.config.execPath, this.config.execFile, this.executableCode);
     });
     this.mainExecutable.setCommandToDisplay(this.innerScope);
 
@@ -57,12 +57,12 @@ export class Cell implements codebook.ExecutableCell {
     if (sqlStatements.length > 1) {
       sqlStatements.slice(1).forEach((sqlStatement) => {
         // form the executable code as a bash script that will execute the sql code from a file
-        const postExecutable = new codebook.Command(this.execCmd, this.execArgs, this.config.execDir);
+        const postExecutable = new codebook.Command(this.execCmd, this.execArgs, this.config.execPath);
         postExecutable.setCommandToDisplay(sqlStatement);
         postExecutable.addBeforeExecuteFunc(() => {
           try {
             const sqlCliCommand = "#!/bin/bash\n\nset -e\n\n" + this.config.execCmd + " " + this.config.execOptions.join(" ") + " -e " + '"' + sqlStatement + '"';
-            io.writeDirAndFileSyncSafe(this.config.execDir, this.config.execFile, sqlCliCommand);
+            io.writeDirAndFileSyncSafe(this.config.execPath, this.config.execFile, sqlCliCommand);
           } catch (error) {
             console.error("error writing file: ", error);
           }
@@ -104,7 +104,7 @@ export class Cell implements codebook.ExecutableCell {
 
 export class Config {
   contentConfig: codebook.CodeBlockConfig;
-  execDir: string;
+  execPath: string;
   execFile: string;
   execFilename: string;
   execCmd: string;
@@ -112,9 +112,9 @@ export class Config {
 
   constructor(sqlConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.sql.output'), "--");
-    this.execDir = config.getTempPath();
+    this.execPath = config.getExecPath();
     this.execFilename = sqlConfig?.get('execFilename') || 'codebook_md_exec.sql';
-    this.execFile = path.join(this.execDir, this.execFilename);
+    this.execFile = path.join(this.execPath, this.execFilename);
     this.execCmd = sqlConfig?.get('execCmd') || '';
     this.execOptions = sqlConfig?.get('execOptions') || [];
 

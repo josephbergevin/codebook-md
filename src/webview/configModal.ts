@@ -640,6 +640,20 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
         <div class="config-section">
           ${outputOptionsHTML}
           ${languageOptionsHTML}
+          
+          <!-- Execution Path Configuration -->
+          <div class="form-section">
+            <h3>Execution Path</h3>
+            <div class="form-group">
+              <label for="execPath">Execution Path for this cell</label>
+              <input type="text" name="execPath" id="execPath" value="${currentCellConfig && currentCellConfig.execPath !== undefined ? currentCellConfig.execPath : ''}">
+              <small>Directory where the code will be executed</small>
+              <div style="margin-top: 6px; font-size: 0.9em; color: var(--vscode-descriptionForeground);">
+                <div><span class="codicon codicon-info"></span> Leave blank to use the default 'execPath' from VS Code Config</div>
+                <div><span class="codicon codicon-info"></span> A relative path is also valid (ie: './codebook-md/')</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="form-group">
@@ -809,6 +823,15 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
                   }
                 }
               });
+            }
+            
+            // Initialize execPath field if it exists
+            const execPathField = form.elements['execPath'];
+            if (execPathField) {
+              const currentValue = ${JSON.stringify(currentCellConfig)} && ${JSON.stringify(currentCellConfig)}.execPath !== undefined 
+                ? ${JSON.stringify(currentCellConfig)}.execPath 
+                : '';
+              execPathField.value = currentValue;
             }
           }
         }

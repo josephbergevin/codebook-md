@@ -78,7 +78,7 @@ jest.mock('vscode', () => {
 
 // Mock config module to avoid file system operations
 jest.mock('../../config', () => ({
-  getTempPath: jest.fn().mockReturnValue('/test/path')
+  getExecPath: jest.fn().mockReturnValue('/test/path')
 }));
 
 // Mock the io module

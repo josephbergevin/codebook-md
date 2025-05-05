@@ -52,7 +52,7 @@
           "type": "string",
           "scope": "window"
         },
-        "codebook-md.tempPath": {
+        "codebook-md.execPath": {
           "description": "Path where temporary exec-related file(s) will be stored.",
           "type": "string",
           "scope": "window",

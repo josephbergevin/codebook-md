@@ -6,21 +6,21 @@ const codebookConfig = workspace.getConfiguration('codebook-md');
 // basePath is the workspace root path
 const rootPath = codebookConfig.get('rootPath', '');
 
-// getTempPath is a convenience function to get the tempPath from the configuration
-export function getTempPath(): string {
-  const tempPath = codebookConfig.get('tempPath', '');
+// getExecPath is a convenience function to get the execPath from the configuration
+export function getExecPath(): string {
+  const execPath = codebookConfig.get('execPath', '');
   const currentFile = window.activeTextEditor?.document.fileName ?? '';
-  return fullTempPath(tempPath, currentFile, rootPath);
+  return fullExecPath(execPath, currentFile, rootPath);
 }
 
-export function fullTempPath(tempPath: string, currentFile: string, workspacePath: string): string {
-  if (tempPath === '' && workspacePath !== '') {
+export function fullExecPath(execPath: string, currentFile: string, workspacePath: string): string {
+  if (execPath === '' && workspacePath !== '') {
     return workspacePath;
-  } else if (tempPath.startsWith('./')) {
+  } else if (execPath.startsWith('./')) {
     const currentPath = path.dirname(currentFile ?? '');
-    return path.join(currentPath, tempPath.slice(2));
+    return path.join(currentPath, execPath.slice(2));
   }
-  return tempPath;
+  return execPath;
 }
 
 // getFullPath returns the full path for a potentially relative path

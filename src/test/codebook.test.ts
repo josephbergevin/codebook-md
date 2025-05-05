@@ -186,7 +186,7 @@ describe('CellContentConfig', () => {
     expect(codeBlockConfig.innerScope).toBe('fmt.Println("Hello")');
     expect(codeBlockConfig.comments).toEqual(['// This is a comment']);
     expect(codeBlockConfig.commands).toEqual(['.output.showExecutableCodeInOutput(true)']);
-    expect(codeBlockConfig.execFrom).toBe('');
+    expect(codeBlockConfig.execPath).toBe('');
     expect(codeBlockConfig.outputConfig.showExecutableCodeInOutput).toBe(true);
   });
 

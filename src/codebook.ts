@@ -866,7 +866,7 @@ export class CodeBlockConfig {
   innerScope: string; // the rest of the cell content
   cellConfig: any; // the cell configuration as found in the CellConfiguations at the bottom of the notebook
 
-  execFrom: string; // the file location where the cell executable code should be executed from
+  execPath: string; // the file location where the cell executable code should be executed from
   outputConfig: OutputConfig; // the output configuration for the cell
 
   constructor(notebookCell: NotebookCell | undefined, languageOutputConfig: WorkspaceConfiguration | undefined, ...commentPrefixes: string[]) {
@@ -876,7 +876,7 @@ export class CodeBlockConfig {
       this.commands = [];
       this.comments = [];
       this.innerScope = "";
-      this.execFrom = "";
+      this.execPath = "";
       this.outputConfig = new OutputConfig(languageOutputConfig, []);
       return;
     }
@@ -900,7 +900,7 @@ export class CodeBlockConfig {
 
     this.innerScope = this.innerScope.trim();
 
-    this.execFrom = this.commands.find(command => command.startsWith(".execFrom"))?.split(" ").pop() || "";
+    this.execPath = this.commands.find(command => command.startsWith(".execPath"))?.split(" ").pop() || "";
     // get the cell configuration from the cell
     this.cellConfig = getCellConfig(notebookCell);
     this.outputConfig = new OutputConfig(languageOutputConfig, this.commands, this.cellConfig);
@@ -913,8 +913,8 @@ export class CodeBlockConfig {
     const outputConfigJson = JSON.stringify(outputConfig);
     const outputConfigKeys = Object.keys(JSON.parse(outputConfigJson));
 
-    // add "execFrom" to the outputConfigKeys
-    outputConfigKeys.push(`execFrom("")`);
+    // add "execPath" to the outputConfigKeys
+    outputConfigKeys.push(`execPath("")`);
 
     // if this.languageId is 'go', add the go specific commands
     if (this.languageId === languageGo.nameId) {
@@ -950,7 +950,7 @@ export class CodeBlockConfig {
       commands: this.commands,
       comments: this.comments,
       innerScope: this.innerScope,
-      execFrom: this.execFrom,
+      execPath: this.execPath,
       output: {
         showExecutableCodeInOutput: this.outputConfig.showExecutableCodeInOutput,
         showOutputOnRun: this.outputConfig.showOutputOnRun,
