@@ -73,9 +73,9 @@ export class Cell implements codebook.ExecutableCell {
       } else if (line.startsWith("import")) {
         this.importNumber++;
         this.imports.push(line);
-      } else if (line.startsWith("// [>].execFrom:")) {
-        // set the execFrom value to the line so we can use it later
-        this.config.execFrom = line;
+      } else if (line.startsWith("// [>].execPath:")) {
+        // set the execPath value to the line so we can use it later
+        this.config.execPath = line;
         continue;
       } else if (this.parsingFunc) {
         this.outerScope += line;
@@ -108,7 +108,7 @@ export class Cell implements codebook.ExecutableCell {
     if (this.config.execTypeTest) {
       // if goConfig.execType is set and the value is 'test`, then create the file in the current package
       // create the execCode for the benchmark file
-      let packageName = path.basename(this.config.execDir);
+      let packageName = path.basename(this.config.execPath);
       if (packageName.includes("-")) {
         packageName = packageName.replace("-", "_");
       }
@@ -123,29 +123,29 @@ export class Cell implements codebook.ExecutableCell {
     }
 
     // define dir and mainFile as empty strings
-    if (this.config.execFrom !== "") {
-      // notify in vscode with the execFrom val
-      [this.config.execDir, this.config.execFile] = getDirAndExecFile(this.config.execFrom);
+    if (this.config.execPath !== "") {
+      // notify in vscode with the execPath val
+      [this.config.execPath, this.config.execFile] = getDirAndExecFile(this.config.execPath);
     }
 
     // set the mainExecutable to the bash script
-    // this.mainExecutable = new codebook.Command('go', [this.config.execCmd, this.config.execFile], this.config.execDir);
+    // this.mainExecutable = new codebook.Command('go', [this.config.execCmd, this.config.execFile], this.config.execPath);
 
     if (this.config.execTypeTest) {
       // if we're executing with a test, then we won't use the execFile in the command
-      this.mainExecutable = new codebook.Command('go', [this.config.execCmd, ...this.config.execArgs], this.config.execDir);
+      this.mainExecutable = new codebook.Command('go', [this.config.execCmd, ...this.config.execArgs], this.config.execPath);
     } else {
-      this.mainExecutable = new codebook.Command('go', [this.config.execCmd, ...this.config.execArgs, this.config.execFile], this.config.execDir);
+      this.mainExecutable = new codebook.Command('go', [this.config.execCmd, ...this.config.execArgs, this.config.execFile], this.config.execPath);
     }
 
     // add the beforeExecuteFunc to the mainExecutable
     this.mainExecutable.addBeforeExecuteFunc(async () => {
       // define dir and mainFile as empty strings
-      if (this.config.execFrom !== "") {
-        // notify in vscode with the execFrom val
-        [this.config.execDir, this.config.execFile] = getDirAndExecFile(this.config.execFrom);
+      if (this.config.execPath !== "") {
+        // notify in vscode with the execPath val
+        [this.config.execPath, this.config.execFile] = getDirAndExecFile(this.config.execPath);
         // log out a message in vscode to indicate we're using go setting
-        window.showInformationMessage('found execFrom: ' + this.config.execFrom, 'executing from: ' + this.config.execFile);
+        window.showInformationMessage('found execPath: ' + this.config.execPath, 'executing from: ' + this.config.execFile);
       }
 
       // Use the new ConsoleLogger for source-mapped logs
@@ -153,10 +153,10 @@ export class Cell implements codebook.ExecutableCell {
       console.log(`cell contents: ${this.executableCode}`);
 
       // create the directory and main file
-      io.writeDirAndFileSyncSafe(this.config.execDir, this.config.execFile, this.executableCode);
+      io.writeDirAndFileSyncSafe(this.config.execPath, this.config.execFile, this.executableCode);
 
       // Initialize go.mod if it doesn't exist
-      const goModPath = path.join(this.config.execDir, 'go.mod');
+      const goModPath = path.join(this.config.execPath, 'go.mod');
       if (!existsSync(goModPath)) {
         const maxRetries = 5; // Increased from 3 to 5
         const initialRetryDelay = 500; // Reduced initial delay (milliseconds)
@@ -167,13 +167,13 @@ export class Cell implements codebook.ExecutableCell {
         const checkDirectoryAccess = async (): Promise<boolean> => {
           try {
             // Attempt to write a test file to see if the directory is writable
-            const testFilePath = path.join(this.config.execDir, '.test_write_access');
+            const testFilePath = path.join(this.config.execPath, '.test_write_access');
             writeFileSync(testFilePath, 'test');
 
             // If we get here, we can write to the directory
             try {
               // Clean up the test file
-              io.spawnSyncSafe('rm', [testFilePath], { cwd: this.config.execDir });
+              io.spawnSyncSafe('rm', [testFilePath], { cwd: this.config.execPath });
             } catch (cleanupError) {
               console.warn(`Warning: Failed to clean up test file: ${cleanupError}`);
               // Not being able to clean up isn't a blocker
@@ -215,7 +215,7 @@ export class Cell implements codebook.ExecutableCell {
 
             // Run go mod tidy to ensure dependencies are correctly set up
             try {
-              io.spawnSyncSafe('go', ['mod', 'tidy'], { cwd: this.config.execDir });
+              io.spawnSyncSafe('go', ['mod', 'tidy'], { cwd: this.config.execPath });
               console.log("Successfully ran go mod tidy");
               break; // Success - exit the retry loop
             } catch (tidyError) {
@@ -271,9 +271,9 @@ export class Cell implements codebook.ExecutableCell {
 
       // run goimports on the file
       if (this.config.useGoimports) {
-        io.spawnSyncSafe('goimports', ['-w', this.config.execFile], { cwd: this.config.execDir });
+        io.spawnSyncSafe('goimports', ['-w', this.config.execFile], { cwd: this.config.execPath });
       } else {
-        io.spawnSyncSafe('gopls', ['imports', '-w', this.config.execFile], { cwd: this.config.execDir });
+        io.spawnSyncSafe('gopls', ['imports', '-w', this.config.execFile], { cwd: this.config.execPath });
       }
     });
 
@@ -362,13 +362,12 @@ export class Cell implements codebook.ExecutableCell {
 // Config is a class that contains the configuration settings for executing go code from Cells
 export class Config {
   contentConfig: codebook.CodeBlockConfig;
-  execFrom: string;
+  execPath: string;
   execTypeRun: boolean;
   execTypeRunFilename: string;
   execTypeTest: boolean;
   execTypeTestFilename: string;
   execTypeTestBuildTag: string;
-  execDir: string;
   execFile: string;
   execFilename: string;
   execPkg: string;
@@ -381,13 +380,12 @@ export class Config {
   constructor(goConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.go.output'), "//");
     const execType = goConfig?.get<string>('execType') ?? 'run';
-    this.execFrom = '';
+    this.execPath = '';
     this.execTypeRun = execType === 'run';
     this.execTypeRunFilename = goConfig?.get<string>('execTypeRunFilename') ?? 'main.go';
     this.execTypeTest = execType === 'test';
     this.execTypeTestFilename = goConfig?.get<string>('execTypeTestFilename') ?? 'codebook_md_exec_test.go';
     this.execTypeTestBuildTag = goConfig?.get<string>('execTypeTestBuildTag') ?? 'playground';
-    this.execDir = "";
     this.execFile = "";
     this.execFilename = "";
     this.execPkg = "";
@@ -401,15 +399,15 @@ export class Config {
     // use any specified config settings to override the defaults
     this.contentConfig.commands.forEach((command) => {
       // Parse configuration comments
-      if (command.startsWith('.execFrom:')) {
-        this.execFrom = command;
+      if (command.startsWith('.execPath:')) {
+        this.execPath = command;
       } else if (command.startsWith('.execTypeRunFilename(')) {
         const match = command.match(/\.execTypeRunFilename\("([^"]+)"\)/);
         if (match) {
           this.execTypeRunFilename = match[1];
           if (this.execTypeRun) {
             this.execFilename = match[1];
-            this.execFile = path.join(this.execDir, match[1]);
+            this.execFile = path.join(this.execPath, match[1]);
           }
         }
       } else if (command.startsWith('.execTypeTestFilename(')) {
@@ -418,7 +416,7 @@ export class Config {
           this.execTypeTestFilename = match[1];
           if (this.execTypeTest) {
             this.execFilename = match[1];
-            this.execFile = path.join(this.execDir, match[1]);
+            this.execFile = path.join(this.execPath, match[1]);
           }
         }
       } else if (command.startsWith('.execTypeTestBuildTag(')) {
@@ -453,33 +451,33 @@ export class Config {
       const currentFile = window.activeTextEditor?.document.fileName;
       const currentPath = path.dirname(currentFile ?? '');
       this.execPkg = path.basename(currentPath);
-      this.execDir = currentPath;
+      this.execPath = currentPath;
       this.execFilename = this.execTypeTestFilename;
-      this.execFile = path.join(this.execDir, this.execFilename);
+      this.execFile = path.join(this.execPath, this.execFilename);
       this.execCmd = 'test';
       this.execArgs = ['-run=TestExecNotebook', '-tags=playground', '-v'];
     } else {
-      this.execDir = config.getTempPath();
+      this.execPath = config.getExecPath();
       this.execFilename = this.execTypeRunFilename;
-      this.execFile = path.join(this.execDir, this.execFilename);
+      this.execFile = path.join(this.execPath, this.execFilename);
       this.execCmd = 'run';
     }
   }
 }
 
 // getDirAndMainFile takes the string to search (main string) and returns the directory and main file path for the go code using the 
-// '// [>]execFrom:[/dir/to/main.go]' keyword in a comment in the given string using one of 2 formats:
+// '// [>]execPath:[/dir/to/main.go]' keyword in a comment in the given string using one of 2 formats:
 // 1. absolute path to the directory and main.go file (/path/to/dir/main.go)
 // 2. relative path to the directory and main.go file (./dir/main.go)
-export const getDirAndExecFile = (execFrom: string): [string, string] => {
-  // [>]execFrom:./apiplayground/main_temp.go
+export const getDirAndExecFile = (execPath: string): [string, string] => {
+  // [>]execPath:./apiplayground/main_temp.go
   // split on the colon
-  const parts = execFrom.split(':');
+  const parts = execPath.split(':');
 
   // Use the new ConsoleLogger for source-mapped logs
-  console.log(`getDirAndExecFile parts: ${parts} | execFrom: ${execFrom}`);
+  console.log(`getDirAndExecFile parts: ${parts} | execPath: ${execPath}`);
 
-  let execFile = execFrom;
+  let execFile = execPath;
   if (parts.length > 1) {
     execFile = parts[1].trim();
   }

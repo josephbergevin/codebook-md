@@ -24,10 +24,10 @@ export class Cell implements codebook.ExecutableCell {
     this.executableCode = this.innerScope;
 
     // set the mainExecutable using the node command
-    this.mainExecutable = new codebook.Command('node', [this.config.execFile], this.config.execDir);
+    this.mainExecutable = new codebook.Command('node', [this.config.execFile], this.config.execPath);
     this.mainExecutable.addBeforeExecuteFunc(() => {
       // create the directory and main file
-      io.writeDirAndFileSyncSafe(this.config.execDir, this.config.execFile, this.executableCode);
+      io.writeDirAndFileSyncSafe(this.config.execPath, this.config.execFile, this.executableCode);
     });
   }
 
@@ -63,12 +63,12 @@ export class Cell implements codebook.ExecutableCell {
 
 export class Config {
   contentConfig: codebook.CodeBlockConfig;
-  execDir: string;
+  execPath: string;
   execFile: string;
 
   constructor(javascriptConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
-    this.execDir = config.getTempPath();
-    this.execFile = path.join(this.execDir, javascriptConfig?.get('execFilename') || 'codebook_md_exec.js');
+    this.execPath = config.getExecPath();
+    this.execFile = path.join(this.execPath, javascriptConfig?.get('execFilename') || 'codebook_md_exec.js');
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-javascript.bash.output'), "//");
   }
 }

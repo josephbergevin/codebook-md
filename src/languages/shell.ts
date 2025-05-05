@@ -25,7 +25,7 @@ export class Cell implements codebook.ExecutableCell {
     this.executableCode = "#!/bin/bash\nset -e\n\n";
 
     // Get all commands from the inner scope
-    const cmds = codebook.parseCommands(this.innerScope, this.config.execDir);
+    const cmds = codebook.parseCommands(this.innerScope, this.config.execPath);
 
     this.commandCount = cmds.length;
     // no commands found: notify a warning and return
@@ -35,7 +35,7 @@ export class Cell implements codebook.ExecutableCell {
     }
 
     // Ensure the execution directory exists
-    io.mkdirIfNotExistsSafe(this.config.execDir);
+    io.mkdirIfNotExistsSafe(this.config.execPath);
 
     // Create the full script content with all commands
     cmds.forEach(cmd => {
@@ -44,18 +44,18 @@ export class Cell implements codebook.ExecutableCell {
     });
 
     // Set the main executable to run our script
-    this.mainExecutable = new codebook.Command("bash", ["-c", this.executableCode], this.config.execDir);
+    this.mainExecutable = new codebook.Command("bash", ["-c", this.executableCode], this.config.execPath);
 
     // Set a clean display of the commands for output
     this.mainExecutable.setCommandToDisplay(this.innerScope.trim());
 
     // Override the working directory if it doesn't exist
     if (!existsSync(this.mainExecutable.cwd)) {
-      console.warn(`Working directory ${this.mainExecutable.cwd} does not exist, falling back to ${this.config.execDir}`);
+      console.warn(`Working directory ${this.mainExecutable.cwd} does not exist, falling back to ${this.config.execPath}`);
       this.mainExecutable = new codebook.Command(
         this.mainExecutable.command,
         this.mainExecutable.args,
-        this.config.execDir
+        this.config.execPath
       );
     }
   }
@@ -92,18 +92,18 @@ export class Cell implements codebook.ExecutableCell {
 
 export class Config {
   contentConfig: codebook.CodeBlockConfig;
-  execDir: string;
+  execPath: string;
 
   constructor(shellConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell | undefined) {
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.shell.output'), "#");
 
     // Use the config.getWorkspaceFolder() function which properly handles ${workspaceFolder} variable expansion
     try {
-      this.execDir = config.getWorkspaceFolder();
+      this.execPath = config.getWorkspaceFolder();
     } catch (error) {
       // Fallback path if getWorkspaceFolder() throws an error
       const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath;
-      this.execDir = workspaceFolder || codebook.newCodeDocumentCurrentFile().fileDir;
+      this.execPath = workspaceFolder || codebook.newCodeDocumentCurrentFile().fileDir;
     }
   }
 }

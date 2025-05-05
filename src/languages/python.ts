@@ -24,10 +24,10 @@ export class Cell implements codebook.ExecutableCell {
     this.executableCode = this.innerScope;
 
     // set the mainExecutable to the python command
-    this.mainExecutable = new codebook.Command(this.config.execCmd, [this.config.execFile], this.config.execDir);
+    this.mainExecutable = new codebook.Command(this.config.execCmd, [this.config.execFile], this.config.execPath);
     this.mainExecutable.addBeforeExecuteFunc(() => {
       // create the directory and main file
-      io.writeDirAndFileSyncSafe(this.config.execDir, this.config.execFile, this.executableCode);
+      io.writeDirAndFileSyncSafe(this.config.execPath, this.config.execFile, this.executableCode);
     });
   }
 
@@ -63,14 +63,14 @@ export class Cell implements codebook.ExecutableCell {
 
 export class Config {
   contentConfig: codebook.CodeBlockConfig;
-  execDir: string;
+  execPath: string;
   execFile: string;
   execCmd: string;
 
   constructor(pythonConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.python.output'), "#");
-    this.execDir = config.getTempPath();
-    this.execFile = path.join(this.execDir, pythonConfig?.get('execFilename') || 'codebook_md_exec.py');
+    this.execPath = config.getExecPath();
+    this.execFile = path.join(this.execPath, pythonConfig?.get('execFilename') || 'codebook_md_exec.py');
     this.execCmd = pythonConfig?.get('execCmd') || 'python3';
   }
 }

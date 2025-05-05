@@ -24,10 +24,10 @@ export class Cell implements codebook.ExecutableCell {
     this.executableCode = this.innerScope;
 
     // set the mainExecutable using the ts-node command
-    this.mainExecutable = new codebook.Command('ts-node', [this.config.execFile], this.config.execDir);
+    this.mainExecutable = new codebook.Command('ts-node', [this.config.execFile], this.config.execPath);
     this.mainExecutable.addBeforeExecuteFunc(() => {
       // create the directory and main file
-      io.writeDirAndFileSyncSafe(this.config.execDir, this.config.execFile, this.executableCode);
+      io.writeDirAndFileSyncSafe(this.config.execPath, this.config.execFile, this.executableCode);
     });
   }
 
@@ -62,12 +62,12 @@ export class Cell implements codebook.ExecutableCell {
 }
 
 export class Config {
-  execDir: string; execFile: string;
+  execPath: string; execFile: string;
   contentConfig: codebook.CodeBlockConfig;
 
   constructor(typescriptConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
-    this.execDir = config.getTempPath();
-    this.execFile = path.join(this.execDir, typescriptConfig?.get('execFilename') || 'codebook_md_exec.ts');
+    this.execPath = config.getExecPath();
+    this.execFile = path.join(this.execPath, typescriptConfig?.get('execFilename') || 'codebook_md_exec.ts');
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.typescript.output'), "//");
   }
 }
