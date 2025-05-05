@@ -985,14 +985,17 @@ export function getCellConfig(notebookCell: NotebookCell): any {
   const lastCellText = lastCell.document.getText();
   if (!lastCellText.includes('<!-- CodebookMD Cell Configurations -->')) {
     return null;
-  }
+  } try {
+    // First try to extract the JSON configuration from HTML script tag format (preferred format)
+    let jsonMatch = lastCellText.match(/<script type="application\/json">([\s\S]*?)<\/script>/);
 
-  try {
-    // Extract the JSON configuration from the script tag
-    const jsonMatch = lastCellText.match(/<script type="application\/json">([\s\S]*?)<\/script>/);
+    // If not found, try the markdown code block format (legacy format)
     if (!jsonMatch || !jsonMatch[1]) {
-      console.error('No JSON configuration found CodebookMD Cell Configurations');
-      return null;
+      jsonMatch = lastCellText.match(/```json\s*\n([\s\S]*?)\n```/);
+      if (!jsonMatch || !jsonMatch[1]) {
+        console.error('No JSON configuration found in CodebookMD Cell Configurations');
+        return null;
+      }
     }
 
     // Parse the JSON configuration
