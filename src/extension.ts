@@ -341,7 +341,7 @@ export function activate(context: ExtensionContext) {
       return;
     }
     // Open config modal with the current configuration
-    configModal.openConfigModal(execCell, context);
+    configModal.openConfigModal(execCell, cell, context);
   });
 
   context.subscriptions.push(disposable);

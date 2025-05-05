@@ -367,7 +367,7 @@ describe('CellContentConfig', () => {
         cellCount: 2,
         cellAt: jest.fn().mockReturnValue({
           document: {
-            getText: jest.fn().mockReturnValue('<!-- CodebookMD Cell Configurations -->\n<script type="application/json">{"0":{"language":"go","config":{"output":{"showExecutableCodeInOutput":true}}}}</script>')
+            getText: jest.fn().mockReturnValue('<!-- CodebookMD Cell Configurations -->\nThis cell contains configurations for code cells in this notebook. Do not edit manually.\n\n<script type="application/json">\n{"0":{"language":"go","config":{"output":{"showExecutableCodeInOutput":true}}}}\n</script>')
           }
         })
       } as unknown,
