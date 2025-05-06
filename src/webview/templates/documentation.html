@@ -358,42 +358,45 @@ echo "Hello from CodebookMD!"
         </ul>
 
         <h3 id="codeblock-config">CodeBlock Configuration</h3>
-        <p>There are two ways to configure code blocks in CodebookMD:</p>
+        <p>CodebookMD offers a user-friendly configuration interface for code blocks, allowing you to customize execution and output settings without memorizing command syntax.</p>
         
         <h4>Using the Configuration Modal</h4>
-        <p>The easiest way to configure a code block is through the configuration modal:</p>
+        <p>The recommended way to configure code blocks is through the intuitive configuration modal:</p>
         <ol>
           <li>Click the gear icon (<svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align: middle;"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>) in the code block toolbar</li>
-          <li>Browse available commands and add them to your code block</li>
-          <li>Copy command syntax to clipboard for manual insertion</li>
+          <li>This opens a configuration panel with easy-to-use form controls for all available options</li>
+          <li>Changes made in the configuration panel are saved directly to the code block metadata</li>
+          <li>Click "Save Configuration" to apply your changes</li>
         </ol>
 
-        <h4>Using Comment Syntax</h4>
-        <p>You can also configure code blocks directly in your markdown by adding special comments:</p>
+        <h4>Features of the Configuration Modal</h4>
         <ul>
-          <li>Add configuration using comments with the <code>[>]</code> prefix followed by the configuration command</li>
-          <li>Each language uses its own comment style (// for Go/JS, # for Python/Bash, -- for SQL)</li>
+          <li><strong>User-friendly Interface:</strong> Simple toggles, dropdowns, and text fields for all options</li>
+          <li><strong>Language-specific Options:</strong> Only shows relevant options for the current language</li>
+          <li><strong>Settings Integration:</strong> Each configuration option includes a settings wheel icon (<span class="codicon codicon-settings-gear"></span>) that opens VS Code settings directly filtered to that specific setting</li>
+          <li><strong>Command Management:</strong> Easily browse and add available commands for your code block</li>
+          <li><strong>Output Configuration:</strong> Visual controls for customizing how output is displayed</li>
+          <li><strong>Execution Path:</strong> Set custom execution paths for your code blocks</li>
         </ul>
-
-        <h4>Common Configuration Options</h4>
-        <p>These options work for all supported languages:</p>
+        
+        <h4>Configuration Sections</h4>
+        <p>The configuration modal is organized into several key sections:</p>
         <ul>
-          <li><code>showExecutableCodeInOutput(boolean)</code>: Show/hide the executed code in output</li>
-          <li><code>showOutputOnRun(boolean)</code>: Control whether output is shown after execution</li>
-          <li><code>replaceOutputCell(boolean)</code>: Replace existing output or append new output</li>
-          <li><code>showTimestamp(boolean)</code>: Show/hide execution timestamp in output</li>
+          <li><strong>Output Configuration:</strong> Control how execution results are displayed
+            <ul>
+              <li>Show/hide executed code in output</li>
+              <li>Control whether output is shown after execution</li>
+              <li>Replace existing output or append new output</li>
+              <li>Show/hide execution timestamp and set timezone</li>
+            </ul>
+          </li>
+          <li><strong>Language-specific Configuration:</strong> Options specific to the current language</li>
+          <li><strong>Execution Path:</strong> Set the directory where code will be executed</li>
+          <li><strong>Available Commands:</strong> Browse and add commands specific to your code block</li>
+          <li><strong>Code Block Commands:</strong> View and manage commands already configured for your code block</li>
         </ul>
 
         <h3 id="output-config">Output Configuration</h3>
-        <p>CodebookMD provides several ways to customize how execution results are displayed:</p>
-        
-        <h4>Output Location and Format</h4>
-        <ul>
-          <li><strong>Location:</strong> Output appears below the code block</li>
-          <li><strong>Code Inclusion:</strong> You can show or hide the executed code in the output</li>
-          <li><strong>Timestamps:</strong> Add execution timestamps to track when code was run</li>
-          <li><strong>Output Mode:</strong> Choose to replace or append output for iterative development</li>
-        </ul>
 
         <h4>Configuring Output Globally</h4>
         <p>Set default output behavior in VS Code settings (<code>settings.json</code>):</p>
@@ -441,57 +444,44 @@ fmt.Println("Hello, CodebookMD!")
   }
 }</code></pre>
 
-        <h5>Code Block Configuration</h5>
-        <p>Configure individual Go code blocks with comments:</p>
-        <pre><code>// [>].output.showExecutableCodeInOutput(true)
-// [>].execPath:./path/to/main.go
-fmt.Println("Hello")</code></pre>
+        <h5>Configuring Go Code Blocks</h5>
+        <p>Configure Go code blocks easily through the configuration modal:</p>
+        <ol>
+          <li>Click the gear icon in the code block toolbar</li>
+          <li>Adjust settings in the Go-specific configuration section</li>
+          <li>Click "Save Configuration" to apply your changes</li>
+        </ol>
             
         <h5>Go-specific Options</h5>
         <ul>
-          <li><strong>Execution Type:</strong> Run code as a main file or test file
+          <li><strong>Execution Type:</strong> Choose how your code is executed
             <ul>
-              <li>Run Mode (default):
-                <pre><code>// Execute in main.go (default)
-fmt.Println("Hello")
-
-// Specify custom filename
-// [>].execTypeRunFilename("main_temp.go")
-
-// Code is automatically wrapped in main function if needed:
-package main
-
-func main() {
-    fmt.Println("Hello")
-}</code></pre>
+              <li>Run Mode (default): Executes code as a main.go file
+                <ul>
+                  <li>Option: <strong>execTypeRunFilename</strong> - Customize the filename for run mode</li>
+                  <li>Your code is automatically wrapped in a main function if needed</li>
+                </ul>
               </li>
-              <li>Test Mode:
-                <pre><code>// Execute in test file
-// [>].execTypeTestFilename("custom_test.go")
-// [>].execTypeTestBuildTag("playground")
-
-// Automatically wrapped in test function:
-// +build playground
-
-package mypackage
-
-func TestExecNotebook(t *testing.T) {
-    // your test code
-}</code></pre>
+              <li>Test Mode: Executes code as a test file
+                <ul>
+                  <li>Option: <strong>execTypeTestFilename</strong> - Set custom test filename</li>
+                  <li>Option: <strong>execTypeTestBuildTag</strong> - Set build tag for tests</li>
+                  <li>Your code is automatically wrapped in a test function</li>
+                </ul>
               </li>
             </ul>
           </li>
-          <li><strong>Import Management:</strong> CodebookMD automatically manages imports
-            <pre><code>// Use faster goimports instead of gopls
-// [>].goimportsCmd("goimports")
-
-// Default uses gopls (slower but more reliable)
-// [>].goimportsCmd("gopls imports")</code></pre>
+          <li><strong>Import Management:</strong> Control how imports are handled
+            <ul>
+              <li>Option: <strong>goimportsCmd</strong> - Choose between "gopls imports" (more reliable) or "goimports" (faster)</li>
+            </ul>
           </li>
-          <li><strong>Output Filtering:</strong> Remove unwanted prefixes from output
-            <pre><code>// Filter unwanted output prefixes
-// [>].excludeOutputPrefixes(["mysql: ", "W0626 ", "DEBUG: ", "INFO: "])</code></pre>
+          <li><strong>Output Filtering:</strong> Filter unwanted text from output
+            <ul>
+              <li>Option: <strong>excludeOutputPrefixes</strong> - List of prefixes to exclude from output</li>
+            </ul>
           </li>
+          <li><strong>Execution Path:</strong> Set the directory where code will be executed</li>
         </ul>
 
         <h5>Best Practices for Go</h5>
@@ -532,27 +522,26 @@ console.log(greeting);
   }
 }</code></pre>
 
-        <h5>Code Block Configuration</h5>
-        <p>Configure individual JavaScript/TypeScript code blocks with comments:</p>
-        <pre><code>// [>].output.replaceOutputCell(false)
-console.log("Hello");
-// Your regular comments here</code></pre>
+        <h5>Configuring JavaScript/TypeScript Code Blocks</h5>
+        <p>Configure JavaScript/TypeScript code blocks through the configuration modal:</p>
+        <ol>
+          <li>Click the gear icon in the code block toolbar</li>
+          <li>Adjust settings in the JavaScript/TypeScript-specific configuration section</li>
+          <li>Click "Save Configuration" to apply your changes</li>
+        </ol>
             
         <h5>JavaScript/TypeScript-specific Options</h5>
         <ul>
-          <li><strong>Output Configuration:</strong>
-            <pre><code>// Show code in output
-// [>].output.showExecutableCodeInOutput(true)
-
-// Don't replace output cell on each run (append instead)
-// [>].output.replaceOutputCell(false)
-
-// Hide output after running
-// [>].output.showOutputOnRun(false)
-
-// Show timestamp with execution results
-// [>].output.showTimestamp(true)</code></pre>
+          <li><strong>Output Configuration:</strong> Control how execution results are displayed
+            <ul>
+              <li>Option: <strong>showExecutableCodeInOutput</strong> - Show/hide the executed code in the output</li>
+              <li>Option: <strong>replaceOutputCell</strong> - Replace existing output or append new output on each run</li>
+              <li>Option: <strong>showOutputOnRun</strong> - Control whether output is shown after execution</li>
+              <li>Option: <strong>showTimestamp</strong> - Add execution timestamps to track when code was run</li>
+              <li>Option: <strong>timestampTimezone</strong> - Set timezone for execution timestamps (e.g., 'UTC', 'America/New_York')</li>
+            </ul>
           </li>
+          <li><strong>Execution Path:</strong> Set the directory where code will be executed</li>
         </ul>
 
         <h5>Best Practices for JavaScript/TypeScript</h5>
@@ -583,34 +572,31 @@ print("Hello from Python!")
   }
 }</code></pre>
 
-        <h5>Code Block Configuration</h5>
-        <p>Configure individual Python code blocks with comments:</p>
-        <pre><code># [>].output.showOutputOnRun(true)
-print("Hello")
-# Your regular comments here</code></pre>
+        <h5>Configuring Python Code Blocks</h5>
+        <p>Configure Python code blocks through the configuration modal:</p>
+        <ol>
+          <li>Click the gear icon in the code block toolbar</li>
+          <li>Adjust settings in the Python-specific configuration section</li>
+          <li>Click "Save Configuration" to apply your changes</li>
+        </ol>
             
         <h5>Python-specific Options</h5>
         <ul>
-          <li><strong>Interpreter Selection:</strong>
-            <pre><code># Use a specific Python interpreter
-# [>].pythonCmd("python3.9")
-
-# Default uses system Python command
-# [>].pythonCmd("python3")</code></pre>
+          <li><strong>Interpreter Selection:</strong> Choose which Python interpreter to use
+            <ul>
+              <li>Option: <strong>pythonCmd</strong> - Specify Python interpreter command (e.g., "python3", "python3.9", "/usr/local/bin/python")</li>
+            </ul>
           </li>
-          <li><strong>Output Configuration:</strong>
-            <pre><code># Show executed code in output
-# [>].output.showExecutableCodeInOutput(true)
-
-# Show output after running
-# [>].output.showOutputOnRun(true)
-
-# Replace output cell on each run
-# [>].output.replaceOutputCell(true)
-
-# Show timestamp with execution results
-# [>].output.showTimestamp(true)</code></pre>
+          <li><strong>Output Configuration:</strong> Control how execution results are displayed
+            <ul>
+              <li>Option: <strong>showExecutableCodeInOutput</strong> - Show/hide the executed code in the output</li>
+              <li>Option: <strong>showOutputOnRun</strong> - Control whether output is shown after execution</li>
+              <li>Option: <strong>replaceOutputCell</strong> - Replace existing output or append new output on each run</li>
+              <li>Option: <strong>showTimestamp</strong> - Add execution timestamps to track when code was run</li>
+              <li>Option: <strong>timestampTimezone</strong> - Set timezone for execution timestamps</li>
+            </ul>
           </li>
+          <li><strong>Execution Path:</strong> Set the directory where code will be executed</li>
         </ul>
 
         <h5>Best Practices for Python</h5>
@@ -641,37 +627,37 @@ echo "Hello from Bash!"
   }
 }</code></pre>
 
-        <h5>Code Block Configuration</h5>
-        <p>Configure individual Bash/Shell code blocks with comments:</p>
-        <pre><code># [>].output.showTimestamp(true)
-echo "Hello"
-# Your regular comments here</code></pre>
+        <h5>Configuring Bash/Shell Code Blocks</h5>
+        <p>Configure Bash/Shell code blocks through the configuration modal:</p>
+        <ol>
+          <li>Click the gear icon in the code block toolbar</li>
+          <li>Adjust settings in the Bash/Shell-specific configuration section</li>
+          <li>Click "Save Configuration" to apply your changes</li>
+        </ol>
             
         <h5>Bash/Shell-specific Options</h5>
         <ul>
-          <li><strong>Execution Mode:</strong>
-            <pre><code># Run single-line code blocks as commands instead of scripts
-# [>].execSingleLineAsCommand(true)</code></pre>
+          <li><strong>Execution Mode:</strong> Control how code blocks are executed
+            <ul>
+              <li>Option: <strong>execSingleLineAsCommand</strong> - Run single-line code blocks as commands instead of scripts</li>
+            </ul>
           </li>
           <li><strong>Environment Variables:</strong> Automatic integration with VS Code environment variables
-            <pre><code># Environment variables from VS Code settings are automatically available
-echo $API_KEY
-echo $DATABASE_URL
-echo $PATH</code></pre>
+            <ul>
+              <li>Environment variables from VS Code settings are automatically available in your scripts</li>
+              <li>Access them using standard shell syntax (e.g., <code>$API_KEY</code>, <code>$DATABASE_URL</code>)</li>
+            </ul>
           </li>
-          <li><strong>Output Configuration:</strong>
-            <pre><code># Show executed code in output
-# [>].output.showExecutableCodeInOutput(true)
-
-# Show output after running
-# [>].output.showOutputOnRun(true)
-
-# Replace output cell on each run
-# [>].output.replaceOutputCell(true)
-
-# Show timestamp with execution results
-# [>].output.showTimestamp(true)</code></pre>
+          <li><strong>Output Configuration:</strong> Control how execution results are displayed
+            <ul>
+              <li>Option: <strong>showExecutableCodeInOutput</strong> - Show/hide the executed code in the output</li>
+              <li>Option: <strong>showOutputOnRun</strong> - Control whether output is shown after execution</li>
+              <li>Option: <strong>replaceOutputCell</strong> - Replace existing output or append new output on each run</li>
+              <li>Option: <strong>showTimestamp</strong> - Add execution timestamps to track when code was run</li>
+              <li>Option: <strong>timestampTimezone</strong> - Set timezone for execution timestamps</li>
+            </ul>
           </li>
+          <li><strong>Execution Path:</strong> Set the directory where code will be executed</li>
         </ul>
 
         <h5>Best Practices for Bash/Shell</h5>
@@ -701,31 +687,32 @@ SELECT 'Hello from SQL!' AS greeting;
   }
 }</code></pre>
 
-        <h5>Code Block Configuration</h5>
-        <p>Configure individual SQL code blocks with comments:</p>
-        <pre><code>-- [>].output.showExecutableCodeInOutput(true)
-SELECT * FROM users;
--- Your regular comments here</code></pre>
+        <h5>Configuring SQL Code Blocks</h5>
+        <p>Configure SQL code blocks through the configuration modal:</p>
+        <ol>
+          <li>Click the gear icon in the code block toolbar</li>
+          <li>Adjust settings in the SQL-specific configuration section</li>
+          <li>Click "Save Configuration" to apply your changes</li>
+        </ol>
             
         <h5>SQL-specific Options</h5>
         <ul>
-          <li><strong>Connection Configuration:</strong>
-            <pre><code>-- Set connection options
--- [>].execOptions(["--defaults-file=~/.my.cnf", "--database=testdb"])</code></pre>
+          <li><strong>Connection Configuration:</strong> Configure database connections
+            <ul>
+              <li>Option: <strong>execOptions</strong> - Set connection options as an array of strings</li>
+              <li>Examples: <code>--defaults-file=~/.my.cnf</code>, <code>--database=testdb</code></li>
+            </ul>
           </li>
-          <li><strong>Output Configuration:</strong>
-            <pre><code>-- Show executed SQL in output
--- [>].output.showExecutableCodeInOutput(true)
-
--- Show output after running
--- [>].output.showOutputOnRun(true)
-
--- Replace output cell on each run
--- [>].output.replaceOutputCell(true)
-
--- Show timestamp with execution results
--- [>].output.showTimestamp(true)</code></pre>
+          <li><strong>Output Configuration:</strong> Control how execution results are displayed
+            <ul>
+              <li>Option: <strong>showExecutableCodeInOutput</strong> - Show/hide the executed SQL in the output</li>
+              <li>Option: <strong>showOutputOnRun</strong> - Control whether output is shown after execution</li>
+              <li>Option: <strong>replaceOutputCell</strong> - Replace existing output or append new output on each run</li>
+              <li>Option: <strong>showTimestamp</strong> - Add execution timestamps to track when code was run</li>
+              <li>Option: <strong>timestampTimezone</strong> - Set timezone for execution timestamps</li>
+            </ul>
           </li>
+          <li><strong>Execution Path:</strong> Set the directory where SQL queries will be executed</li>
         </ul>
 
         <h5>Best Practices for SQL</h5>
@@ -770,31 +757,32 @@ Authorization: Bearer {{YOUR_TOKEN}}
   }
 }</code></pre>
 
-        <h5>Code Block Configuration</h5>
-        <p>Configure individual HTTP code blocks with comments:</p>
-        <pre><code># [>].output.showExecutableCodeInOutput(true)
-GET https://example.com
-# Your regular comments here</code></pre>
+        <h5>Configuring HTTP Code Blocks</h5>
+        <p>Configure HTTP code blocks through the configuration modal:</p>
+        <ol>
+          <li>Click the gear icon in the code block toolbar</li>
+          <li>Adjust settings in the HTTP-specific configuration section</li>
+          <li>Click "Save Configuration" to apply your changes</li>
+        </ol>
             
         <h5>HTTP-specific Options</h5>
         <ul>
-          <li><strong>Command Configuration:</strong>
-            <pre><code># Set curl command options
-# [>].verbose(false)</code></pre>
+          <li><strong>Command Configuration:</strong> Configure how HTTP requests are executed
+            <ul>
+              <li>Option: <strong>execCmd</strong> - Choose the command used to execute HTTP requests (default: "curl")</li>
+              <li>Option: <strong>verbose</strong> - Enable/disable verbose mode for detailed request/response information</li>
+            </ul>
           </li>
-          <li><strong>Output Configuration:</strong>
-            <pre><code># Show executed curl command in output
-# [>].output.showExecutableCodeInOutput(true)
-
-# Show output after running
-# [>].output.showOutputOnRun(true)
-
-# Replace output cell on each run
-# [>].output.replaceOutputCell(true)
-
-# Show timestamp with execution results
-# [>].output.showTimestamp(true)</code></pre>
+          <li><strong>Output Configuration:</strong> Control how execution results are displayed
+            <ul>
+              <li>Option: <strong>showExecutableCodeInOutput</strong> - Show/hide the executed curl command in the output</li>
+              <li>Option: <strong>showOutputOnRun</strong> - Control whether output is shown after execution</li>
+              <li>Option: <strong>replaceOutputCell</strong> - Replace existing output or append new output on each run</li>
+              <li>Option: <strong>showTimestamp</strong> - Add execution timestamps to track when code was run</li>
+              <li>Option: <strong>timestampTimezone</strong> - Set timezone for execution timestamps</li>
+            </ul>
           </li>
+          <li><strong>Execution Path:</strong> Set the directory where HTTP requests will be executed</li>
         </ul>
 
         <h5>Best Practices for HTTP</h5>

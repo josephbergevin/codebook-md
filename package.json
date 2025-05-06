@@ -1,7 +1,7 @@
 {
   "name": "codebook-md",
   "displayName": "Codebook MD - Organize Notebooks & Execute Code-Blocks",
-  "description": "Organize your notebooks and execute notebook code-blocks directly in markdown docs! Supports Go, JavaScript, TypeScript, Bash, Python, SQL - and more to come!",
+  "description": "Organize and execute your notebooks and markdown (.md) documentation files locally! Supports Go, JavaScript, TypeScript, Bash, Python, SQL, HTTP - and more to come!",
   "icon": "extension/src/img/logo_3_128x128.png",
   "publisher": "josephbergevin",
   "repository": {
