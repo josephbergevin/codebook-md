@@ -63,9 +63,9 @@ export async function openConfigModal(execCell: codebook.ExecutableCell, noteboo
     currentPanel.webview.onDidReceiveMessage(
       async message => {
         switch (message.command) {
-          case 'openSpecificSetting': {
-            // Open VS Code settings filtered to a specific setting
-            commands.executeCommand('workbench.action.openSettings', message.settingId);
+          case 'showNotification': {
+            // Show a notification to the user
+            window.showInformationMessage(message.message);
             return;
           }
           case 'saveConfig': {
@@ -200,6 +200,11 @@ export async function openConfigModal(execCell: codebook.ExecutableCell, noteboo
             commands.executeCommand('workbench.action.openSettings', 'codebook-md');
             return;
           }
+          case 'showNotification': {
+            // Show a notification to the user
+            window.showInformationMessage(message.message);
+            return;
+          }
         }
       }
     );
@@ -258,20 +263,15 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
       const currentValue = currentCellConfig && currentCellConfig[key] !== undefined ?
         currentCellConfig[key] : option.default;
 
-      // Generate setting ID for this option
-      const settingId = `codebook-md.${languageId}.${key}`;
-
       if (option.type === 'boolean') {
         return `
               <div class="form-group">
-                <div class="checkbox-label">
-                  <div class="checkbox-label-container">
+                <div class="label-container">
+                  <label class="checkbox-label">
                     <input type="checkbox" name="${key}" id="${key}">
-                    <span class="label-text">${option.description}</span>
-                    <span class="codicon codicon-settings-gear settings-wheel" 
-                          onclick="openSpecificSetting('${settingId}')" 
-                          title="Open setting in VS Code settings"></span>
-                  </div>
+                    ${option.description}
+                  </label>
+                  <span class="settings-wheel codicon codicon-gear" title="Configure ${option.description}"></span>
                 </div>
               </div>
             `;
@@ -280,9 +280,7 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
               <div class="form-group">
                 <div class="label-container">
                   <label for="${key}">${option.description}</label>
-                  <span class="codicon codicon-settings-gear settings-wheel" 
-                        onclick="openSpecificSetting('${settingId}')" 
-                        title="Open setting in VS Code settings"></span>
+                  <span class="settings-wheel codicon codicon-gear" title="Configure ${option.description}"></span>
                 </div>
                 <select name="${key}" id="${key}">
                   ${option.options.map((opt: string) =>
@@ -295,10 +293,8 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
         return `
               <div class="form-group">
                 <div class="label-container">
-                  <label for="${key}" class="label-text">${option.description}</label>
-                  <span class="codicon codicon-settings-gear settings-wheel" 
-                        onclick="openSpecificSetting('${settingId}')" 
-                        title="Open setting in VS Code settings"></span>
+                  <label for="${key}">${option.description}</label>
+                  <span class="settings-wheel codicon codicon-gear" title="Configure ${option.description}"></span>
                 </div>
                 <input type="text" name="${key}" id="${key}" value="${currentValue || ''}">
               </div>
@@ -346,20 +342,15 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
       currentValue = option.default;
     }
 
-    // Generate setting ID for this output option
-    const settingId = `codebook-md.output.${key}`;
-
     if (option.type === 'boolean') {
       return `
             <div class="form-group">
-              <div class="checkbox-label">
-                <div class="checkbox-label-container">
+              <div class="label-container">
+                <label class="checkbox-label">
                   <input type="checkbox" name="output.${key}" id="output.${key}">
-                  <span class="label-text">${option.description}</span>
-                  <span class="codicon codicon-settings-gear settings-wheel" 
-                        onclick="openSpecificSetting('${settingId}')" 
-                        title="Open setting in VS Code settings"></span>
-                </div>
+                  ${option.description}
+                </label>
+                <span class="settings-wheel codicon codicon-gear" title="Configure ${option.description}"></span>
               </div>
             </div>
           `;
@@ -367,10 +358,8 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
       return `
             <div class="form-group">
               <div class="label-container">
-                <label for="output.${key}" class="label-text">${option.description}</label>
-                <span class="codicon codicon-settings-gear settings-wheel" 
-                      onclick="openSpecificSetting('${settingId}')" 
-                      title="Open setting in VS Code settings"></span>
+                <label for="output.${key}">${option.description}</label>
+                <span class="settings-wheel codicon codicon-gear" title="Configure ${option.description}"></span>
               </div>
               <input type="text" name="output.${key}" id="output.${key}" value="${currentValue || ''}">
             </div>
@@ -605,35 +594,30 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
         }
         .label-container {
           display: flex;
-          align-items: center;
           justify-content: space-between;
+          align-items: center;
           margin-bottom: 5px;
-          width: 100%;
-        }
-        .checkbox-label-container {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          width: 100%;
-        }
-        .checkbox-label-container input[type="checkbox"] {
-          margin-right: 8px;
-        }
-        .label-text {
-          flex-grow: 1;
-          text-align: left;
         }
         .settings-wheel {
           color: var(--vscode-descriptionForeground);
           cursor: pointer;
-          margin-left: 8px;
-          opacity: 0.7;
-          flex-shrink: 0;
-          font-size: 75%; /* Reduce the size to 75% of the original */
-          transform: scale(0.75); /* Additional scaling to ensure the icon is truly 75% */
+          font-size: 14px;
         }
         .settings-wheel:hover {
-          opacity: 1;
+          color: var(--vscode-textLink-foreground);
+        }
+        .label-container {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 5px;
+        }
+        .settings-wheel {
+          color: var(--vscode-descriptionForeground);
+          cursor: pointer;
+          font-size: 14px;
+        }
+        .settings-wheel:hover {
           color: var(--vscode-textLink-foreground);
         }
       </style>
@@ -715,10 +699,8 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
             <h3>Execution Path</h3>
             <div class="form-group">
               <div class="label-container">
-                <label for="execPath" class="label-text">Execution Path for this cell</label>
-                <span class="codicon codicon-settings-gear settings-wheel" 
-                      onclick="openSpecificSetting('codebook-md.execPath')" 
-                      title="Open setting in VS Code settings"></span>
+                <label for="execPath">Execution Path for this cell</label>
+                <span class="settings-wheel codicon codicon-gear" title="Configure execution path"></span>
               </div>
               <input type="text" name="execPath" id="execPath" value="${currentCellConfig && currentCellConfig.execPath !== undefined ? currentCellConfig.execPath : ''}">
               <small>Directory where the code will be executed</small>
@@ -910,8 +892,35 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
           }
         }
         
+        // Setup event listeners for settings wheels
+        function setupSettingsWheels() {
+          const settingsWheels = document.querySelectorAll('.settings-wheel');
+          settingsWheels.forEach(wheel => {
+            wheel.addEventListener('click', function() {
+              const label = this.parentElement.querySelector('label');
+              const inputId = label.getAttribute('for');
+              const inputElem = document.getElementById(inputId);
+              
+              if (inputElem) {
+                // Focus the associated input element
+                inputElem.focus();
+                
+                // Show a tooltip or perform any other action you want
+                // For now, we'll just focus the input and show a notification
+                vscode.postMessage({
+                  command: 'showNotification',
+                  message: `Configuring: ${label.textContent.trim()}`
+                });
+              }
+            });
+          });
+        }
+        
         // Initialize form when page loads
-        document.addEventListener('DOMContentLoaded', initFormFromConfig);
+        document.addEventListener('DOMContentLoaded', function() {
+          initFormFromConfig();
+          setupSettingsWheels();
+        });
         
         function saveConfig() {
           console.log('Saving configuration...');
@@ -1051,14 +1060,6 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
           // Send a message to open VS Code settings for CodebookMD
           vscode.postMessage({
             command: 'openSettings'
-          });
-        }
-        
-        function openSpecificSetting(settingId) {
-          // Send a message to open VS Code settings for a specific setting
-          vscode.postMessage({
-            command: 'openSpecificSetting',
-            settingId: settingId
           });
         }
       </script>
