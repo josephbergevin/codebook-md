@@ -179,8 +179,7 @@ Shell scripts executed in CodebookMD now have access to environment variables se
 - Platform-specific support for macOS, Windows, and Linux
 - VS Code environment variables take precedence over system environment variables
 - Secure storage of credentials and configuration without hardcoding in markdown files
-
-Configure environment variables in your VS Code settings:
+- Configure environment variables in your VS Code settings:
 
 ```json
 {
@@ -191,9 +190,6 @@ Configure environment variables in your VS Code settings:
   }
 }
 ```
-
-These variables are automatically available in your shell code blocks:
-Examples of how to use Codebook Prompts in your code blocks:
 
 ### Codebook Prompts
 
@@ -246,7 +242,7 @@ Execute HTTP requests directly from markdown files:
 - **Configuration Options**: Configure default settings for HTTP requests
 - **Full Request Support**: Headers, authentication, request bodies and more
 
-Examples of HTTP requests:
+#### Examples of HTTP requests:
 
 ```http
 # Simple GET request example
@@ -265,180 +261,6 @@ Accept: application/json
   "body": "This is a test post created from CodebookMD",
   "userId": 1
 }
-```
-
-```json
-{
-  "codebook-md": {
-    "dynamicFolderGroup": {
-      "enabled": true,
-      "name": "Relevant Docs",
-      "description": "Relevant docs for the current file",
-      "subFolderInclusions": [
-        ".github",
-        ".vscode"
-      ],
-      "exclusions": [
-        "node_modules",
-        "out",
-        "dist"
-      ]
-    }
-  }
-}
-```
-
-**Configuration Options:**
-
-- `enabled`: Enable or disable the dynamic folder group (default: `true`)
-- `name`: Custom name for the dynamic folder group (default: `Current Context`)
-- `description`: Description shown when hovering over the folder group (default: `Auto-generated based on the current file`)
-- `subFolderInclusions`: Sub-folders to include when searching for markdown files (default: `[]`)
-- `exclusions`: Patterns to exclude from the search (default: `["node_modules", "out", "dist"]`)
-
-The dynamic folder group will only show folders that contain markdown files after applying exclusions, providing a clean and focused view of relevant documentation.
-
-#### User-Defined Virtual Folders
-
-The Codebook MD extension allows you to create user-defined virtual folders in the activity bar. This feature enables you to organize your markdown files into a hierarchical structure, making it easier to navigate and access your documentation.
-
-- **Version Control Integration**: The configuration file can be committed to your repository, allowing team sharing of notebook organization
-- **Workspace-Specific**: Each workspace has its own configuration file, allowing for project-specific organization
-- **Manual Editing**: Advanced users can directly edit the configuration file for bulk changes
-
-##### Configuration File
-
-The configuration for user-defined virtual folders is stored in a JSON file located at `.vscode/codebook-md.json` in your workspace. This file contains the structure and organization of your virtual folders, including their names, descriptions, and the markdown files they contain. All changes made through the Tree View UI are automatically saved to this file.
-
-- Folders:
-
-  - `name`: Display name for the folder
-  - `folderPath`: Hierarchical path (using dots as separators)
-  - `icon`: Optional path to a custom icon for the folder
-  - `hide`: Optional boolean to hide a folder in the UI
-  - `files`: Array of file entries in this folder
-
-- Files:
-
-  - `name`: Display name for the file
-  - `path`: Path to the markdown file (absolute or relative to workspace root)
-
-- Config Tips:
-
-  - Use descriptive display names to make your documents easier to find
-  - Create a logical folder hierarchy based on your projects or document types
-  - Regularly refresh the Tree View if you make changes to files outside VS Code
-  - Configure dynamic folder groups to focus on relevant documentation folders and exclude noise
-  - Use the `subFolderInclusions` setting to include specific sub-folders like `.github` for documentation
-
-- Example configuration format:
-
-```json
-{
-  "folderGroups": [
-    {
-      "name": "Workspace",
-      "description": "Workspace folder group",
-      "folders": [
-        {
-          "name": "Projects",
-          "folders": [
-            {
-              "name": "SubProject1",
-              "files": [
-                {
-                  "name": "Overview",
-                  "path": "projects/subproject1/overview.md"
-                }
-              ]
-            }
-          ],
-          "files": [
-            {
-              "name": "Project Plan",
-              "path": "projects/project-plan.md"
-            }
-          ]
-        },
-        {
-          "name": "Documentation",
-          "folders": [
-            {
-              "name": "Guides",
-              "files": [
-                {
-                  "name": "Getting Started",
-                  "path": "docs/guides/getting-started.md"
-                }
-              ]
-            }
-          ],
-          "files": [
-            {
-              "name": "Readme",
-              "path": "docs/readme.md"
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Environment Variables Support
-
-Shell scripts executed in CodebookMD now have access to environment variables set in VS Code settings:
-
-- Automatically detects and uses variables from `terminal.integrated.env.*` settings
-- Platform-specific support for macOS, Windows, and Linux
-- VS Code environment variables take precedence over system environment variables
-- Secure storage of credentials and configuration without hardcoding in markdown files
-
-Configure environment variables in your VS Code settings:
-
-```json
-{
-  "terminal.integrated.env.osx": {
-    "API_KEY": "your-api-key",
-    "DATABASE_URL": "postgres://user:password@localhost:5432/mydb",
-    "PATH": "${env:PATH}:/custom/path"
-  }
-}
-```
-
-These variables are automatically available in your shell code blocks:
-
-```shellscript
-# This code block will have access to API_KEY, DATABASE_URL, and the extended PATH
-echo $API_KEY
-echo $DATABASE_URL
-echo $PATH
-```
-
-### Codebook Prompts
-
-Codebook Prompts allow you to create interactive code blocks that request user input before execution:
-
-- **Interactive Input**: Prompt for user input when running code blocks
-- **Multiple Input Types**: Support for String and Date input types
-- **Descriptive Placeholders**: Custom placeholder text for clear user instructions
-- **Format Options**: Date formatting options for output flexibility
-
-Examples of how to use Codebook Prompts in your code blocks:
-
-```shellscript
-# Example with String prompt
-echo "My favorite color is [>].prompt.String(enter your favorite color)"
-
-# Example with Date prompt
-echo "Report for: [>].prompt.Date(enter report date)"
-
-# Example with multiple prompts
-FILENAME="log-[>].prompt.Date(enter log date)"
-echo "Creating log file: $FILENAME.txt"
-echo "Log created by [>].prompt.String(enter your name)" > $FILENAME.txt
-cat $FILENAME.txt
 ```
 
 ## Release Notes
