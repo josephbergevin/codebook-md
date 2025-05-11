@@ -247,6 +247,25 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
   // Get existing output configuration from the cell's outputConfig
   const existingOutputConfig = codeBlockConfig.outputConfig;
 
+  // Create new section for Execution Type Configuration
+  const executionTypeHTML = `
+    <div class="form-section">
+      <h3>Execution Type Configuration</h3>
+      <div class="form-group">
+        <div class="label-container">
+          <label for="execType" class="label-text">Execution Type</label>
+          <span class="codicon codicon-settings-gear settings-wheel" 
+                onclick="openSpecificSetting('codebook-md.execType')" 
+                title="Open setting in VS Code settings"></span>
+        </div>
+        <select name="execType" id="execType">
+          <option value="run" ${(!currentCellConfig || !currentCellConfig.execType || currentCellConfig.execType === 'run') ? 'selected' : ''}>execType: run</option>
+          <option value="test" ${(currentCellConfig && currentCellConfig.execType === 'test') ? 'selected' : ''}>execType: test</option>
+        </select>
+      </div>
+    </div>
+  `;
+
   // Create form fields for language-specific options
   let languageOptionsHTML = '';
   if (Object.keys(languageOptions).length > 0) {
@@ -254,6 +273,9 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
       <div class="form-section">
         <h3>Language-specific Configuration</h3>
         ${Object.entries(languageOptions).map(([key, option]: [string, { type: string; description: string; default: string | boolean | number; options?: string[]; }]) => {
+      // Skip execType as it's now in its own section
+      if (key === 'execType') return '';
+
       // First check the cell-specific config directly
       const currentValue = currentCellConfig && currentCellConfig[key] !== undefined ?
         currentCellConfig[key] : option.default;
@@ -700,35 +722,53 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
       ` : ''}
       
       <form id="configForm">
-        <div class="form-group">
-          <label for="languageId">Language ID</label>
-          <input type="text" id="languageId" value="${languageId}" readonly />
-        </div>
-        
-        <!-- Configuration options section -->
-        <div class="config-section">
-          ${outputOptionsHTML}
-          ${languageOptionsHTML}
-          
-          <!-- Execution Path Configuration -->
-          <div class="form-section">
-            <h3>Execution Path</h3>
-            <div class="form-group">
-              <div class="label-container">
-                <label for="execPath" class="label-text">Execution Path for this cell</label>
-                <span class="codicon codicon-settings-gear settings-wheel" 
-                      onclick="openSpecificSetting('codebook-md.execPath')" 
-                      title="Open setting in VS Code settings"></span>
-              </div>
-              <input type="text" name="execPath" id="execPath" value="${currentCellConfig && currentCellConfig.execPath !== undefined ? currentCellConfig.execPath : ''}">
-              <small>Directory where the code will be executed</small>
-              <div style="margin-top: 6px; font-size: 0.9em; color: var(--vscode-descriptionForeground);">
-                <div><span class="codicon codicon-info"></span> Leave blank to use the default 'execPath' from VS Code Config</div>
-                <div><span class="codicon codicon-info"></span> A relative path is also valid (ie: './codebook-md/')</div>
-              </div>
-            </div>
+          <div class="form-group">
+            <label for="languageId">Language ID</label>
+            <input type="text" id="languageId" value="${languageId}" readonly />
           </div>
-        </div>
+          
+          <!-- Configuration options section -->
+          <div class="config-section">
+            <!-- Add the execution type configuration first -->
+            ${executionTypeHTML}
+            
+            <!-- Then execution path configuration -->
+            <div class="form-section">
+              <h3>Execution Path</h3>
+              <div class="form-group">
+                <div class="label-container">
+                  <label for="execPath" class="label-text">Execution Path for this cell (run type 'run')</label>
+                  <span class="codicon codicon-settings-gear settings-wheel" 
+                        onclick="openSpecificSetting('codebook-md.execPath')" 
+                        title="Open setting in VS Code settings"></span>
+                </div>
+                <input type="text" name="execPath" id="execPath" value="${currentCellConfig && currentCellConfig.execPath !== undefined ? currentCellConfig.execPath : ''}">
+                <small>Directory where the code will be executed when execType is 'run'.</small>
+                <div style="margin-top: 6px; font-size: 0.9em; color: var(--vscode-descriptionForeground);">
+                  <div><span class="codicon codicon-info"></span> Leave blank to use the default 'execPath' from VS Code Config</div>
+                  <div><span class="codicon codicon-info"></span> A relative path is also valid (ie: './codebook-md/')</div>
+                </div>
+              </div>
+              ${languageId === 'go' ? `
+              <div class="form-group" id="execPathTestGroup" style="display: none;">
+                <div class="label-container">
+                  <label for="execPathTest" class="label-text">Execution Path for this cell (run type 'test')</label>
+                </div>
+                <input type="text" name="execPathTest" id="execPathTest" value="${currentCellConfig && currentCellConfig.execPathTest !== undefined ? currentCellConfig.execPathTest : ''}">
+                <small>Directory where the Go test will be executed. If blank, uses the directory of the current Markdown file.</small>
+                <div style="margin-top: 6px; font-size: 0.9em; color: var(--vscode-descriptionForeground);">
+                  <div><span class="codicon codicon-info"></span> A relative path is also valid (ie: './my-go-project/')</div>
+                </div>
+              </div>
+              ` : ''}
+            </div>
+            
+            <!-- Then language-specific configuration -->
+            ${languageOptionsHTML}
+            
+            <!-- Then output configuration -->
+            ${outputOptionsHTML}
+          </div>
 
         <div class="form-group">
           <div class="list-container">
@@ -776,6 +816,7 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
         const outputOptions = ${JSON.stringify(outputOptions)};
 
         // Pass the existing configuration to the client as a JSON string
+        const existingCellConfigData = ${JSON.stringify(currentCellConfig)};
         const existingOutputConfigData = {
           showExecutableCodeInOutput: ${existingOutputConfig ? existingOutputConfig.showExecutableCodeInOutput : false},
           showOutputOnRun: ${existingOutputConfig ? existingOutputConfig.showOutputOnRun : false},
@@ -850,7 +891,24 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
         function initFormFromConfig() {
           const form = document.getElementById('configForm');
           
-          // Initialize output config options directly using the existingOutputConfigData
+          // Initialize execType first
+          const execTypeSelect = form.elements['execType'];
+          if (execTypeSelect) {
+            const execType = existingCellConfigData && existingCellConfigData.execType !== undefined
+              ? existingCellConfigData.execType
+              : 'run';
+            execTypeSelect.value = execType;
+            
+            // For Go, this affects the visibility of execPathTest
+            if (languageId === 'go') {
+              updateExecPathTestVisibility(execType);
+              execTypeSelect.addEventListener('change', (event) => {
+                updateExecPathTestVisibility(event.target.value);
+              });
+            }
+          }
+          
+          // Initialize output config options
           if (form) {
             // Initialize output config options
             // For showExecutableCodeInOutput
@@ -902,16 +960,43 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
             // Initialize execPath field if it exists
             const execPathField = form.elements['execPath'];
             if (execPathField) {
-              const currentValue = ${JSON.stringify(currentCellConfig)} && ${JSON.stringify(currentCellConfig)}.execPath !== undefined 
-                ? ${JSON.stringify(currentCellConfig)}.execPath 
+              const currentValue = existingCellConfigData && existingCellConfigData.execPath !== undefined 
+                ? existingCellConfigData.execPath 
                 : '';
               execPathField.value = currentValue;
             }
+
+            // Initialize execPathTest field for Go if it exists
+            if (languageId === 'go') {
+              const execPathTestField = form.elements['execPathTest'];
+              if (execPathTestField) {
+                const currentValue = existingCellConfigData && existingCellConfigData.execPathTest !== undefined
+                  ? existingCellConfigData.execPathTest
+                  : '';
+                execPathTestField.value = currentValue;
+              }
+              // Show/hide execPathTest based on execType
+              const execTypeSelect = document.getElementById('execType');
+              if (execTypeSelect) {
+                updateExecPathTestVisibility(execTypeSelect.value);
+                execTypeSelect.addEventListener('change', (event) => {
+                  updateExecPathTestVisibility(event.target.value);
+                });
+              }
+            }
           }
         }
-        
-        // Initialize form when page loads
-        document.addEventListener('DOMContentLoaded', initFormFromConfig);
+
+        function updateExecPathTestVisibility(execType) {
+          const execPathTestGroup = document.getElementById('execPathTestGroup');
+          if (execPathTestGroup) {
+            if (execType === 'test') {
+              execPathTestGroup.style.display = 'block';
+            } else {
+              execPathTestGroup.style.display = 'none';
+            }
+          }
+        }
         
         function saveConfig() {
           console.log('Saving configuration...');
