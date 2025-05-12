@@ -100,29 +100,61 @@
         "codebook-md.go": {
           "type": "object",
           "properties": {
-            "execTypeRunFilename": {
-              "type": "string",
-              "default": "main.go",
-              "description": "Filename to use for 'run' execution type."
+            "execTypeRun": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable 'run' execution type for Go."
             },
-            "execTypeTestBuildTag": {
-              "type": "string",
-              "default": "playground",
-              "description": "Build tag to use for 'test' execution type. This tag is added to the top of the test file to help ensure it doesn't run in normal test runs."
+            "execTypeRunConfig": {
+              "type": "object",
+              "default": {
+                "execPath": ".",
+                "filename": "main.go"
+              },
+              "properties": {
+                "execPath": {
+                  "type": "string",
+                  "default": ".",
+                  "description": "Execution path for 'run' execution type."
+                },
+                "filename": {
+                  "type": "string",
+                  "default": "main.go",
+                  "description": "Filename to use for 'run' execution type."
+                }
+              },
+              "description": "Configuration for 'run' execution type."
             },
-            "execTypeTestFilename": {
-              "type": "string",
-              "default": "codebook_md_exec_test.go",
-              "description": "Filename to use for 'test' execution type."
+            "execTypeTest": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable 'test' execution type for Go."
             },
-            "execType": {
-              "type": "string",
-              "default": "run",
-              "enum": [
-                "run",
-                "test"
-              ],
-              "description": "Execution type for Go; 'run' will run using a 'main.go' using 'go run'; 'test' will run from a local '_test.go' file using 'go test'."
+            "execTypeTestConfig": {
+              "type": "object",
+              "default": {
+                "execPath": ".",
+                "filename": "codebook_md_exec_test.go",
+                "buildTag": "playground"
+              },
+              "properties": {
+                "execPath": {
+                  "type": "string",
+                  "default": ".",
+                  "description": "Execution path for 'test' execution type."
+                },
+                "filename": {
+                  "type": "string",
+                  "default": "codebook_md_exec_test.go",
+                  "description": "Filename to use for 'test' execution type."
+                },
+                "buildTag": {
+                  "type": "string",
+                  "default": "playground",
+                  "description": "Build tag to use for 'test' execution type. This tag is added to the top of the test file to help ensure it doesn't run in normal test runs."
+                }
+              },
+              "description": "Configuration for 'test' execution type."
             },
             "goimportsCmd": {
               "type": "string",

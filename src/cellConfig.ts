@@ -221,26 +221,40 @@ export function getLanguageConfigOptions(languageId: string): ConfigOptions {
   switch (languageId) {
     case 'go':
       return {
-        execTypeRunFilename: {
+        execTypeRun: {
+          type: 'boolean',
+          default: true,
+          description: 'Enable \'run\' execution type for Go.'
+        },
+        execTypeTest: {
+          type: 'boolean',
+          default: false,
+          description: 'Enable \'test\' execution type for Go.'
+        },
+        'execTypeRunConfig.filename': {
           type: 'string',
           default: 'main.go',
           description: 'Filename to use for \'run\' execution type.'
         },
-        execTypeTestBuildTag: {
+        'execTypeRunConfig.execPath': {
           type: 'string',
-          default: 'playground',
-          description: 'Build tag to use for \'test\' execution type.'
+          default: '.',
+          description: 'Execution path for \'run\' execution type.'
         },
-        execTypeTestFilename: {
+        'execTypeTestConfig.filename': {
           type: 'string',
           default: 'codebook_md_exec_test.go',
           description: 'Filename to use for \'test\' execution type.'
         },
-        execType: {
-          type: 'select',
-          default: 'run',
-          options: ['run', 'test'],
-          description: 'Execution type for Go.'
+        'execTypeTestConfig.execPath': {
+          type: 'string',
+          default: '.',
+          description: 'Execution path for \'test\' execution type.'
+        },
+        'execTypeTestConfig.buildTag': {
+          type: 'string',
+          default: 'playground',
+          description: 'Build tag to use for \'test\' execution type.'
         },
         goimportsCmd: {
           type: 'select',
