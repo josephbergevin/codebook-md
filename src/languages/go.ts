@@ -105,9 +105,9 @@ export class Cell implements codebook.ExecutableCell {
     }
 
     if (this.config.execTypeTest) {
-      // if goConfig.execType is set and the value is 'test`, then create the file in the current package
+      // if execTypeTest is true, create the file in the current package
       // create the execCode for the benchmark file
-      let packageName = path.basename(this.config.execPath);
+      let packageName = path.basename(this.config.execTypeTestConfig.execPath || this.config.execPath);
       if (packageName.includes("-")) {
         packageName = packageName.replace("-", "_");
       }
@@ -173,7 +173,7 @@ export class Cell implements codebook.ExecutableCell {
             return;
           }
           let fileContents = data;
-          fileContents = `// +build ${this.config.execTypeTestBuildTag}\n\n` + fileContents;
+          fileContents = `// +build ${this.config.execTypeTestConfig.buildTag}\n\n` + fileContents;
           writeFileSync(this.config.execFile, fileContents);
         });
       });
@@ -248,12 +248,11 @@ export class Cell implements codebook.ExecutableCell {
 export class Config {
   contentConfig: codebook.CodeBlockConfig;
   execPath: string;
-  execPathTest?: string; // New field for test-specific exec path
+  execPathTest?: string; // Field for test-specific exec path
   execTypeRun: boolean;
-  execTypeRunFilename: string;
+  execTypeRunConfig: { execPath: string; filename: string; };
   execTypeTest: boolean;
-  execTypeTestFilename: string;
-  execTypeTestBuildTag: string;
+  execTypeTestConfig: { execPath: string; filename: string; buildTag: string; };
   execFile: string;
   execFilename: string;
   execPkg: string;
@@ -265,13 +264,27 @@ export class Config {
 
   constructor(goConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.go.output'), "//");
-    const execType = goConfig?.get<string>('execType') ?? 'run';
+
+    // Get the execution type configurations
+    this.execTypeRun = goConfig?.get<boolean>('execTypeRun') ?? true;
+    this.execTypeTest = goConfig?.get<boolean>('execTypeTest') ?? false;
+
+    // Get the run configuration
+    const runConfig = goConfig?.get<{ execPath: string; filename: string; }>('execTypeRunConfig') ?? {
+      execPath: ".",
+      filename: "main.go"
+    };
+    this.execTypeRunConfig = runConfig;
+
+    // Get the test configuration
+    const testConfig = goConfig?.get<{ execPath: string; filename: string; buildTag: string; }>('execTypeTestConfig') ?? {
+      execPath: ".",
+      filename: "codebook_md_exec_test.go",
+      buildTag: "playground"
+    };
+    this.execTypeTestConfig = testConfig;
+
     this.execPath = '';
-    this.execTypeRun = execType === 'run';
-    this.execTypeRunFilename = goConfig?.get<string>('execTypeRunFilename') ?? 'main.go';
-    this.execTypeTest = execType === 'test';
-    this.execTypeTestFilename = goConfig?.get<string>('execTypeTestFilename') ?? 'codebook_md_exec_test.go';
-    this.execTypeTestBuildTag = goConfig?.get<string>('execTypeTestBuildTag') ?? 'playground';
     this.execFile = "";
     this.execFilename = "";
     this.execPkg = "";
@@ -293,7 +306,7 @@ export class Config {
       } else if (command.startsWith('.execTypeRunFilename(')) {
         const match = command.match(/\.execTypeRunFilename\("([^"]+)"\)/);
         if (match) {
-          this.execTypeRunFilename = match[1];
+          this.execTypeRunConfig.filename = match[1];
           if (this.execTypeRun) {
             this.execFilename = match[1];
             this.execFile = path.join(this.execPath, match[1]);
@@ -302,7 +315,7 @@ export class Config {
       } else if (command.startsWith('.execTypeTestFilename(')) {
         const match = command.match(/\.execTypeTestFilename\("([^"]+)"\)/);
         if (match) {
-          this.execTypeTestFilename = match[1];
+          this.execTypeTestConfig.filename = match[1];
           if (this.execTypeTest) {
             this.execFilename = match[1];
             this.execFile = path.join(this.execPath, match[1]);
@@ -311,7 +324,7 @@ export class Config {
       } else if (command.startsWith('.execTypeTestBuildTag(')) {
         const match = command.match(/\.execTypeTestBuildTag\("([^"]+)"\)/);
         if (match) {
-          this.execTypeTestBuildTag = match[1];
+          this.execTypeTestConfig.buildTag = match[1];
           if (this.execTypeTest) {
             const tagIndex = this.execArgs.findIndex(arg => arg.startsWith('-tags='));
             if (tagIndex !== -1) {
@@ -354,15 +367,22 @@ export class Config {
       const currentFile = window.activeTextEditor?.document.fileName;
       const currentPath = path.dirname(currentFile ?? '');
       this.execPkg = path.basename(currentPath);
-      // Use execPathTest from cell config if available, otherwise default to currentPath
-      this.execPath = this.execPathTest && this.execPathTest.trim() !== '' ? this.execPathTest : currentPath;
-      this.execFilename = this.execTypeTestFilename;
+      // Use execPathTest from cell config if available, otherwise use execTypeTestConfig.execPath or default to currentPath
+      this.execPath = this.execPathTest && this.execPathTest.trim() !== '' ?
+        this.execPathTest :
+        (this.execTypeTestConfig.execPath && this.execTypeTestConfig.execPath !== '.' ?
+          this.execTypeTestConfig.execPath :
+          currentPath);
+      this.execFilename = this.execTypeTestConfig.filename;
       this.execFile = path.join(this.execPath, this.execFilename);
       this.execCmd = 'test';
-      this.execArgs = ['-run=TestExecNotebook', '-tags=playground', '-v'];
+      this.execArgs = ['-run=TestExecNotebook', `-tags=${this.execTypeTestConfig.buildTag}`, '-v'];
     } else {
-      this.execPath = config.getExecPath(); // Use configured execPath for run runType
-      this.execFilename = this.execTypeRunFilename;
+      // Use execTypeRunConfig.execPath if not '.', otherwise use general config
+      this.execPath = this.execTypeRunConfig.execPath && this.execTypeRunConfig.execPath !== '.' ?
+        this.execTypeRunConfig.execPath :
+        config.getExecPath();
+      this.execFilename = this.execTypeRunConfig.filename;
       this.execFile = path.join(this.execPath, this.execFilename);
       this.execCmd = 'run';
     }
