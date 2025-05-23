@@ -271,16 +271,22 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
     <div class="subsection">
       <h4>Execution Type Configuration</h4>
       <div class="form-group">
-        <div class="checkbox-label">
-          <div class="checkbox-label-container">
-            <input type="checkbox" name="execTypeRun" id="execTypeRun" ${(!currentCellConfig || currentCellConfig.execTypeRun === undefined || currentCellConfig.execTypeRun === true) ? 'checked' : ''}>
-            <span class="label-text">Run Execution Type</span>
-            <span class="codicon codicon-settings-gear settings-wheel" 
-                  onclick="openSpecificSetting('codebook-md.go.execTypeRun')" 
-                  title="Open setting in VS Code settings"></span>
-          </div>
+        <div class="label-container">
+          <label for="goExecType" class="label-text">Execution Type</label>
+          <span class="codicon codicon-settings-gear settings-wheel" 
+                onclick="openSpecificSetting('codebook-md.go.execType')" 
+                title="Open setting in VS Code settings"></span>
         </div>
+        <select name="goExecType" id="goExecType" onchange="toggleGoExecutionTypeConfig(this.value)">
+          <option value="run" ${(!currentCellConfig || !currentCellConfig.execTypeTest || currentCellConfig.execTypeRun) ? 'selected' : ''}>Run</option>
+          <option value="test" ${(currentCellConfig && currentCellConfig.execTypeTest === true) ? 'selected' : ''}>Test</option>
+        </select>
       </div>
+      
+      <!-- Hidden fields for backward compatibility -->
+      <input type="hidden" name="execTypeRun" id="execTypeRun" ${(!currentCellConfig || currentCellConfig.execTypeRun === undefined || currentCellConfig.execTypeRun === true) ? 'checked' : ''}>
+      <input type="hidden" name="execTypeTest" id="execTypeTest" ${(currentCellConfig && currentCellConfig.execTypeTest === true) ? 'checked' : ''}>
+      
       <div class="form-group execution-type-config run-config">
         <h4>Run Configuration</h4>
         <div class="form-group">
@@ -304,17 +310,7 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
                  value="${currentCellConfig && currentCellConfig.execTypeRunConfig && currentCellConfig.execTypeRunConfig.filename ? currentCellConfig.execTypeRunConfig.filename : 'main.go'}">
         </div>
       </div>
-      <div class="form-group">
-        <div class="checkbox-label">
-          <div class="checkbox-label-container">
-            <input type="checkbox" name="execTypeTest" id="execTypeTest" ${(currentCellConfig && currentCellConfig.execTypeTest === true) ? 'checked' : ''}>
-            <span class="label-text">Test Execution Type</span>
-            <span class="codicon codicon-settings-gear settings-wheel" 
-                  onclick="openSpecificSetting('codebook-md.go.execTypeTest')" 
-                  title="Open setting in VS Code settings"></span>
-          </div>
-        </div>
-      </div>
+      
       <div class="form-group execution-type-config test-config">
         <h4>Test Configuration</h4>
         <div class="form-group">
@@ -358,9 +354,12 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
       <div class="form-section">
         <h3>Language-specific Configuration</h3>
         ${languageId === 'go' ? goExecutionTypeHTML : ''}
-        ${Object.entries(languageOptions).map(([key, option]: [string, { type: string; description: string; default: string | boolean | number; options?: string[]; }]) => {
+        ${Object.entries(languageOptions).map(([key, option]: [string, { type: string; description: string; default: string | boolean | Record<string, unknown>; options?: string[]; }]) => {
       // Skip execType as it's now in its own section
       if (key === 'execType') return '';
+
+      // Skip object-type config options for Go (they are handled in goExecutionTypeHTML)
+      if (languageId === 'go' && (key === 'execTypeRunConfig' || key === 'execTypeTestConfig')) return '';
 
       // First check the cell-specific config directly
       const currentValue = currentCellConfig && currentCellConfig[key] !== undefined ?
@@ -421,7 +420,7 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
   const outputOptionsHTML = `
     <div class="form-section">
       <h3>Output Configuration</h3>
-      ${Object.entries(outputOptions).map(([key, option]: [string, { type: string; description: string; default: string | boolean | number; }]) => {
+      ${Object.entries(outputOptions).map(([key, option]: [string, { type: string; description: string; default: string | boolean | Record<string, unknown>; }]) => {
     // First check the existingOutputConfig (which already has all the priorities sorted out)
     // Then fallback to cellConfig's output section, then fallback to the default
     let currentValue;
@@ -1128,7 +1127,31 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
           }
         }
 
-        // Removed updateExecPathTestVisibility function as it's no longer needed
+        function toggleGoExecutionTypeConfig(value) {
+          const runConfig = document.querySelector('.execution-type-config.run-config');
+          const testConfig = document.querySelector('.execution-type-config.test-config');
+          
+          if (runConfig && testConfig) {
+            // Show/hide based on selected value
+            runConfig.style.display = value === 'run' ? 'block' : 'none';
+            testConfig.style.display = value === 'test' ? 'block' : 'none';
+            
+            // Update the hidden fields for processing
+            const execTypeRunHidden = document.getElementById('execTypeRun');
+            const execTypeTestHidden = document.getElementById('execTypeTest');
+            
+            if (execTypeRunHidden && execTypeTestHidden) {
+              execTypeRunHidden.checked = value === 'run';
+              execTypeTestHidden.checked = value === 'test';
+            }
+          }
+        }
+        
+        // Initialize Go execution type dropdown if present
+        const goExecTypeSelect = document.getElementById('goExecType');
+        if (goExecTypeSelect) {
+          toggleGoExecutionTypeConfig(goExecTypeSelect.value);
+        }
         
         function saveConfig() {
           console.log('Saving configuration...');

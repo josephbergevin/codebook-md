@@ -105,6 +105,11 @@
               "default": true,
               "description": "Enable 'run' execution type for Go."
             },
+            "execTypeTest": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable 'test' execution type for Go."
+            },
             "execTypeRunConfig": {
               "type": "object",
               "default": {
@@ -124,11 +129,6 @@
                 }
               },
               "description": "Configuration for 'run' execution type."
-            },
-            "execTypeTest": {
-              "type": "boolean",
-              "default": false,
-              "description": "Enable 'test' execution type for Go."
             },
             "execTypeTestConfig": {
               "type": "object",

@@ -204,7 +204,7 @@ export async function saveCellConfig(notebookCell: NotebookCell, config: CellCon
 
 interface ConfigOption {
   type: string;
-  default: string | boolean;
+  default: string | boolean | Record<string, unknown>;
   options?: string[];
   description: string;
 }
@@ -231,30 +231,22 @@ export function getLanguageConfigOptions(languageId: string): ConfigOptions {
           default: false,
           description: 'Enable \'test\' execution type for Go.'
         },
-        'execTypeRunConfig.filename': {
-          type: 'string',
-          default: 'main.go',
-          description: 'Filename to use for \'run\' execution type.'
+        execTypeRunConfig: {
+          type: 'object',
+          default: {
+            execPath: '.',
+            filename: 'main.go'
+          },
+          description: 'Configuration for \'run\' execution type.'
         },
-        'execTypeRunConfig.execPath': {
-          type: 'string',
-          default: '.',
-          description: 'Execution path for \'run\' execution type.'
-        },
-        'execTypeTestConfig.filename': {
-          type: 'string',
-          default: 'codebook_md_exec_test.go',
-          description: 'Filename to use for \'test\' execution type.'
-        },
-        'execTypeTestConfig.execPath': {
-          type: 'string',
-          default: '.',
-          description: 'Execution path for \'test\' execution type.'
-        },
-        'execTypeTestConfig.buildTag': {
-          type: 'string',
-          default: 'playground',
-          description: 'Build tag to use for \'test\' execution type.'
+        execTypeTestConfig: {
+          type: 'object',
+          default: {
+            execPath: '.',
+            filename: 'codebook_md_exec_test.go',
+            buildTag: 'playground'
+          },
+          description: 'Configuration for \'test\' execution type.'
         },
         goimportsCmd: {
           type: 'select',
