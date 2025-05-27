@@ -100,15 +100,11 @@
         "codebook-md.go": {
           "type": "object",
           "properties": {
-            "execTypeRun": {
-              "type": "boolean",
-              "default": true,
-              "description": "Enable 'run' execution type for Go."
-            },
-            "execTypeTest": {
-              "type": "boolean",
-              "default": false,
-              "description": "Enable 'test' execution type for Go."
+            "execType": {
+              "type": "string",
+              "enum": ["run", "test"],
+              "default": "run",
+              "description": "Execution type for Go code: 'run' uses execTypeRunConfig, 'test' uses execTypeTestConfig."
             },
             "execTypeRunConfig": {
               "type": "object",

@@ -207,6 +207,7 @@ interface ConfigOption {
   default: string | boolean | Record<string, unknown>;
   options?: string[];
   description: string;
+  internal?: boolean; // Optional flag to mark options for internal use only (not displayed in UI)
 }
 
 type ConfigOptions = Record<string, ConfigOption>;
@@ -221,15 +222,11 @@ export function getLanguageConfigOptions(languageId: string): ConfigOptions {
   switch (languageId) {
     case 'go':
       return {
-        execTypeRun: {
-          type: 'boolean',
-          default: true,
-          description: 'Enable \'run\' execution type for Go.'
-        },
-        execTypeTest: {
-          type: 'boolean',
-          default: false,
-          description: 'Enable \'test\' execution type for Go.'
+        execType: {
+          type: 'select',
+          default: 'run',
+          options: ['run', 'test'],
+          description: 'Execution type for Go code: \'run\' uses execTypeRunConfig, \'test\' uses execTypeTestConfig.'
         },
         execTypeRunConfig: {
           type: 'object',
