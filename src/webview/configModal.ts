@@ -235,8 +235,25 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
   // Use the cell configuration from existingCellConfig if provided, otherwise fall back to codeBlockConfig
   const currentCellConfig = existingCellConfig || codeBlockConfig.cellConfig;
 
+  // Get workspace settings
+  const workspaceSettings = workspace ? workspace.getConfiguration('codebook-md') : undefined;
+  const languageSettings = workspace ? workspace.getConfiguration(`codebook-md.${languageId}`) : undefined;
+
+  // Map settings to an object for use in the form
+  const workspaceSettingsObject = workspaceSettings ? Object.keys(workspaceSettings).reduce((obj: Record<string, unknown>, key) => {
+    obj[key] = workspaceSettings.get(key);
+    return obj;
+  }, {}) : {};
+
+  const languageSettingsObject = languageSettings ? Object.keys(languageSettings).reduce((obj: Record<string, unknown>, key) => {
+    obj[key] = languageSettings.get(key);
+    return obj;
+  }, {}) : {};
+
   // Debug the config
   console.log('Using cell config:', currentCellConfig);
+  console.log('Workspace settings:', workspaceSettingsObject);
+  console.log('Language settings:', languageSettingsObject);
 
   // Get language-specific config options
   const languageOptions = getLanguageConfigOptions(languageId);
@@ -247,24 +264,8 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
   // Get existing output configuration from the cell's outputConfig
   const existingOutputConfig = codeBlockConfig.outputConfig;
 
-  // Create execution type configuration for non-Go languages
-  const executionTypeHTML = languageId !== 'go' ? `
-    <div class="form-section">
-      <h3>Execution Type Configuration</h3>
-      <div class="form-group">
-        <div class="label-container">
-          <label for="execType" class="label-text">Execution Type</label>
-          <span class="codicon codicon-settings-gear settings-wheel" 
-                onclick="openSpecificSetting('codebook-md.execType')" 
-                title="Open setting in VS Code settings"></span>
-        </div>
-        <select name="execType" id="execType">
-          <option value="run" ${(!currentCellConfig || !currentCellConfig.execType || currentCellConfig.execType === 'run') ? 'selected' : ''}>execType: run</option>
-          <option value="test" ${(currentCellConfig && currentCellConfig.execType === 'test') ? 'selected' : ''}>execType: test</option>
-        </select>
-      </div>
-    </div>
-  ` : ''; // Empty for Go since we'll include it in language-specific section
+  // Create execution type configuration for non-Go languages - empty since we only show this for Go now
+  const executionTypeHTML = ''; // No longer showing execution type dropdown for non-Go languages
 
   // Go-specific execution type configuration
   const goExecutionTypeHTML = languageId === 'go' ? `
@@ -272,22 +273,30 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
       <h4>Execution Type Configuration</h4>
       <div class="form-group">
         <div class="label-container">
-          <label for="goExecType" class="label-text">Execution Type</label>
+          <label for="execType" class="label-text">Execution Type</label>
           <span class="codicon codicon-settings-gear settings-wheel" 
                 onclick="openSpecificSetting('codebook-md.go.execType')" 
                 title="Open setting in VS Code settings"></span>
         </div>
-        <select name="goExecType" id="goExecType" onchange="toggleGoExecutionTypeConfig(this.value)">
-          <option value="run" ${(!currentCellConfig || !currentCellConfig.execTypeTest || currentCellConfig.execTypeRun) ? 'selected' : ''}>Run</option>
-          <option value="test" ${(currentCellConfig && currentCellConfig.execTypeTest === true) ? 'selected' : ''}>Test</option>
+        <select name="execType" id="execType" onchange="toggleGoExecutionTypeConfig(this.value)">
+          <option value="run" ${(getConfigValue('execType', currentCellConfig, languageOptions, languageSettingsObject) !== 'test') ? 'selected' : ''}>Run</option>
+          <option value="test" ${(getConfigValue('execType', currentCellConfig, languageOptions, languageSettingsObject) === 'test') ? 'selected' : ''}>Test</option>
         </select>
+        <script>
+          // Ensure the dropdown is set correctly on initial load based on visible sections
+          document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+              const testConfig = document.querySelector('.execution-type-config.test-config');
+              const execTypeSelect = document.getElementById('execType');
+              if (testConfig && execTypeSelect && testConfig.style.display === 'block') {
+                execTypeSelect.value = 'test';
+              }
+            }, 50);
+          });
+        </script>
       </div>
       
-      <!-- Hidden fields for backward compatibility -->
-      <input type="hidden" name="execTypeRun" id="execTypeRun" ${(!currentCellConfig || currentCellConfig.execTypeRun === undefined || currentCellConfig.execTypeRun === true) ? 'checked' : ''}>
-      <input type="hidden" name="execTypeTest" id="execTypeTest" ${(currentCellConfig && currentCellConfig.execTypeTest === true) ? 'checked' : ''}>
-      
-      <div class="form-group execution-type-config run-config">
+      <div class="form-group execution-type-config run-config" style="display: ${(getConfigValue('execType', currentCellConfig, languageOptions, languageSettingsObject) === 'test' || codeBlockCommands.some(cmd => cmd.includes('runType:test'))) ? 'none' : 'block'}">
         <h4>Run Configuration</h4>
         <div class="form-group">
           <div class="label-container">
@@ -297,7 +306,7 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
                   title="Open setting in VS Code settings"></span>
           </div>
           <input type="text" name="execTypeRunConfig.execPath" id="execTypeRunConfig.execPath" 
-                 value="${currentCellConfig && currentCellConfig.execTypeRunConfig && currentCellConfig.execTypeRunConfig.execPath ? currentCellConfig.execTypeRunConfig.execPath : '.'}">
+                 value="${currentCellConfig && currentCellConfig.execTypeRunConfig ? getConfigValue('execPath', currentCellConfig.execTypeRunConfig as Record<string, unknown>, { execPath: { default: '.' } }, languageSettingsObject?.execTypeRunConfig as Record<string, unknown>) : '.'}">
         </div>
         <div class="form-group">
           <div class="label-container">
@@ -307,11 +316,11 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
                   title="Open setting in VS Code settings"></span>
           </div>
           <input type="text" name="execTypeRunConfig.filename" id="execTypeRunConfig.filename" 
-                 value="${currentCellConfig && currentCellConfig.execTypeRunConfig && currentCellConfig.execTypeRunConfig.filename ? currentCellConfig.execTypeRunConfig.filename : 'main.go'}">
+                 value="${currentCellConfig && currentCellConfig.execTypeRunConfig ? getConfigValue('filename', currentCellConfig.execTypeRunConfig as Record<string, unknown>, { filename: { default: 'main.go' } }, languageSettingsObject?.execTypeRunConfig as Record<string, unknown>) : 'main.go'}">
         </div>
       </div>
       
-      <div class="form-group execution-type-config test-config">
+      <div class="form-group execution-type-config test-config" style="display: ${(getConfigValue('execType', currentCellConfig, languageOptions, languageSettingsObject) === 'test' || codeBlockCommands.some(cmd => cmd.includes('runType:test'))) ? 'block' : 'none'}">
         <h4>Test Configuration</h4>
         <div class="form-group">
           <div class="label-container">
@@ -321,7 +330,7 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
                   title="Open setting in VS Code settings"></span>
           </div>
           <input type="text" name="execTypeTestConfig.execPath" id="execTypeTestConfig.execPath" 
-                 value="${currentCellConfig && currentCellConfig.execTypeTestConfig && currentCellConfig.execTypeTestConfig.execPath ? currentCellConfig.execTypeTestConfig.execPath : '.'}">
+                 value="${currentCellConfig && currentCellConfig.execTypeTestConfig ? getConfigValue('execPath', currentCellConfig.execTypeTestConfig as Record<string, unknown>, { execPath: { default: '.' } }, languageSettingsObject?.execTypeTestConfig as Record<string, unknown>) : '.'}">
         </div>
         <div class="form-group">
           <div class="label-container">
@@ -331,7 +340,7 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
                   title="Open setting in VS Code settings"></span>
           </div>
           <input type="text" name="execTypeTestConfig.filename" id="execTypeTestConfig.filename" 
-                 value="${currentCellConfig && currentCellConfig.execTypeTestConfig && currentCellConfig.execTypeTestConfig.filename ? currentCellConfig.execTypeTestConfig.filename : 'codebook_md_exec_test.go'}">
+                 value="${currentCellConfig && currentCellConfig.execTypeTestConfig ? getConfigValue('filename', currentCellConfig.execTypeTestConfig as Record<string, unknown>, { filename: { default: 'codebook_md_exec_test.go' } }, languageSettingsObject?.execTypeTestConfig as Record<string, unknown>) : 'codebook_md_exec_test.go'}">
         </div>
         <div class="form-group">
           <div class="label-container">
@@ -341,7 +350,7 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
                   title="Open setting in VS Code settings"></span>
           </div>
           <input type="text" name="execTypeTestConfig.buildTag" id="execTypeTestConfig.buildTag" 
-                 value="${currentCellConfig && currentCellConfig.execTypeTestConfig && currentCellConfig.execTypeTestConfig.buildTag ? currentCellConfig.execTypeTestConfig.buildTag : 'playground'}">
+                 value="${currentCellConfig && currentCellConfig.execTypeTestConfig ? getConfigValue('buildTag', currentCellConfig.execTypeTestConfig as Record<string, unknown>, { buildTag: { default: 'playground' } }, languageSettingsObject?.execTypeTestConfig as Record<string, unknown>) : 'playground'}">
         </div>
       </div>
     </div>
@@ -354,16 +363,18 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
       <div class="form-section">
         <h3>Language-specific Configuration</h3>
         ${languageId === 'go' ? goExecutionTypeHTML : ''}
-        ${Object.entries(languageOptions).map(([key, option]: [string, { type: string; description: string; default: string | boolean | Record<string, unknown>; options?: string[]; }]) => {
+        ${Object.entries(languageOptions).map(([key, option]: [string, { type: string; description: string; default: string | boolean | Record<string, unknown>; options?: string[]; internal?: boolean; }]) => {
       // Skip execType as it's now in its own section
       if (key === 'execType') return '';
+
+      // Skip options marked as internal (not for UI display)
+      if (option.internal === true) return '';
 
       // Skip object-type config options for Go (they are handled in goExecutionTypeHTML)
       if (languageId === 'go' && (key === 'execTypeRunConfig' || key === 'execTypeTestConfig')) return '';
 
-      // First check the cell-specific config directly
-      const currentValue = currentCellConfig && currentCellConfig[key] !== undefined ?
-        currentCellConfig[key] : option.default;
+      // Get the current value using the configuration hierarchy
+      const currentValue = getConfigValue(key, currentCellConfig || {}, languageOptions, languageId === 'go' ? languageSettingsObject : workspaceSettingsObject);
 
       // Generate setting ID for this option
       const settingId = `codebook-md.${languageId}.${key}`;
@@ -373,7 +384,7 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
               <div class="form-group">
                 <div class="checkbox-label">
                   <div class="checkbox-label-container">
-                    <input type="checkbox" name="${key}" id="${key}">
+                    <input type="checkbox" name="${key}" id="${key}" ${currentValue === true ? 'checked' : ''}>
                     <span class="label-text">${option.description}</span>
                     <span class="codicon codicon-settings-gear settings-wheel" 
                           onclick="openSpecificSetting('${settingId}')" 
@@ -421,37 +432,12 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
     <div class="form-section">
       <h3>Output Configuration</h3>
       ${Object.entries(outputOptions).map(([key, option]: [string, { type: string; description: string; default: string | boolean | Record<string, unknown>; }]) => {
-    // First check the existingOutputConfig (which already has all the priorities sorted out)
-    // Then fallback to cellConfig's output section, then fallback to the default
-    let currentValue;
+    // Create a dedicated output config object if it exists
+    const outputConfig = currentCellConfig && currentCellConfig.output ? currentCellConfig.output as Record<string, unknown> : {};
 
-    // Check specific properties of existingOutputConfig based on the key
-    if (existingOutputConfig) {
-      switch (key) {
-        case 'showExecutableCodeInOutput':
-          currentValue = existingOutputConfig.showExecutableCodeInOutput;
-          break;
-        case 'showOutputOnRun':
-          currentValue = existingOutputConfig.showOutputOnRun;
-          break;
-        case 'replaceOutputCell':
-          currentValue = existingOutputConfig.replaceOutputCell;
-          break;
-        case 'showTimestamp':
-          currentValue = existingOutputConfig.showTimestamp;
-          break;
-        case 'timestampTimezone':
-          currentValue = existingOutputConfig.timestampTimezone;
-          break;
-        default:
-          // For other keys, use the next fallback
-          currentValue = undefined;
-      }
-    } else if (currentCellConfig && currentCellConfig.output && currentCellConfig.output[key] !== undefined) {
-      currentValue = currentCellConfig.output[key];
-    } else {
-      currentValue = option.default;
-    }
+    // Use the configuration hierarchy for output settings
+    const workspaceOutputSettings = workspaceSettings ? workspaceSettings.output as Record<string, unknown> : {};
+    const currentValue = getConfigValue(key, outputConfig, outputOptions, workspaceOutputSettings);
 
     // Generate setting ID for this output option
     const settingId = `codebook-md.output.${key}`;
@@ -461,7 +447,7 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
             <div class="form-group">
               <div class="checkbox-label">
                 <div class="checkbox-label-container">
-                  <input type="checkbox" name="output.${key}" id="output.${key}">
+                  <input type="checkbox" name="output.${key}" id="output.${key}" ${currentValue === true ? 'checked' : ''}>
                   <span class="label-text">${option.description}</span>
                   <span class="codicon codicon-settings-gear settings-wheel" 
                         onclick="openSpecificSetting('${settingId}')" 
@@ -503,7 +489,7 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
     return `
       <div class="command-item" data-command="${cmd}">
         <button type="button" class="command-button remove-button" onclick="moveToAvailableCommands('${cmd}')" title="Remove from Code Block Commands">-</button>
-        <button type="button" class="copy-button" onclick="copyToClipboard('${cmd}')" title="Copy Command">📋</button>
+        <button type="button" class="command-button copy-button" onclick="copyToClipboard('${cmd}')" title="Copy Command">📋</button>
         <span class="command-name">${cmd}</span>
       </div>
     `;
@@ -836,13 +822,13 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
               <h3>Execution Path</h3>
               <div class="form-group">
                 <div class="label-container">
-                  <label for="execPath" class="label-text">Execution Path for this cell (run type 'run')</label>
+                  <label for="execPath" class="label-text">Execution Path for this cell</label>
                   <span class="codicon codicon-settings-gear settings-wheel" 
                         onclick="openSpecificSetting('codebook-md.execPath')" 
                         title="Open setting in VS Code settings"></span>
                 </div>
-                <input type="text" name="execPath" id="execPath" value="${currentCellConfig && currentCellConfig.execPath !== undefined ? currentCellConfig.execPath : ''}">
-                <small>Directory where the code will be executed when execType is 'run'.</small>
+                <input type="text" name="execPath" id="execPath" value="${getConfigValue('execPath', currentCellConfig || {}, { 'execPath': { default: '' } }, workspaceSettingsObject)}">
+                <small>Directory where the code will be executed.</small>
                 <div style="margin-top: 6px; font-size: 0.9em; color: var(--vscode-descriptionForeground);">
                   <div><span class="codicon codicon-info"></span> Leave blank to use the default 'execPath' from VS Code Config</div>
                   <div><span class="codicon codicon-info"></span> A relative path is also valid (ie: './codebook-md/')</div>
@@ -968,7 +954,7 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
             return \`
               <div class="command-item" data-command="\${command}">
                 <button type="button" class="command-button remove-button" onclick="moveToAvailableCommands('\${command}')" title="Remove from Code Block Commands">-</button>
-                <button type="button" class="copy-button" onclick="copyToClipboard('\${command}')" title="Copy Command">📋</button>
+                <button type="button" class="command-button copy-button" onclick="copyToClipboard('\${command}')" title="Copy Command">📋</button>
                 <span class="command-name">\${command}</span>
               </div>
             \`;
@@ -979,179 +965,132 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
         function initFormFromConfig() {
           const form = document.getElementById('configForm');
           
-          // Initialize execType first
-          const execTypeSelect = form.elements['execType'];
-          if (execTypeSelect) {
-            const execType = existingCellConfigData && existingCellConfigData.execType !== undefined
-              ? existingCellConfigData.execType
-              : 'run';
-            execTypeSelect.value = execType;
-            
-            // For Go, this affects the visibility of execPathTest
-            if (languageId === 'go') {
-              updateExecPathTestVisibility(execType);
-              execTypeSelect.addEventListener('change', (event) => {
-                updateExecPathTestVisibility(event.target.value);
-              });
+          // Get workspace settings provided by extension
+          const workspaceSettings = ${JSON.stringify(workspaceSettings || {})};
+          const languageSettings = ${JSON.stringify(languageSettings || {})};
+          
+          // Helper function to get config value using the hierarchy
+          function getFormConfigValue(key, cellConfig, options, workspaceSettings) {
+            // Check cell-specific config first
+            if (cellConfig && cellConfig[key] !== undefined) {
+              return cellConfig[key];
             }
+            // Check workspace settings next
+            if (workspaceSettings && workspaceSettings[key] !== undefined) {
+              return workspaceSettings[key];
+            }
+            // Finally fall back to default
+            if (options[key] && options[key].default !== undefined) {
+              return options[key].default;
+            }
+            return undefined;
           }
           
-          // Initialize output config options
+          // Initialize checkboxes for output config
+          const outputOptions = ${JSON.stringify(outputOptions)};
+          const existingOutputConfig = existingCellConfigData && existingCellConfigData.output ? existingCellConfigData.output : {};
+          const workspaceOutputSettings = workspaceSettings && workspaceSettings.output ? workspaceSettings.output : {};
+          
           if (form) {
-            // Initialize output config options
-            // For showExecutableCodeInOutput
-            const showExecField = form.elements['output.showExecutableCodeInOutput'];
-            if (showExecField && showExecField.type === 'checkbox') {
-              showExecField.checked = existingOutputConfigData.showExecutableCodeInOutput;
-            }
-            
-            // For showOutputOnRun
-            const showOutputField = form.elements['output.showOutputOnRun'];
-            if (showOutputField && showOutputField.type === 'checkbox') {
-              showOutputField.checked = existingOutputConfigData.showOutputOnRun;
-            }
-            
-            // For replaceOutputCell
-            const replaceField = form.elements['output.replaceOutputCell'];
-            if (replaceField && replaceField.type === 'checkbox') {
-              replaceField.checked = existingOutputConfigData.replaceOutputCell;
-            }
-            
-            // For showTimestamp
-            const timestampField = form.elements['output.showTimestamp'];
-            if (timestampField && timestampField.type === 'checkbox') {
-              timestampField.checked = existingOutputConfigData.showTimestamp;
-            }
-            
-            // For timestampTimezone
-            const timezoneField = form.elements['output.timestampTimezone'];
-            if (timezoneField && timezoneField.type !== 'checkbox') {
-              timezoneField.value = existingOutputConfigData.timestampTimezone || '';
-            }
+            // Initialize all output checkbox fields
+            Object.keys(outputOptions).forEach(key => {
+              const fieldName = 'output.' + key;
+              const field = form.elements[fieldName];
+              if (field) {
+                if (field.type === 'checkbox') {
+                  // Use the configuration hierarchy for checkbox value
+                  const value = getFormConfigValue(key, existingOutputConfig, outputOptions, workspaceOutputSettings);
+                  field.checked = Boolean(value);
+                } else {
+                  // For text fields
+                  const value = getFormConfigValue(key, existingOutputConfig, outputOptions, workspaceOutputSettings);
+                  field.value = value || '';
+                }
+              }
+            });
             
             // Initialize language-specific options
-            if (languageOptions) {
-              Object.entries(languageOptions).forEach(([key, option]) => {
-                if (option.type === 'boolean') {
-                  const field = document.getElementById(key);
-                  if (field && field.type === 'checkbox') {
-                    // Use the current cell config value if available, otherwise use the default
-                    const currentValue = ${JSON.stringify(currentCellConfig)} && ${JSON.stringify(currentCellConfig)}[key] !== undefined 
-                      ? ${JSON.stringify(currentCellConfig)}[key] 
-                      : option.default;
-                    field.checked = Boolean(currentValue);
-                  }
-                }
-              });
-            }
+            const languageOptions = ${JSON.stringify(languageOptions)};
             
-            // Special handling for Go execution type config
+            Object.keys(languageOptions).forEach(key => {
+              // Skip execType as it's handled separately
+              if (key === 'execType') return;
+              
+              // Skip object-type config options for Go (they are handled separately)
+              if (languageId === 'go' && (key === 'execTypeRunConfig' || key === 'execTypeTestConfig')) return;
+              
+              const field = form.elements[key];
+              if (field) {
+                if (field.type === 'checkbox') {
+                  // Use the configuration hierarchy for checkbox value
+                  const value = getFormConfigValue(key, existingCellConfigData, languageOptions, languageSettings);
+                  field.checked = Boolean(value);
+                } else {
+                  // For text fields and dropdowns
+                  const value = getFormConfigValue(key, existingCellConfigData, languageOptions, languageSettings);
+                  field.value = value !== undefined ? value : '';
+                }
+              }
+            });
+            
+            // Special handling for execType in Go language only
             if (languageId === 'go') {
-              // Initialize execTypeRun and execTypeTest checkboxes
-              const execTypeRunCheckbox = document.getElementById('execTypeRun');
-              const execTypeTestCheckbox = document.getElementById('execTypeTest');
-              
-              if (execTypeRunCheckbox && execTypeTestCheckbox) {
-                // Set initial state based on config
-                execTypeRunCheckbox.checked = existingCellConfigData && existingCellConfigData.execTypeRun !== undefined 
-                  ? Boolean(existingCellConfigData.execTypeRun) 
-                  : true;
-                  
-                execTypeTestCheckbox.checked = existingCellConfigData && existingCellConfigData.execTypeTest !== undefined 
-                  ? Boolean(existingCellConfigData.execTypeTest) 
-                  : false;
+              const execTypeSelect = form.elements['execType'];
+              if (execTypeSelect) {
+                // Check if the code block commands contain runType:test
+                const isInTestMode = existingCellConfigData && existingCellConfigData.execType === 'test' || 
+                                    codeBlockCommands && codeBlockCommands.some(cmd => cmd.includes('runType:test'));
                 
-                // Initialize nested config fields if they exist
-                const execTypeRunConfigExecPath = document.getElementById('execTypeRunConfig.execPath');
-                const execTypeRunConfigFilename = document.getElementById('execTypeRunConfig.filename');
-                const execTypeTestConfigExecPath = document.getElementById('execTypeTestConfig.execPath');
-                const execTypeTestConfigFilename = document.getElementById('execTypeTestConfig.filename');
-                const execTypeTestConfigBuildTag = document.getElementById('execTypeTestConfig.buildTag');
+                // Use test if detected in commands, otherwise use config hierarchy
+                const execType = isInTestMode ? 'test' : 
+                                (getFormConfigValue('execType', existingCellConfigData, languageOptions, languageSettings) || 'run');
                 
-                // Set values based on nested config objects
-                if (execTypeRunConfigExecPath && execTypeRunConfigFilename) {
-                  execTypeRunConfigExecPath.value = existingCellConfigData && existingCellConfigData.execTypeRunConfig && existingCellConfigData.execTypeRunConfig.execPath 
-                    ? existingCellConfigData.execTypeRunConfig.execPath 
-                    : '.';
-                    
-                  execTypeRunConfigFilename.value = existingCellConfigData && existingCellConfigData.execTypeRunConfig && existingCellConfigData.execTypeRunConfig.filename 
-                    ? existingCellConfigData.execTypeRunConfig.filename 
-                    : 'main.go';
-                }
+                console.log('Setting Go execType to:', execType, 'based on test mode detection:', isInTestMode);
+                execTypeSelect.value = execType;
                 
-                if (execTypeTestConfigExecPath && execTypeTestConfigFilename && execTypeTestConfigBuildTag) {
-                  execTypeTestConfigExecPath.value = existingCellConfigData && existingCellConfigData.execTypeTestConfig && existingCellConfigData.execTypeTestConfig.execPath 
-                    ? existingCellConfigData.execTypeTestConfig.execPath 
-                    : '.';
-                    
-                  execTypeTestConfigFilename.value = existingCellConfigData && existingCellConfigData.execTypeTestConfig && existingCellConfigData.execTypeTestConfig.filename 
-                    ? existingCellConfigData.execTypeTestConfig.filename 
-                    : 'codebook_md_exec_test.go';
-                    
-                  execTypeTestConfigBuildTag.value = existingCellConfigData && existingCellConfigData.execTypeTestConfig && existingCellConfigData.execTypeTestConfig.buildTag 
-                    ? existingCellConfigData.execTypeTestConfig.buildTag 
-                    : 'playground';
-                }
+                // Toggle visibility based on this value
+                toggleGoExecutionTypeConfig(execType);
                 
-                // Setup toggles to update visibility
-                updateRunTestConfigVisibility();
-                
-                execTypeRunCheckbox.addEventListener('change', updateRunTestConfigVisibility);
-                execTypeTestCheckbox.addEventListener('change', updateRunTestConfigVisibility);
+                // Add change listener to ensure the UI updates when the selection changes
+                execTypeSelect.addEventListener('change', function(event) {
+                  const newValue = event.target.value;
+                  console.log('execType changed to:', newValue);
+                  toggleGoExecutionTypeConfig(newValue);
+                });
               }
             }
             
-            function updateRunTestConfigVisibility() {
-              const runConfig = document.querySelector('.execution-type-config.run-config');
-              const testConfig = document.querySelector('.execution-type-config.test-config');
-              const execTypeRunCheckbox = document.getElementById('execTypeRun');
-              const execTypeTestCheckbox = document.getElementById('execTypeTest');
-              
-              if (runConfig && testConfig && execTypeRunCheckbox && execTypeTestCheckbox) {
-                // Show/hide based on checkbox state
-                runConfig.style.display = execTypeRunCheckbox.checked ? 'block' : 'none';
-                testConfig.style.display = execTypeTestCheckbox.checked ? 'block' : 'none';
-              }
-            }
-            
-            // Initialize execPath field if it exists (for non-Go languages)
-            if (languageId !== 'go') {
-              const execPathField = form.elements['execPath'];
-              if (execPathField) {
-                const currentValue = existingCellConfigData && existingCellConfigData.execPath !== undefined 
-                  ? existingCellConfigData.execPath 
-                  : '';
-                execPathField.value = currentValue;
-              }
-            }
-          }
-        }
-
-        function toggleGoExecutionTypeConfig(value) {
-          const runConfig = document.querySelector('.execution-type-config.run-config');
-          const testConfig = document.querySelector('.execution-type-config.test-config');
-          
-          if (runConfig && testConfig) {
-            // Show/hide based on selected value
-            runConfig.style.display = value === 'run' ? 'block' : 'none';
-            testConfig.style.display = value === 'test' ? 'block' : 'none';
-            
-            // Update the hidden fields for processing
-            const execTypeRunHidden = document.getElementById('execTypeRun');
-            const execTypeTestHidden = document.getElementById('execTypeTest');
-            
-            if (execTypeRunHidden && execTypeTestHidden) {
-              execTypeRunHidden.checked = value === 'run';
-              execTypeTestHidden.checked = value === 'test';
+            // For non-Go languages, initialize execPath field
+            if (languageId !== 'go' && form.elements['execPath']) {
+              const execPathValue = getFormConfigValue('execPath', existingCellConfigData, {'execPath': {default: ''}}, workspaceSettings);
+              form.elements['execPath'].value = execPathValue || '';
             }
           }
         }
         
-        // Initialize Go execution type dropdown if present
-        const goExecTypeSelect = document.getElementById('goExecType');
-        if (goExecTypeSelect) {
-          toggleGoExecutionTypeConfig(goExecTypeSelect.value);
+        // Initialize Go execution type visibility
+        function toggleGoExecutionTypeConfig(value) {
+          console.log('Toggling visibility based on execType:', value);
+          const runConfig = document.querySelector('.execution-type-config.run-config');
+          const testConfig = document.querySelector('.execution-type-config.test-config');
+          
+          if (runConfig && testConfig) {
+            // Always ensure only one section is visible
+            runConfig.style.display = value === 'run' ? 'block' : 'none';
+            testConfig.style.display = value === 'test' ? 'block' : 'none';
+            
+            console.log('Run config display:', runConfig.style.display);
+            console.log('Test config display:', testConfig.style.display);
+          } else {
+            console.error('Could not find run or test config sections');
+          }
         }
+        
+        // Initialize form when the script loads
+        document.addEventListener('DOMContentLoaded', initFormFromConfig);
+        
+        // Also call initFormFromConfig immediately in case DOMContentLoaded already fired
+        initFormFromConfig();
         
         function saveConfig() {
           console.log('Saving configuration...');
@@ -1272,6 +1211,16 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
             });
           }
           
+          // Special handling for Go execution type
+          if (languageId === 'go') {
+            // Get the execType selection
+            const execTypeSelect = document.getElementById('execType');
+            if (execTypeSelect) {
+              // Set the execType value
+              config.execType = execTypeSelect.value;
+            }
+          }
+          
           // Add output config to main config
           config.output = outputConfig;
           
@@ -1327,3 +1276,46 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
     </body>
     </html>`;
 }
+
+/**
+ * Gets configuration value following the hierarchy:
+ * 1. Cell-specific config (if available)
+ * 2. Workspace settings
+ * 3. Default value from options
+ * 
+ * @param key Configuration key
+ * @param cellConfig Cell-specific configuration
+ * @param options Configuration options with default values
+ * @param workspaceSettings Workspace settings
+ * @returns Configuration value following the hierarchy
+ */
+function getConfigValue(
+  key: string,
+  cellConfig: Record<string, unknown>,
+  options: Record<string, { default: unknown; type?: string; description?: string; options?: string[]; }>,
+  workspaceSettings?: Record<string, unknown>
+): unknown {
+  // Check cell-specific config first
+  if (cellConfig && cellConfig[key] !== undefined) {
+    console.log(`Using cell-specific config for ${key}:`, cellConfig[key]);
+    return cellConfig[key];
+  }
+
+  // Check workspace settings next
+  if (workspaceSettings && workspaceSettings[key] !== undefined) {
+    console.log(`Using workspace setting for ${key}:`, workspaceSettings[key]);
+    return workspaceSettings[key];
+  }
+
+  // Finally fall back to default
+  if (options[key] && options[key].default !== undefined) {
+    console.log(`Using default value for ${key}:`, options[key].default);
+    return options[key].default;
+  }
+
+  // Return undefined if no value is found
+  console.log(`No value found for ${key}`);
+  return undefined;
+}
+
+// Initialize form values with values from the configuration hierarchy

@@ -36,7 +36,7 @@ export class Cell implements codebook.ExecutableCell {
     this.config = new Config(workspace.getConfiguration('codebook-md.go'), notebookCell);
 
     let parsingIter = 0;
-    this.innerScope += `\nfmt.Println("${codebook.StartOutput}")\n`;
+    // We'll add output markers later based on execType
     const lines = notebookCell.document.getText().split("\n");
     for (let line of lines) {
       line = line.trim();
@@ -104,21 +104,23 @@ export class Cell implements codebook.ExecutableCell {
       this.containsMain = false;
     }
 
-    if (this.config.execTypeTest) {
-      // if execTypeTest is true, create the file in the current package
+    if (this.config.execType === 'test') {
+      // if execType is 'test', create the file in the current package
       // create the execCode for the benchmark file
-      let packageName = path.basename(this.config.execTypeTestConfig.execPath || this.config.execPath);
-      if (packageName.includes("-")) {
-        packageName = packageName.replace("-", "_");
-      }
+      const packageName = formatGoPackageName(this.config.execTypeTestConfig.execPath || this.config.execPath);
       this.executableCode = `package ${packageName}\n\n`;
       this.imports.push(`"testing"`);
       this.executableCode += `import (\n\t${this.imports.join("\n\t")}\n)\n\n`;
-      this.innerScope += `\nfmt.Println("${codebook.EndOutput}")\n`;
-      this.executableCode += `func TestExecNotebook(t *testing.T) {\nlog.SetOutput(os.Stdout)\n${this.innerScope}}\n`;
+
+      // For test mode, we add output markers for capturing output properly
+      const formattedInnerScope = `fmt.Println("${codebook.StartOutput}")\n${this.innerScope}\nfmt.Println("${codebook.EndOutput}")`;
+
+      this.executableCode += `func TestExecNotebook(t *testing.T) {\nlog.SetOutput(os.Stdout)\n${formattedInnerScope}\n}\n`;
       this.executableCode += this.outerScope;
     } else {
-      this.executableCode = `package main\n${this.imports}\n\nfunc main() {\nlog.SetOutput(os.Stdout)\n${this.innerScope} ${this.outerScope}\n}\n`;
+      // For run mode, we add output markers for capturing output properly
+      const formattedInnerScope = `fmt.Println("${codebook.StartOutput}")\n${this.innerScope}\nfmt.Println("${codebook.EndOutput}")`;
+      this.executableCode = `package main\n${this.imports}\n\nfunc main() {\nlog.SetOutput(os.Stdout)\n${formattedInnerScope}\n${this.outerScope}\n}\n`;
     }
 
     // define dir and mainFile as empty strings
@@ -130,7 +132,7 @@ export class Cell implements codebook.ExecutableCell {
     // set the mainExecutable to the bash script
     // this.mainExecutable = new codebook.Command('go', [this.config.execCmd, this.config.execFile], this.config.execPath);
 
-    if (this.config.execTypeTest) {
+    if (this.config.execType === 'test') {
       // if we're executing with a test, then we won't use the execFile in the command
       this.mainExecutable = new codebook.Command('go', [this.config.execCmd, ...this.config.execArgs], this.config.execPath);
     } else {
@@ -163,7 +165,7 @@ export class Cell implements codebook.ExecutableCell {
     });
 
     // if we're executing with a test, then we'll need to prepend the generate message and the build tag to the file contents
-    if (this.config.execTypeTest) {
+    if (this.config.execType === 'test') {
       this.mainExecutable.addBeforeExecuteFunc(() => {
         // prepend the generate message and the build tag to the file contents
         // read the file contents from the this.config.execFile
@@ -249,9 +251,8 @@ export class Config {
   contentConfig: codebook.CodeBlockConfig;
   execPath: string;
   execPathTest?: string; // Field for test-specific exec path
-  execTypeRun: boolean;
+  execType: string;
   execTypeRunConfig: { execPath: string; filename: string; };
-  execTypeTest: boolean;
   execTypeTestConfig: { execPath: string; filename: string; buildTag: string; };
   execFile: string;
   execFilename: string;
@@ -265,9 +266,8 @@ export class Config {
   constructor(goConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.go.output'), "//");
 
-    // Get the execution type configurations
-    this.execTypeRun = goConfig?.get<boolean>('execTypeRun') ?? true;
-    this.execTypeTest = goConfig?.get<boolean>('execTypeTest') ?? false;
+    // Get the execution type configuration
+    this.execType = goConfig?.get<string>('execType') ?? 'run';
 
     // Get the run configuration
     const runConfig = goConfig?.get<{ execPath: string; filename: string; }>('execTypeRunConfig') ?? {
@@ -307,7 +307,7 @@ export class Config {
         const match = command.match(/\.execTypeRunFilename\("([^"]+)"\)/);
         if (match) {
           this.execTypeRunConfig.filename = match[1];
-          if (this.execTypeRun) {
+          if (this.execType === 'run') {
             this.execFilename = match[1];
             this.execFile = path.join(this.execPath, match[1]);
           }
@@ -316,7 +316,7 @@ export class Config {
         const match = command.match(/\.execTypeTestFilename\("([^"]+)"\)/);
         if (match) {
           this.execTypeTestConfig.filename = match[1];
-          if (this.execTypeTest) {
+          if (this.execType === 'test') {
             this.execFilename = match[1];
             this.execFile = path.join(this.execPath, match[1]);
           }
@@ -325,12 +325,17 @@ export class Config {
         const match = command.match(/\.execTypeTestBuildTag\("([^"]+)"\)/);
         if (match) {
           this.execTypeTestConfig.buildTag = match[1];
-          if (this.execTypeTest) {
+          if (this.execType === 'test') {
             const tagIndex = this.execArgs.findIndex(arg => arg.startsWith('-tags='));
             if (tagIndex !== -1) {
               this.execArgs[tagIndex] = `-tags=${match[1]}`;
             }
           }
+        }
+      } else if (command.startsWith('.execType(')) {
+        const match = command.match(/\.execType\("([^"]+)"\)/);
+        if (match && (match[1] === 'run' || match[1] === 'test')) {
+          this.execType = match[1];
         }
       } else if (command.startsWith('.goimportsCmd(')) {
         const match = command.match(/\.goimportsCmd\("([^"]+)"\)/);
@@ -355,18 +360,17 @@ export class Config {
       if (cellSpecificConfig.execPathTest) {
         this.execPathTest = cellSpecificConfig.execPathTest;
       }
-      // Potentially override other settings from cellSpecificConfig if needed in the future
-      // For example, if execType was configurable per cell:
-      // if (cellSpecificConfig.execType) {
-      //   this.execTypeRun = cellSpecificConfig.execType === 'run';
-      //   this.execTypeTest = cellSpecificConfig.execType === 'test';
-      // }
+      // If execType is provided in cell config, use it
+      if (cellSpecificConfig.execType) {
+        this.execType = cellSpecificConfig.execType as string;
+      }
     }
 
-    if (this.execTypeTest) {
+    if (this.execType === 'test') {
       const currentFile = window.activeTextEditor?.document.fileName;
       const currentPath = path.dirname(currentFile ?? '');
-      this.execPkg = path.basename(currentPath);
+      // Use our new, improved package name formatter with the full path
+      this.execPkg = formatGoPackageName(this.execPathTest || this.execTypeTestConfig.execPath || currentPath);
       // Use execPathTest from cell config if available, otherwise use execTypeTestConfig.execPath or default to currentPath
       this.execPath = this.execPathTest && this.execPathTest.trim() !== '' ?
         this.execPathTest :
@@ -389,43 +393,123 @@ export class Config {
   }
 }
 
-// getDirAndMainFile takes the string to search (main string) and returns the directory and main file path for the go code using the
-// '// [>]execPath:[/dir/to/main.go]' keyword in a comment in the given string using one of 2 formats:
+// formatGoPackageName takes a path string and formats the folder name to be a valid Go package name
+// by extracting the actual directory name from any type of path and ensuring it's a valid Go identifier
+export const formatGoPackageName = (pathStr: string): string => {
+  console.log(`Determining package name from path: ${pathStr}`);
+
+  // Get the current editor's path as default
+  const currentFile = window.activeTextEditor?.document.fileName;
+  const currentPath = path.dirname(currentFile ?? '');
+  console.log(`Current editor directory: ${currentPath}`);
+
+  // Handle different path scenarios
+  let targetPath: string;
+
+  if (pathStr === '.') {
+    // Current directory
+    targetPath = currentPath;
+    console.log(`Path is '.', using current path: ${targetPath}`);
+  } else if (pathStr.startsWith('./') || pathStr.startsWith('../')) {
+    // Relative path
+    targetPath = path.resolve(currentPath, pathStr);
+    console.log(`Relative path detected, resolved to: ${targetPath}`);
+  } else if (path.isAbsolute(pathStr)) {
+    // Absolute path
+    targetPath = pathStr;
+    console.log(`Absolute path detected: ${targetPath}`);
+  } else {
+    // Simple directory name or unknown format
+    targetPath = path.resolve(currentPath, pathStr);
+    console.log(`Unknown path format, resolved to: ${targetPath}`);
+  }
+
+  // If the path points to a file, get its containing directory
+  if (path.extname(targetPath) !== '') {
+    const oldPath = targetPath;
+    targetPath = path.dirname(targetPath);
+    console.log(`Path pointed to a file (${oldPath}), using directory: ${targetPath}`);
+  }
+
+  // Extract just the folder name (not full path)
+  let packageName = path.basename(targetPath);
+  console.log(`Using folder name for package: ${packageName}`);
+
+  // Remove all dashes and underscores for Go package name compliance
+  const originalName = packageName;
+  packageName = packageName.replace(/[-_]/g, "");
+  if (originalName !== packageName) {
+    console.log(`Removed dashes/underscores: ${originalName} → ${packageName}`);
+  }
+
+  // Go package names must be valid identifiers, so ensure it starts with a letter
+  if (!/^[a-zA-Z]/.test(packageName)) {
+    packageName = "gotest" + packageName;
+    console.log(`Added 'gotest' prefix to ensure valid identifier: ${packageName}`);
+  }
+
+  console.log(`Final package name: ${packageName}`);
+  return packageName;
+};
+
+// getDirAndExecFile takes the string to search (main string) and returns the directory and main file path for the go code
+// using the '// [>]execPath:[/dir/to/main.go]' keyword in a comment in the given string using one of 2 formats:
 // 1. absolute path to the directory and main.go file (/path/to/dir/main.go)
 // 2. relative path to the directory and main.go file (./dir/main.go)
 export const getDirAndExecFile = (execPathFromConfig: string, execFilename: string): [string, string] => {
-  // [>]execPath:./apiplayground/main_temp.go
-  // split on the colon
+  console.log(`getDirAndExecFile execPathFromConfig: ${execPathFromConfig}, execFilename: ${execFilename}`);
+
+  // Split on the colon if it's a config string with format ".execPath:path"
   const parts = execPathFromConfig.split(':');
-
-  // Use the new ConsoleLogger for source-mapped logs
-  console.log(`getDirAndExecFile parts: ${parts} | execPathFromConfig: ${execPathFromConfig}`);
-
-  let execFileOrDir = execPathFromConfig;
+  let pathToResolve = execPathFromConfig;
   if (parts.length > 1) {
-    execFileOrDir = parts[1].trim();
+    pathToResolve = parts[1].trim();
+    console.log(`Found path specification: ${pathToResolve}`);
+  }
+
+  // Get the current editor's path as default
+  const currentFile = window.activeTextEditor?.document.fileName;
+  const currentPath = path.dirname(currentFile ?? '');
+  console.log(`Current editor directory: ${currentPath}`);
+
+  // Handle different path scenarios
+  let targetPath: string;
+
+  if (pathToResolve === '.') {
+    // Current directory
+    targetPath = currentPath;
+    console.log(`Path is '.', using current path: ${targetPath}`);
+  } else if (pathToResolve.startsWith('./') || pathToResolve.startsWith('../')) {
+    // Relative path
+    targetPath = path.resolve(currentPath, pathToResolve);
+    console.log(`Relative path detected, resolved to: ${targetPath}`);
+  } else if (path.isAbsolute(pathToResolve)) {
+    // Absolute path
+    targetPath = pathToResolve;
+    console.log(`Absolute path detected: ${targetPath}`);
+  } else {
+    // Simple directory name or unknown format
+    targetPath = path.resolve(currentPath, pathToResolve);
+    console.log(`Unknown path format, resolved to: ${targetPath}`);
   }
 
   let dir: string;
   let execFile: string;
 
-  // if the first part is a '.', then it is a relative path to a directory or file
-  if (execFileOrDir.startsWith('.')) {
-    const currentFile = window.activeTextEditor?.document.fileName;
-    const currentPath = path.dirname(currentFile ?? '');
-    execFileOrDir = path.join(currentPath, execFileOrDir.slice(execFileOrDir.startsWith('./') ? 2 : 1));
-  }
-
-  // Check if execFileOrDir is a directory or a file
-  // This is a simplified check; robust checking might require fs.statSync
-  if (path.extname(execFileOrDir) === '') { // Likely a directory
-    dir = execFileOrDir;
+  // Check if the path points to a file or directory
+  if (path.extname(targetPath) !== '') {
+    // It's a file path
+    dir = path.dirname(targetPath);
+    execFile = targetPath;
+    console.log(`Path points to a file. Directory: ${dir}, File: ${execFile}`);
+  } else {
+    // It's a directory path
+    dir = targetPath;
     execFile = path.join(dir, execFilename);
-  } else { // Likely a file
-    dir = path.dirname(execFileOrDir);
-    execFile = execFileOrDir;
+    console.log(`Path points to a directory. Directory: ${dir}, File: ${execFile}`);
   }
 
+  console.log(`Final paths - Directory: ${dir}, File: ${execFile}`);
   return [dir, execFile];
 };
 
