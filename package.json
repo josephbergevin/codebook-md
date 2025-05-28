@@ -30,7 +30,7 @@
     "sql",
     "rust"
   ],
-  "version": "0.17.2",
+  "version": "0.17.3",
   "categories": [
     "Notebooks",
     "Education",
@@ -102,7 +102,10 @@
           "properties": {
             "execType": {
               "type": "string",
-              "enum": ["run", "test"],
+              "enum": [
+                "run",
+                "test"
+              ],
               "default": "run",
               "description": "Execution type for Go code: 'run' uses execTypeRunConfig, 'test' uses execTypeTestConfig."
             },
