@@ -4,6 +4,24 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.3]
+
+### Fixed
+
+- Go code-block execution improvements:
+  - Fixed package name handling for both `execType: run` and `execType: test` modes
+  - Resolved double output issue in Go test execution
+  - Improved path resolution for Go package references
+  - Better error handling for invalid package names
+
+### Changed
+
+- Configuration UI enhancements:
+  - Streamlined code block configuration modal
+  - Removed redundant execution type options for non-Go languages
+  - Improved configuration hierarchy (cell-specific → workspace settings → defaults)
+  - Cleaner interface for language-specific settings
+
 ## [0.17.1]
 
 ### Added
