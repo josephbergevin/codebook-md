@@ -1,16 +1,106 @@
-import * as codebook from '../codebook';
-import { NotebookCell, WorkspaceConfiguration } from 'vscode';
+// Setup the mock for vscode first, before any imports
+jest.mock('vscode', () => {
+  const mockWorkspace = {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    getConfiguration: jest.fn().mockImplementation((_section) => {
+      return {
+        get: jest.fn().mockImplementation((key, defaultValue) => {
+          if (key === 'rootPath') return '';
+          if (key === 'notebookConfigPath') return '${notebookPath}.config.json';
+          return defaultValue;
+        }),
+        update: jest.fn()
+      };
+    }),
+    onDidOpenNotebookDocument: jest.fn(),
+    registerNotebookSerializer: jest.fn()
+  };
 
-jest.mock('vscode', () => ({
-  window: {
-    showInformationMessage: jest.fn(),
-  },
-  workspace: {
-    getConfiguration: jest.fn(() => ({
-      get: jest.fn(),
-      update: jest.fn(),
-    })),
-  },
+  return {
+    workspace: mockWorkspace,
+    window: {
+      showInformationMessage: jest.fn(),
+      showErrorMessage: jest.fn(),
+      showInputBox: jest.fn(),
+      createOutputChannel: jest.fn(() => ({
+        appendLine: jest.fn(),
+        show: jest.fn(),
+        clear: jest.fn(),
+        dispose: jest.fn()
+      }))
+    },
+    NotebookCellKind: { Markup: 1, Code: 2 },
+    languages: { registerHoverProvider: jest.fn() },
+    commands: { registerCommand: jest.fn() }
+  };
+});
+
+import * as codebook from '../codebook';
+import {
+  WorkspaceConfiguration, NotebookCell
+} from 'vscode';
+
+// Mock the config.ts module
+jest.mock('../config', () => ({
+  getExecPath: jest.fn().mockReturnValue('./codebook-md/'),
+  getLanguageExecPath: jest.fn().mockReturnValue('./codebook-md/'),
+  getCodebookMDExecPath: jest.fn().mockReturnValue('./codebook-md/'),
+  getBaseExecConfig: jest.fn().mockReturnValue({
+    deleteExecFileOnSuccess: true,
+    showExecutableCodeInOutput: true,
+    showOutputOnRun: true,
+    replaceOutputCell: true,
+    showTimestamp: true,
+    timestampTimezone: 'UTC'
+  }),
+  getGoConfig: jest.fn().mockReturnValue({
+    execType: 'run',
+    execTypeRunConfig: {
+      execPath: '.',
+      filename: 'main.go'
+    },
+    execTypeTestConfig: {
+      execPath: '.',
+      filename: 'codebook_md_exec_test.go',
+      buildTag: 'playground'
+    },
+    goimportsCmd: 'gopls imports'
+  }),
+  getPythonConfig: jest.fn().mockReturnValue({
+    pythonCmd: 'python3'
+  }),
+  getShellConfig: jest.fn().mockReturnValue({
+    execSingleLineAsCommand: false
+  }),
+  getSQLConfig: jest.fn().mockReturnValue({
+    execOptions: ''
+  }),
+  getHTTPConfig: jest.fn().mockReturnValue({
+    execCmd: 'curl',
+    execFilename: 'codebook_md_exec_http.sh',
+    verbose: true
+  })
+}));
+
+// Mock the entire cellConfig module
+jest.mock('../cellConfig', () => ({
+  loadNotebookConfig: jest.fn().mockImplementation(() => {
+    // Return a mock config for tests
+    return {
+      '0': {
+        config: {
+          output: {
+            showExecutableCodeInOutput: true
+          }
+        }
+      }
+    };
+  }),
+  getNotebookConfigPath: jest.fn().mockImplementation(() => {
+    return 'mockPath/notebook.md.config.json';
+  }),
+  saveNotebookConfig: jest.fn().mockImplementation(() => true),
+  migrateNotebookConfigToFile: jest.fn().mockImplementation(() => Promise.resolve(true)),
 }));
 
 describe('md.ts Test Suite', () => {

@@ -17,10 +17,26 @@ const vscode = {
     showTextDocument: jestMock.fn(),
   },
   workspace: {
-    getConfiguration: jestMock.fn(() => ({
-      get: jestMock.fn(),
-      update: jestMock.fn(),
-    })),
+    getConfiguration: jestMock.fn((section) => {
+      if (section === 'codebook-md') {
+        return {
+          get: jestMock.fn((key, defaultValue) => {
+            if (key === 'notebookConfigPath') {
+              return '${notebookPath}.config.json';
+            }
+            if (key === 'rootPath') {
+              return '';
+            }
+            return defaultValue;
+          }),
+          update: jestMock.fn(),
+        };
+      }
+      return {
+        get: jestMock.fn(),
+        update: jestMock.fn(),
+      };
+    }),
     openTextDocument: jestMock.fn(),
     workspaceFolders: [],
   },

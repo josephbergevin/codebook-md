@@ -1,4 +1,7 @@
-import { NotebookCell, workspace, WorkspaceEdit, Range, NotebookCellData, NotebookCellKind, NotebookEdit } from 'vscode';
+import { NotebookCell, workspace, Uri } from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
+import { writeDirAndFileSyncSafe } from './io';
 
 interface CellConfig {
   output?: Record<string, boolean | string>;
@@ -6,8 +9,7 @@ interface CellConfig {
 }
 
 /**
- * Save cell configuration to the notebook metadata
- * The configuration is stored in a markdown cell at the end of the notebook
+ * Save cell configuration to a separate JSON file instead of notebook metadata
  * 
  * @param notebookCell The notebook cell to save configuration for
  * @param config The configuration to save
@@ -24,173 +26,27 @@ export async function saveCellConfig(notebookCell: NotebookCell, config: CellCon
     const languageId = notebookCell.document.languageId;
 
     console.log(`Saving cell config for cell ${cellIndex} with language ${languageId}`);
-    console.log(`Config data: ${JSON.stringify(config)}`);    // Make sure the notebook has cells
-    if (notebookCell.notebook.cellCount === 0) {
-      console.error('Cannot save configuration: notebook has no cells');
+    console.log(`Config data: ${JSON.stringify(config)}`);
+
+    // Get the notebook URI
+    const notebookUri = notebookCell.notebook.uri;
+
+    // Load existing config from file (if any)
+    const existingConfig = loadNotebookConfig(notebookUri);
+
+    // Update with new config for this cell
+    const cellKey = cellIndex.toString();
+    existingConfig[cellKey] = { config };
+
+    // Save the updated config to the file
+    const saveSuccess = saveNotebookConfig(notebookUri, existingConfig);
+    if (!saveSuccess) {
+      console.error(`Failed to save configuration for cell ${cellIndex} with language ${languageId}`);
       return false;
     }
 
-    // Find the last cell that may contain the configurations
-    const lastCellIndex = notebookCell.notebook.cellCount - 1;
-    const lastCell = notebookCell.notebook.cellAt(lastCellIndex);
-
-    // Make sure the last cell exists and has a document
-    if (!lastCell || !lastCell.document) {
-      console.error('Cannot save configuration: last cell or document not available');
-      return false;
-    }
-
-    // Make sure we can write to the document
-    if (lastCell.document.isUntitled || lastCell.document.isDirty || lastCell.document.isClosed) {
-      console.error('Cannot save configuration: document is untitled, dirty, or closed');
-      return false;
-    }
-
-    const lastCellText = lastCell.document.getText();
-
-    // Check if we have a configuration cell already
-    const hasConfigCell = lastCellText.includes('<!-- CodebookMD Cell Configurations -->');
-    console.log(`Config cell exists: ${hasConfigCell}`);
-
-    // We'll prepare different configuration formats depending on whether the cell exists
-    // This is handled in the respective code branches below
-
-    try {
-      // Get the workspace edit API
-      const workspaceEdit = new WorkspaceEdit(); if (hasConfigCell) {
-        // Update existing config cell
-        // First check for HTML script format (preferred format)
-        const scriptMatch = lastCellText.match(/<script type="application\/json">([\s\S]*?)<\/script>/);
-        // Then check for markdown code block format (legacy format) if script format is not found
-        const markdownMatch = !scriptMatch ? lastCellText.match(/```json\s*\n([\s\S]*?)\n```/) : null;
-
-        const configMatch = scriptMatch || markdownMatch;
-
-        if (configMatch) {
-          try {
-            // Parse existing config
-            let existingConfig;
-            try {
-              existingConfig = JSON.parse(configMatch[1]);
-            } catch (jsonParseError) {
-              console.error('Error parsing existing cell config JSON:', jsonParseError);
-              console.log('Invalid JSON content:', configMatch[1]);
-
-              // Create a new config object if parsing fails
-              existingConfig = {};
-            }
-
-            // Update with new config for this cell
-            const cellKey = cellIndex.toString();
-            existingConfig[cellKey] = { config };
-
-            // Create updated config cell content
-            let updatedContent;
-
-            if (markdownMatch) {
-              // Convert from markdown code block format to HTML script format
-              updatedContent = lastCellText.replace(
-                /```json\s*\n([\s\S]*?)\n```/,
-                `<script type="application/json">\n${JSON.stringify(existingConfig, null, 2)}\n</script>`
-              );
-            } else {
-              // Update existing script format
-              updatedContent = lastCellText.replace(
-                /<script type="application\/json">([\s\S]*?)<\/script>/,
-                `<script type="application/json">\n${JSON.stringify(existingConfig, null, 2)}\n</script>`
-              );
-            }
-
-            console.log(`Updating config for cell ${cellIndex}, language ${languageId}`, existingConfig);
-
-            // Apply edit
-            workspaceEdit.replace(
-              lastCell.document.uri,
-              new Range(0, 0, lastCell.document.lineCount, 0),
-              updatedContent
-            );
-          } catch (parseError) {
-            console.error('Error parsing existing config:', parseError);
-            console.log('Last cell text:', lastCellText);
-            return false;
-          }
-        }
-      } else {
-        // Create a new config cell at the end of notebook
-        // Using HTML script tag in markdown to hide the JSON when rendered
-        const scriptConfig: Record<string, { config: CellConfig; }> = {};
-        const cellKey = cellIndex.toString();
-        scriptConfig[cellKey] = { config };
-
-        const configCellContent =
-          '<!-- CodebookMD Cell Configurations -->\n' +
-          '<!-- DO NOT EDIT -->\n' +
-          '<div style="display: none;">\n' +
-          '  <script type="application/json">\n' +
-          JSON.stringify(scriptConfig, null, 2) +
-          '\n  </script>\n' +
-          '</div>';
-
-        try {
-          // Create and prepare a workspace edit
-          const workspaceEdit = new WorkspaceEdit();
-
-          // We need to create a new markdown cell at the end of the notebook
-          // First, get the notebook document URI
-          const notebookUri = notebookCell.notebook.uri;
-
-          // Create a new markdown cell with the configuration content
-          // Create NotebookCellData
-          const cellData: NotebookCellData = {
-            kind: NotebookCellKind.Markup, // Markdown cell
-            value: configCellContent,
-            languageId: 'markdown'
-          };
-
-          // Create a NotebookEdit to insert a cell at the end of the notebook
-          const notebookEdit = NotebookEdit.insertCells(
-            notebookCell.notebook.cellCount,
-            [cellData]
-          );
-
-          // Add the edit to the WorkspaceEdit
-          workspaceEdit.set(notebookUri, [notebookEdit]);
-
-          // Apply the edit
-          const editSuccess = await workspace.applyEdit(workspaceEdit);
-          if (!editSuccess) {
-            console.error('Failed to add configuration cell. Cell index:', cellIndex, 'Language:', languageId);
-            return false;
-          }
-
-          console.log('Successfully created new configuration cell for cell', cellIndex);
-          return true;
-        } catch (newCellError) {
-          console.error('Error creating configuration cell:', newCellError);
-          return false;
-        }
-      }
-
-      // Apply the edits (only reached when updating an existing config cell)
-      const editSuccess = await workspace.applyEdit(workspaceEdit);
-      if (!editSuccess) {
-        console.error('Failed to apply workspace edit. Cell index:', cellIndex, 'Language:', languageId);
-        return false;
-      }
-
-      console.log('Successfully saved configuration for cell', cellIndex);
-
-      return true;
-    } catch (editError) {
-      console.error('Error applying edits:', editError);
-      console.log('Failed operation details:', {
-        cellIndex: cellIndex,
-        languageId: languageId,
-        hasConfigCell: hasConfigCell,
-        notebookUri: notebookCell.notebook?.uri.toString()
-      });
-      return false;
-    }
+    console.log(`Successfully saved configuration for cell ${cellIndex} to config file`);
+    return true;
   } catch (error: unknown) {
     console.error('Error saving cell configuration:', error);
     console.log('Failed operation details:', {
@@ -333,6 +189,137 @@ export function getOutputConfigOptions(): ConfigOptions {
       description: 'Timezone to use for the timestamp.'
     }
   };
+}
+
+/**
+ * Get the notebook configuration file path for a given notebook
+ * 
+ * @param notebookUri The URI of the notebook
+ * @returns The path to the notebook configuration file
+ */
+export function getNotebookConfigPath(notebookUri: Uri): string {
+  // Get the setting for the notebook config path
+  const notebookConfigPathPattern = workspace.getConfiguration('codebook-md').get<string>('notebookConfigPath', '${notebookPath}.config.json');
+
+  // Replace ${notebookPath} with the actual notebook path
+  const notebookPath = notebookUri.fsPath;
+  const configPath = notebookConfigPathPattern.replace('${notebookPath}', notebookPath);
+
+  return configPath;
+}
+
+/**
+ * Load notebook configuration from the configuration file
+ * 
+ * @param notebookUri The URI of the notebook
+ * @returns The notebook configuration or an empty object if no configuration exists
+ */
+export function loadNotebookConfig(notebookUri: Uri): Record<string, { config: CellConfig; }> {
+  const configPath = getNotebookConfigPath(notebookUri);
+
+  try {
+    if (fs.existsSync(configPath)) {
+      const configContent = fs.readFileSync(configPath, 'utf8');
+      return JSON.parse(configContent);
+    }
+  } catch (error) {
+    console.error(`Error loading notebook config from ${configPath}:`, error);
+  }
+
+  return {};
+}
+
+/**
+ * Save notebook configuration to the configuration file
+ * 
+ * @param notebookUri The URI of the notebook
+ * @param config The notebook configuration to save
+ * @returns True if successful, false otherwise
+ */
+export function saveNotebookConfig(notebookUri: Uri, config: Record<string, { config: CellConfig; }>): boolean {
+  try {
+    const configPath = getNotebookConfigPath(notebookUri);
+    const configDir = path.dirname(configPath);
+
+    writeDirAndFileSyncSafe(configDir, configPath, JSON.stringify(config, null, 2));
+    return true;
+  } catch (error) {
+    console.error('Error saving notebook config:', error);
+    return false;
+  }
+}
+
+/**
+ * Migrate existing notebook configuration from the notebook cell to the config file
+ * 
+ * @param notebookCell A cell from the notebook to migrate
+ * @returns True if migration was successful or not needed, false if migration failed
+ */
+export async function migrateNotebookConfigToFile(notebookCell: NotebookCell): Promise<boolean> {
+  try {
+    if (!notebookCell.notebook) {
+      console.error('Notebook not found for migration');
+      return false;
+    }
+
+    const notebook = notebookCell.notebook;
+    const lastCellIndex = notebook.cellCount - 1;
+
+    // If no cells, nothing to migrate
+    if (lastCellIndex < 0) {
+      return true;
+    }
+
+    // Find the last cell that may contain the configurations
+    const lastCell = notebook.cellAt(lastCellIndex);
+
+    // If no last cell, nothing to migrate
+    if (!lastCell || !lastCell.document) {
+      return true;
+    }
+
+    const lastCellText = lastCell.document.getText();
+
+    // Check if we have a configuration cell
+    if (!lastCellText.includes('<!-- CodebookMD Cell Configurations -->')) {
+      return true; // No configuration cell, nothing to migrate
+    }
+
+    try {
+      // First try to extract the JSON configuration from HTML script tag format
+      let jsonMatch = lastCellText.match(/<script type="application\/json">([\s\S]*?)<\/script>/);
+
+      // If not found, try the markdown code block format
+      if (!jsonMatch || !jsonMatch[1]) {
+        jsonMatch = lastCellText.match(/```json\s*\n([\s\S]*?)\n```/);
+        if (!jsonMatch || !jsonMatch[1]) {
+          console.log('No valid JSON configuration found in notebook cell');
+          return true; // No valid JSON, nothing to migrate
+        }
+      }
+
+      // Parse the JSON configuration
+      const cellConfigs = JSON.parse(jsonMatch[1].trim());
+
+      // Save configuration to the JSON file
+      const notebookUri = notebook.uri;
+      const saveSuccess = saveNotebookConfig(notebookUri, cellConfigs);
+
+      if (!saveSuccess) {
+        console.error('Failed to save migrated configuration to file');
+        return false;
+      }
+
+      console.log('Successfully migrated notebook configuration to JSON file');
+      return true;
+    } catch (parseError) {
+      console.error('Error parsing configuration cell during migration:', parseError);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error during notebook config migration:', error);
+    return false;
+  }
 }
 
 // Functions are exported individually

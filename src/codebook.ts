@@ -964,53 +964,34 @@ export class CodeBlockConfig {
   }
 }
 
-// getCellConfig finds the cell configuration for the given 
+// getCellConfig finds the cell configuration for the given cell
 export function getCellConfig(notebookCell: NotebookCell): any {
   // Check if the notebook property is defined
   if (!notebookCell.notebook) {
     return null;
   }
 
-  const lastCellIndex = notebookCell.notebook.cellCount - 1;
   const cellIndex = notebookCell.index;
+  const notebookUri = notebookCell.notebook.uri;
 
-  // Find the last cell that may contain the configurations
-  const lastCell = notebookCell.notebook.cellAt(lastCellIndex);
-  // If the current cell is the last one, no configurations would apply to it
-  if (cellIndex === lastCellIndex) {
-    return null;
-  }
+  try {
+    // Import the loadNotebookConfig function from cellConfig.ts
+    // We need to use require here to avoid circular dependencies
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const cellConfigModule = require('./cellConfig');
 
-  // Check if the last cell contains the configuration marker
-  const lastCellText = lastCell.document.getText();
-  if (!lastCellText.includes('<!-- CodebookMD Cell Configurations -->')) {
-    return null;
-  } try {
-    // First try to extract the JSON configuration from HTML script tag format (preferred format)
-    let jsonMatch = lastCellText.match(/<script type="application\/json">([\s\S]*?)<\/script>/);
-
-    // If not found, try the markdown code block format (legacy format)
-    if (!jsonMatch || !jsonMatch[1]) {
-      jsonMatch = lastCellText.match(/```json\s*\n([\s\S]*?)\n```/);
-      if (!jsonMatch || !jsonMatch[1]) {
-        console.error('No JSON configuration found in CodebookMD Cell Configurations');
-        return null;
-      }
-    }
-
-    // Parse the JSON configuration
-    const cellConfigs = JSON.parse(jsonMatch[1].trim());
+    // Load notebook configuration from file
+    const cellConfigs = cellConfigModule.loadNotebookConfig(notebookUri);
 
     // Look for a configuration for the current cell index
     if (cellConfigs[cellIndex.toString()]) {
       return cellConfigs[cellIndex.toString()].config;
     }
 
-    console.log(`No configuration found for cell index ${cellIndex}`, cellConfigs);
-
+    console.log(`No configuration found for cell index ${cellIndex}`);
     return null;
   } catch (error) {
-    console.error('Error parsing cell configuration:', error);
+    console.error('Error retrieving cell configuration:', error);
     return null;
   }
 }

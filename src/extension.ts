@@ -287,6 +287,25 @@ export function activate(context: ExtensionContext) {
     }
   };
 
+  // Add an event listener for notebook document opening to migrate configurations
+  const notebookOpenListener = workspace.onDidOpenNotebookDocument(async (notebook) => {
+    if (notebook.notebookType === 'codebook-md' && notebook.cellCount > 0) {
+      try {
+        console.log('Attempting to migrate notebook config to file if needed');
+        // Use the first cell for migration since we just need the notebook reference
+        const firstCell = notebook.cellAt(0);
+        // Import the migrateNotebookConfigToFile function from cellConfig.ts
+        // We need to use require here to avoid circular dependencies
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const cellConfigModule = require('./cellConfig');
+        await cellConfigModule.migrateNotebookConfigToFile(firstCell);
+      } catch (error) {
+        console.error('Error during notebook config migration:', error);
+      }
+    }
+  });
+  context.subscriptions.push(notebookOpenListener);
+
   const notebookSettings = {
     transientOutputs: true,
     transientCellMetadata: {
