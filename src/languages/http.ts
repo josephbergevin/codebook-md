@@ -31,7 +31,9 @@ export class Cell implements codebook.ExecutableCell {
     // Form the executable code as a bash script that will execute the curl command
     this.executableCode = "#!/bin/bash\n\n";
     this.executableCode += "set -e\n\n";
+    this.executableCode += `echo "${codebook.StartOutput}"\n`;
     this.executableCode += curlCommand;
+    this.executableCode += `\necho "${codebook.EndOutput}"`;
 
     // Set the execCmd and execArgs to execute the bash script
     this.execCmd = 'bash';

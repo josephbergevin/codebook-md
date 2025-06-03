@@ -20,8 +20,8 @@ export class Cell implements codebook.ExecutableCell {
     // form the innerScope with lines that don't start with # or set -e
     this.innerScope = codebook.ProcessNotebookCell(notebookCell, "#");
 
-    // form the executable code
-    this.executableCode = this.innerScope;
+    // form the executable code with output markers for proper output capture
+    this.executableCode = `console.log("${codebook.StartOutput}");\n${this.innerScope}\nconsole.log("${codebook.EndOutput}");`;
 
     // set the mainExecutable using the ts-node command
     this.mainExecutable = new codebook.Command('ts-node', [this.config.execFile], this.config.execPath);

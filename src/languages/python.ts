@@ -20,8 +20,8 @@ export class Cell implements codebook.ExecutableCell {
     // form the innerScope, skipping lines that start with the python comment character #
     this.innerScope = codebook.ProcessNotebookCell(notebookCell, "#");
 
-    // form the executable code
-    this.executableCode = this.innerScope;
+    // form the executable code with output markers for proper output capture
+    this.executableCode = `print("${codebook.StartOutput}")\n${this.innerScope}\nprint("${codebook.EndOutput}")`;
 
     // set the mainExecutable to the python command
     this.mainExecutable = new codebook.Command(this.config.execCmd, [this.config.execFile], this.config.execPath);

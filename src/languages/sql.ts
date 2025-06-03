@@ -38,7 +38,9 @@ export class Cell implements codebook.ExecutableCell {
     // form the executable code as a bash script that will execute the sql code from a file
     this.executableCode = "#!/bin/bash\n\n";
     this.executableCode += "set -e\n\n";
+    this.executableCode += `echo "${codebook.StartOutput}"\n`;
     this.executableCode += this.config.execCmd + " " + this.config.execOptions.join(" ");
+    this.executableCode += `\necho "${codebook.EndOutput}"`;
 
     // set the execCmd and execArgs to execute the bash script
     this.execCmd = 'bash';
@@ -61,7 +63,7 @@ export class Cell implements codebook.ExecutableCell {
         postExecutable.setCommandToDisplay(sqlStatement);
         postExecutable.addBeforeExecuteFunc(() => {
           try {
-            const sqlCliCommand = "#!/bin/bash\n\nset -e\n\n" + this.config.execCmd + " " + this.config.execOptions.join(" ") + " -e " + '"' + sqlStatement + '"';
+            const sqlCliCommand = "#!/bin/bash\n\nset -e\n\n" + `echo "${codebook.StartOutput}"\n` + this.config.execCmd + " " + this.config.execOptions.join(" ") + " -e " + '"' + sqlStatement + '"' + `\necho "${codebook.EndOutput}"`;
             io.writeDirAndFileSyncSafe(this.config.execPath, this.config.execFile, sqlCliCommand);
           } catch (error) {
             console.error("error writing file: ", error);
