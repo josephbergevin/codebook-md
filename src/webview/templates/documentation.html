@@ -86,6 +86,7 @@
         <li><a href="#dynamic-folders">Dynamic Folders (Current Context)</a></li>
         <li><a href="#executable-code">Executable Code Blocks</a></li>
         <li><a href="#codeblock-config">CodeBlock Configuration</a></li>
+        <li><a href="#custom-cellconfig">Custom CellConfig JSON Files</a></li>
         <li><a href="#output-config">Output Configuration</a></li>
         <li><a href="#file-links">File Links &amp; Hover Preview</a></li>
         <li><a href="#custom-settings">Custom Settings</a></li>
@@ -792,6 +793,137 @@ Authorization: Bearer {{YOUR_TOKEN}}
           <li>Format JSON and XML bodies for readability</li>
           <li>Group related requests together</li>
           <li>Use environment variables or placeholders for tokens and sensitive data</li>
+        </ul>
+      </section>
+
+      <section id="custom-cellconfig">
+        <h2>Custom CellConfig JSON Files</h2>
+        <p>CodebookMD now supports storing cell configurations in separate JSON files instead of embedding them in notebook metadata. This provides better version control, easier sharing, and cleaner notebook files.</p>
+        
+        <h3>Key Features</h3>
+        <ul>
+          <li><span class="feature-highlight">External Configuration Storage:</span> Store cell configurations in dedicated JSON files</li>
+          <li><span class="feature-highlight">Configurable Location:</span> Customize where configuration files are stored</li>
+          <li><span class="feature-highlight">Version Control Friendly:</span> Configuration files can be easily tracked in version control</li>
+          <li><span class="feature-highlight">Per-Notebook Configuration:</span> Each notebook has its own configuration file</li>
+          <li><span class="feature-highlight">Language-Specific Settings:</span> Store detailed configuration for each programming language</li>
+        </ul>
+        
+        <h3>How It Works</h3>
+        <p>When you configure a code block using the configuration modal, the settings are automatically saved to a JSON file rather than being embedded in the notebook's metadata. This keeps your notebook files clean while preserving all customization options.</p>
+        
+        <h3>Configuration File Location</h3>
+        <p>By default, configuration files are stored in a <code>codebook-md/</code> directory relative to your notebook. You can customize this location in VS Code settings:</p>
+        <pre><code>{
+  "codebook-md.notebookConfigPath": "./codebook-md/"
+}</code></pre>
+        
+        <h4>Supported Path Types</h4>
+        <ul>
+          <li><strong>Relative Paths:</strong> <code>./config/</code> or <code>../shared-config/</code> - Resolved relative to the notebook's directory</li>
+          <li><strong>Absolute Paths:</strong> <code>/usr/local/codebook-configs/</code> - Use absolute filesystem paths</li>
+        </ul>
+        
+        <h3>Configuration File Structure</h3>
+        <p>Configuration files are named <code>&lt;notebook-name&gt;.config.json</code> and contain cell-specific configurations:</p>
+        <pre><code>{
+  "0": {
+    "config": {
+      "output": {
+        "showExecutableCodeInOutput": true,
+        "showOutputOnRun": true,
+        "replaceOutputCell": false,
+        "showTimestamp": true,
+        "timestampTimezone": "America/New_York"
+      },
+      "execType": "run",
+      "pythonCmd": "python3"
+    }
+  },
+  "2": {
+    "config": {
+      "output": {
+        "showTimestamp": false
+      },
+      "execSingleLineAsCommand": true
+    }
+  }
+}</code></pre>
+        
+        <h4>Configuration Structure</h4>
+        <ul>
+          <li><strong>Cell Index Keys:</strong> Each top-level key corresponds to a cell's index in the notebook (0-based)</li>
+          <li><strong>Config Object:</strong> Contains all configuration options for that specific cell</li>
+          <li><strong>Output Settings:</strong> Control how execution results are displayed</li>
+          <li><strong>Language-Specific Options:</strong> Include settings specific to the cell's programming language</li>
+        </ul>
+        
+        <h3>Using Custom CellConfig</h3>
+        <h4>Automatic Configuration</h4>
+        <p>Configuration files are created and managed automatically:</p>
+        <ol>
+          <li>Open any code block's configuration modal by clicking the gear icon</li>
+          <li>Adjust your settings using the intuitive interface</li>
+          <li>Click "Save Configuration" to apply changes</li>
+          <li>Settings are automatically saved to the appropriate JSON file</li>
+        </ol>
+        
+        <h4>Manual Configuration</h4>
+        <p>Advanced users can directly edit configuration files:</p>
+        <ol>
+          <li>Navigate to your configured <code>notebookConfigPath</code> directory</li>
+          <li>Open the <code>&lt;notebook-name&gt;.config.json</code> file</li>
+          <li>Edit the JSON structure to add or modify cell configurations</li>
+          <li>Save the file - changes will be automatically applied</li>
+        </ol>
+        
+        <h3>Configuration Options by Language</h3>
+        <p>Each programming language supports specific configuration options. Here are some common examples:</p>
+        
+        <h4>Go Configuration</h4>
+        <pre><code>"config": {
+  "execType": "test",
+  "execTypeTestConfig": {
+    "execPath": "./tests",
+    "filename": "my_test.go",
+    "buildTag": "integration"
+  },
+  "goimportsCmd": "goimports"
+}</code></pre>
+        
+        <h4>Python Configuration</h4>
+        <pre><code>"config": {
+  "pythonCmd": "python3.11",
+  "output": {
+    "showExecutableCodeInOutput": false,
+    "showTimestamp": true
+  }
+}</code></pre>
+        
+        <h4>Bash/Shell Configuration</h4>
+        <pre><code>"config": {
+  "execSingleLineAsCommand": true,
+  "output": {
+    "replaceOutputCell": true
+  }
+}</code></pre>
+        
+        <h3>Benefits</h3>
+        <ul>
+          <li><span class="feature-highlight">Cleaner Notebooks:</span> Keep notebook files focused on content, not configuration</li>
+          <li><span class="feature-highlight">Better Collaboration:</span> Share configuration files with team members</li>
+          <li><span class="feature-highlight">Version Control:</span> Track configuration changes over time</li>
+          <li><span class="feature-highlight">Reusable Settings:</span> Copy configuration files between similar notebooks</li>
+          <li><span class="feature-highlight">Backup and Restore:</span> Easily backup and restore notebook configurations</li>
+        </ul>
+        
+        <h3>Best Practices</h3>
+        <ul>
+          <li><strong>Use Relative Paths:</strong> Keep configuration files close to notebooks for better portability</li>
+          <li><strong>Version Control:</strong> Include configuration files in your repository to share settings with team members</li>
+          <li><strong>Consistent Naming:</strong> Use descriptive notebook names as configuration files inherit the notebook name</li>
+          <li><strong>Regular Cleanup:</strong> Remove configuration files for deleted notebooks to keep directories clean</li>
+          <li><strong>Documentation:</strong> Comment complex configurations in team documentation</li>
         </ul>
       </section>
 
