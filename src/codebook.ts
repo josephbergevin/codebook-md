@@ -818,27 +818,6 @@ export function newCodeDocumentCurrentFile(): CodeDocument {
   return new CodeDocument(fileName, fileName, 0, 0, path.extname(fileName).substring(1));
 }
 
-
-// function newCodeDocumentCurrentFile = (): string => {
-//     let fileName = window.activeTextEditor?.document.fileName;
-//     if (fileName === undefined) {
-//         // post a warning message if the file is undefined
-//         window.showWarningMessage("No active file found, trying again...");
-//         // wait 2 seconds and try again
-//         setTimeout(() => {
-//             fileName = window.activeTextEditor?.document.fileName;
-//         }, 2000);
-
-//         if (fileName === undefined) {
-//             // post an error message if the file is still undefined
-//             window.showErrorMessage("No active file found, exiting...");
-//             return "";
-//         }
-//     }
-
-//     return path.dirname(fileName);
-// };
-
 // notebookCellToInnerScope returns the innerScope of a notebook cell, removing 
 // 1. any lines that start with the given prefixes
 // 2. any lines that are empty

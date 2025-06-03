@@ -146,7 +146,7 @@ export class Cell implements codebook.ExecutableCell {
         // notify in vscode with the execPath val
         [this.config.execPath, this.config.execFile] = getDirAndExecFile(this.config.execPath, this.config.execFilename);
         // log out a message in vscode to indicate we're using go setting
-        window.showInformationMessage('found execPath: ' + this.config.execPath, 'executing from: ' + this.config.execFile);
+        console.log('found execPath: ' + this.config.execPath, 'executing from: ' + this.config.execFile);
       }
 
       // Use the new ConsoleLogger for source-mapped logs
