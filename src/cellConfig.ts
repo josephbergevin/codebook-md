@@ -198,12 +198,26 @@ export function getOutputConfigOptions(): ConfigOptions {
  * @returns The path to the notebook configuration file
  */
 export function getNotebookConfigPath(notebookUri: Uri): string {
-  // Get the setting for the notebook config path
-  const notebookConfigPathPattern = workspace.getConfiguration('codebook-md').get<string>('notebookConfigPath', '${notebookPath}.config.json');
+  // Get the setting for the notebook config directory
+  const notebookConfigDir = workspace.getConfiguration('codebook-md').get<string>('notebookConfigPath', './codebook-md/');
 
-  // Replace ${notebookPath} with the actual notebook path
+  // Get the notebook filename and create config filename
   const notebookPath = notebookUri.fsPath;
-  const configPath = notebookConfigPathPattern.replace('${notebookPath}', notebookPath);
+  const notebookFilename = path.basename(notebookPath);
+  const configFilename = `${notebookFilename}.config.json`;
+
+  // Resolve the config directory path properly
+  let resolvedConfigDir: string;
+  if (path.isAbsolute(notebookConfigDir)) {
+    resolvedConfigDir = notebookConfigDir;
+  } else {
+    // For relative paths, resolve relative to the notebook's directory
+    const notebookDir = path.dirname(notebookPath);
+    resolvedConfigDir = path.resolve(notebookDir, notebookConfigDir);
+  }
+
+  // Combine the directory and filename
+  const configPath = path.join(resolvedConfigDir, configFilename);
 
   return configPath;
 }

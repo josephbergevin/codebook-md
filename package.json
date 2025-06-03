@@ -53,10 +53,10 @@
           "scope": "window"
         },
         "codebook-md.notebookConfigPath": {
-          "description": "Path pattern for notebook configuration files. Default is the same location as the notebook with a .config.json extension.",
+          "description": "Directory path where notebook configuration files will be stored. Configuration files are named with the notebook filename + '.config.json'.",
           "type": "string",
           "scope": "window",
-          "default": "${notebookPath}.config.json"
+          "default": "./codebook-md/"
         },
         "codebook-md.execPath": {
           "description": "Path where temporary exec-related file(s) will be stored.",
