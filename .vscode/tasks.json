@@ -26,6 +26,14 @@
 			"problemMatcher": ["$tsc"]
 		},
     {
+			"label": "npm run test",
+			"detail": "Calls npm run test",
+			"type": "shell",
+			"command": "npm",
+			"args": ["run", "test"],
+			"problemMatcher": ["$tsc"]
+		},
+    {
 			"label": "npm run compile",
 			"detail": "Calls npm run compile",
 			"type": "shell",
