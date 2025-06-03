@@ -4,6 +4,32 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.4]
+
+### Added
+
+- Custom CellConfig JSON Files functionality
+  - External configuration storage in dedicated JSON files instead of notebook metadata
+  - Configurable storage location via `codebook-md.notebookConfigPath` setting
+  - Per-notebook configuration files named `<notebook-name>.config.json`
+  - Support for all language-specific configuration options in external files
+  - Automatic migration from embedded notebook configurations
+  - Enhanced documentation for configuration file management
+
+### Changed
+
+- Cell configurations now stored externally by default for better version control
+- Improved configuration file structure with cell index-based organization
+- Enhanced configuration modal to work seamlessly with external JSON files
+- Updated documentation with comprehensive CellConfig JSON Files section
+
+### Benefits
+
+- Cleaner notebook files without embedded configuration metadata
+- Better collaboration through shareable configuration files
+- Enhanced version control support for configuration tracking
+- Easier backup and restoration of notebook settings
+
 ## [0.17.3]
 
 ### Fixed
