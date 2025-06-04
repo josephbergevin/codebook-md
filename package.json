@@ -53,10 +53,9 @@
           "scope": "window"
         },
         "codebook-md.notebookConfigPath": {
-          "description": "Directory path where notebook configuration files will be stored. Configuration files are named with the notebook filename + '.config.json'.",
+          "description": "Directory path where notebook configuration files will be stored. Configuration files are named with the notebook filename + '.config.json'. If not set, defaults to the same value as execPath.",
           "type": "string",
-          "scope": "window",
-          "default": "./codebook-md/"
+          "scope": "window"
         },
         "codebook-md.execPath": {
           "description": "Path where temporary exec-related file(s) will be stored.",
