@@ -168,9 +168,10 @@ async function runExecutable(
 
     let errorText = "";
     let fullOutput = displayOutput;
-    // Initialize to false to prevent duplicate outputs - only capture after StartOutput marker
-    // This fixes an issue where Go code outputs would appear twice
-    let isCapturingOutput = false;
+    // Initialize to true for shell scripts to ensure we capture all output
+    // Special handling for Go code which needs the StartOutput marker
+    const executableString = executable.toString().toLowerCase();
+    let isCapturingOutput = !executableString.includes('go run') && !executableString.includes('go build');
 
     output.stderr.on("data", (data: Uint8Array) => {
       const text = data.toString();
