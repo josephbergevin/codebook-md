@@ -179,6 +179,25 @@ export class Cell implements codebook.ExecutableCell {
           writeFileSync(this.config.execFile, fileContents);
         });
       });
+
+      // Add output transformer to filter out Go test-specific output lines
+      this.mainExecutable.addOutputTransformer((output: string) => {
+        // Filter out common test output lines that we don't want to display
+        const linesToFilter = [
+          'RUN',         // Matches "RUN TestExecNotebook"
+          'PASS',        // Matches "PASS" output line
+          '--- PASS:',   // Matches "--- PASS: TestExecNotebook"
+          'ok  \t',      // Matches "ok   [package path]"
+          '=== RUN',     // Matches "=== RUN   TestExecNotebook"
+          'FAIL\t',      // Matches "FAIL [package path]"
+          'exit status'  // Matches "exit status 1"
+        ];
+
+        // Split by lines, filter out unwanted lines, and rejoin
+        return output.split('\n')
+          .filter(line => !linesToFilter.some(filterStr => line.includes(filterStr)))
+          .join('\n');
+      });
     }
 
     // Add output filtering if prefixes are configured
