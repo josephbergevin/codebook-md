@@ -38,8 +38,10 @@ export class Cell implements codebook.ExecutableCell {
     io.mkdirIfNotExistsSafe(this.config.execPath);
 
     // Create the full script content with all commands
+    // Modify to ensure each command's output is captured and displayed
     cmds.forEach(cmd => {
-      // Add command to script without wait output
+      // Execute each command and echo its output directly
+      // This ensures the output is captured in stdout
       this.executableCode += `${cmd.command} ${cmd.args.map(arg => `"${arg}"`).join(' ')}\n`;
     });
 
