@@ -198,8 +198,16 @@ export function getOutputConfigOptions(): ConfigOptions {
  * @returns The path to the notebook configuration file
  */
 export function getNotebookConfigPath(notebookUri: Uri): string {
-  // Get the setting for the notebook config directory
-  const notebookConfigDir = workspace.getConfiguration('codebook-md').get<string>('notebookConfigPath', './codebook-md/');
+  // Get the configuration settings
+  const config = workspace.getConfiguration('codebook-md');
+
+  // Get notebookConfigPath setting, but if not explicitly set, use execPath as default
+  let notebookConfigDir = config.get<string>('notebookConfigPath');
+
+  // If notebookConfigPath is not set, fall back to execPath
+  if (!notebookConfigDir) {
+    notebookConfigDir = config.get<string>('execPath', './codebook-md/');
+  }
 
   // Get the notebook filename and create config filename
   const notebookPath = notebookUri.fsPath;

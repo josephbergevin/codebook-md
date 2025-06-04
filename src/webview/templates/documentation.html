@@ -813,10 +813,12 @@ Authorization: Bearer {{YOUR_TOKEN}}
         <p>When you configure a code block using the configuration modal, the settings are automatically saved to a JSON file rather than being embedded in the notebook's metadata. This keeps your notebook files clean while preserving all customization options.</p>
         
         <h3>Configuration File Location</h3>
-        <p>By default, configuration files are stored in a <code>codebook-md/</code> directory relative to your notebook. You can customize this location in VS Code settings:</p>
+        <p>By default, configuration files are stored in the same directory as specified by your <code>execPath</code> setting. You can customize this location independently in VS Code settings:</p>
         <pre><code>{
-  "codebook-md.notebookConfigPath": "./codebook-md/"
+  "codebook-md.notebookConfigPath": "./config/"
 }</code></pre>
+        
+        <p>If <code>notebookConfigPath</code> is not set, it will automatically use the same value as your <code>execPath</code> setting, ensuring configuration files are stored alongside other CodebookMD generated files.</p>
         
         <h4>Supported Path Types</h4>
         <ul>
