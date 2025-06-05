@@ -344,4 +344,69 @@ export async function migrateNotebookConfigToFile(notebookCell: NotebookCell): P
   }
 }
 
+/**
+ * Updates notebook configuration indices when cells are added or removed
+ *
+ * @param notebookUri The URI of the notebook
+ * @param changeType 'insert' or 'delete'
+ * @param startIndex The index where the change occurred
+ * @param count The number of cells affected
+ * @returns True if the update was successful, false otherwise
+ */
+export function updateNotebookConfigIndices(
+  notebookUri: Uri,
+  changeType: 'insert' | 'delete',
+  startIndex: number,
+  count: number
+): boolean {
+  try {
+    // Load existing configuration
+    const existingConfig = loadNotebookConfig(notebookUri);
+
+    if (Object.keys(existingConfig).length === 0) {
+      // No configuration to update
+      return true;
+    }
+
+    // Create a new configuration object
+    const newConfig: Record<string, { config: CellConfig; }> = {};
+
+    // Process each configuration entry
+    Object.entries(existingConfig).forEach(([indexStr, value]) => {
+      const cellIndex = parseInt(indexStr, 10);
+
+      if (isNaN(cellIndex)) {
+        // Keep non-numeric keys unchanged
+        newConfig[indexStr] = value;
+        return;
+      }
+
+      if (changeType === 'insert') {
+        // For insertion, shift indices after the insertion point
+        if (cellIndex >= startIndex) {
+          newConfig[(cellIndex + count).toString()] = value;
+        } else {
+          newConfig[indexStr] = value;
+        }
+      } else if (changeType === 'delete') {
+        // For deletion, shift indices and remove deleted cells
+        if (cellIndex < startIndex) {
+          // Before deletion point - keep the same
+          newConfig[indexStr] = value;
+        } else if (cellIndex >= startIndex + count) {
+          // After deletion point - shift backward
+          newConfig[(cellIndex - count).toString()] = value;
+        }
+        // Cells in the deletion range are omitted
+      }
+    });
+
+    // Save the updated configuration
+    return saveNotebookConfig(notebookUri, newConfig);
+  } catch (error) {
+    console.error('Error updating notebook configuration indices:', error);
+    return false;
+  }
+}
+
 // Functions are exported individually
