@@ -11,6 +11,7 @@ import * as codebook from './codebook';
 import * as fs from 'fs';
 import * as config from './config';
 import * as path from 'path';
+import { updateNotebookConfigIndices } from './cellConfig';
 import { NotebooksViewProvider } from './webview/notebooksView';
 import { WelcomeViewProvider } from './webview/welcomeView';
 import { DocumentationViewProvider } from './webview/documentationView';
@@ -232,6 +233,44 @@ class MarkdownProvider implements NotebookSerializer {
 export function activate(context: ExtensionContext) {
   // Add this line at the beginning of your activate function
   console.log("Extension activated");
+
+  // Register notebook document change listener to track cell operations
+  const notebookChangeListener = workspace.onDidChangeNotebookDocument(event => {
+    if (!event.notebook.notebookType.startsWith('codebook-md')) {
+      return; // Only process our notebook types
+    }
+
+    try {
+      // Process cell changes
+      event.contentChanges.forEach(change => {
+        if (change.removedCells.length > 0) {
+          // Handle cell deletion
+          updateNotebookConfigIndices(
+            event.notebook.uri,
+            'delete',
+            change.range.start,
+            change.removedCells.length
+          );
+          console.log(`Updated cell config indices after deletion at index ${change.range.start}, removed ${change.removedCells.length} cells`);
+        }
+
+        if (change.addedCells.length > 0) {
+          // Handle cell insertion
+          updateNotebookConfigIndices(
+            event.notebook.uri,
+            'insert',
+            change.range.start,
+            change.addedCells.length
+          );
+          console.log(`Updated cell config indices after insertion at index ${change.range.start}, added ${change.addedCells.length} cells`);
+        }
+      });
+    } catch (error) {
+      console.error('Error handling notebook change:', error);
+    }
+  });
+
+  context.subscriptions.push(notebookChangeListener);
 
   // Register the Welcome webview provider (should be first to appear at the top)
   const welcomeViewProvider = new WelcomeViewProvider(context);
