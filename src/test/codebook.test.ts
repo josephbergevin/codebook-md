@@ -100,7 +100,6 @@ jest.mock('../cellConfig', () => ({
     return 'mockPath/notebook.md.config.json';
   }),
   saveNotebookConfig: jest.fn().mockImplementation(() => true),
-  migrateNotebookConfigToFile: jest.fn().mockImplementation(() => Promise.resolve(true)),
 }));
 
 describe('md.ts Test Suite', () => {
