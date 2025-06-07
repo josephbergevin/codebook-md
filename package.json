@@ -1,7 +1,7 @@
 {
   "name": "codebook-md",
   "displayName": "Codebook MD - Organize Notebooks & Execute Code-Blocks",
-  "description": "Organize and execute your notebooks and markdown (.md) documentation files locally! Supports Go, JavaScript, TypeScript, Bash, Python, SQL, HTTP - and more to come!",
+  "description": "Organize and execute your notebooks and markdown (.md) documentation files locally! Supports Go, JavaScript, TypeScript, Bash, Python, SQL, HTTP. Auto-integrates with VS Code markdown extensions for enhanced rendering.",
   "icon": "extension/src/img/logo_3_128x128.png",
   "publisher": "josephbergevin",
   "repository": {
@@ -15,6 +15,10 @@
     "code",
     "codebook",
     "markdown",
+    "markdown-it",
+    "markdown-extensions",
+    "mermaid",
+    "math",
     "go",
     "golang",
     "javascript",
@@ -28,9 +32,13 @@
     "python",
     "http",
     "sql",
-    "rust"
+    "rust",
+    "jupyter",
+    "documentation",
+    "preview",
+    "rendering"
   ],
-  "version": "0.17.6",
+  "version": "0.18.0",
   "categories": [
     "Notebooks",
     "Education",
