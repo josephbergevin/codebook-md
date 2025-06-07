@@ -4,6 +4,64 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2025-06-07
+
+### Added
+
+- **Markdown Contributions Integration:**
+  - Automatic discovery and integration with VS Code markdown extensions
+  - Support for `markdown.markdownItPlugins` from other extensions
+  - Integration with `markdown.previewStyles` for enhanced CSS styling
+  - Support for `markdown.previewScripts` for interactive functionality
+  - Zero-configuration compatibility with popular extensions (Markdown All in One, Mermaid, etc.)
+  - Enhanced markdown rendering in CodebookMD notebooks using extension plugins
+  - Comprehensive test coverage for markdown contributions system
+  - New `MarkdownRenderingService` for centralized markdown processing
+  - Documentation section dedicated to markdown contributions feature
+
+### Changed
+
+- Improved markdown rendering pipeline to leverage VS Code extension ecosystem
+- Enhanced webview content generation with extension-contributed styles and scripts
+- Updated documentation with comprehensive markdown contributions examples and use cases
+
+### Technical Implementation
+
+- Added `collectMarkdownContributions()` function for extension discovery
+- Implemented `createMarkdownItWithPlugins()` for enhanced markdown-it instances
+- Created `renderMarkdownWithContributions()` for extension-aware rendering
+- Added robust error handling for missing or incompatible extensions
+- Integrated markdown contributions into existing webview architecture
+
+## [0.17.6] - 2025-06-05
+
+### Added
+
+- Markdown Contributions Integration:
+  - Automatic discovery and integration with VS Code markdown extensions
+  - Support for `markdown.markdownItPlugins` from other extensions
+  - Integration with `markdown.previewStyles` for enhanced CSS styling
+  - Support for `markdown.previewScripts` for interactive functionality
+  - Zero-configuration compatibility with popular extensions (Markdown All in One, Mermaid, etc.)
+  - Enhanced markdown rendering in CodebookMD notebooks using extension plugins
+  - Comprehensive test coverage for markdown contributions system
+  - New `MarkdownRenderingService` for centralized markdown processing
+  - Documentation section dedicated to markdown contributions feature
+
+### Changed
+
+- Improved markdown rendering pipeline to leverage VS Code extension ecosystem
+- Enhanced webview content generation with extension-contributed styles and scripts
+- Updated documentation with comprehensive markdown contributions examples
+
+### Technical Implementation
+
+- Added `collectMarkdownContributions()` function for extension discovery
+- Implemented `createMarkdownItWithPlugins()` for enhanced markdown-it instances
+- Created `renderMarkdownWithContributions()` for extension-aware rendering
+- Added robust error handling for missing or incompatible extensions
+- Integrated markdown contributions into existing webview architecture
+
 ## [0.17.6] - 2025-06-05
 
 ### Fixed
