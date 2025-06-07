@@ -280,3 +280,50 @@ This extension was inspired by the Jupyter notebook, which allows for the execut
     - Last updated in 2022, no public repository
   - [Codebook](https://marketplace.visualstudio.com/items?itemName=gobookdev.gobook)
     - Last updated in 2022, no public repository
+
+### Markdown Contributions Integration
+
+CodebookMD automatically integrates with VS Code's markdown extension ecosystem to provide enhanced rendering capabilities:
+
+- **Automatic Extension Discovery**: Automatically discovers and integrates with installed VS Code markdown extensions
+- **Zero Configuration**: Works seamlessly with extensions like Markdown All in One, Mermaid, and Markdown+Math
+- **Enhanced Rendering**: Supports markdown-it plugins, custom CSS styles, and JavaScript enhancements from other extensions
+- **Consistent Experience**: Same markdown features available in both VS Code preview and CodebookMD notebooks
+
+#### Supported Extension Types
+
+CodebookMD integrates with extensions that contribute:
+
+- `markdown.markdownItPlugins` - Custom markdown-it plugins for extended syntax
+- `markdown.previewStyles` - Additional CSS styles for enhanced appearance
+- `markdown.previewScripts` - JavaScript for interactive functionality
+
+#### Popular Compatible Extensions
+
+- **Markdown All in One** - Table formatting, math equations, mermaid diagrams
+- **Markdown Preview Enhanced** - Advanced preview features and customizations
+- **Mermaid Markdown Syntax Highlighting** - Diagram rendering support
+- **Markdown+Math** - LaTeX math equation rendering
+- **Any extension** that follows VS Code's markdown contribution guidelines
+
+#### Example Enhanced Features
+
+With compatible extensions installed, you can use enhanced markdown features in your CodebookMD notebooks:
+
+**Math Equations:**
+
+```
+$$E = mc^2$$
+```
+
+**Mermaid Diagrams:**
+
+```mermaid
+graph TD;
+    A-->B;
+    A-->C;
+    B-->D;
+    C-->D;
+```
+
+**Enhanced Tables with auto-formatting and styling from Markdown All in One**

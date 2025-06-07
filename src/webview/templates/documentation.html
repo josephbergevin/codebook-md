@@ -90,6 +90,7 @@
         <li><a href="#output-config">Output Configuration</a></li>
         <li><a href="#file-links">File Links &amp; Hover Preview</a></li>
         <li><a href="#custom-settings">Custom Settings</a></li>
+        <li><a href="#markdown-contributions">Markdown Contributions</a></li>
         <li><a href="#env-variables">Environment Variables</a></li>
         <li><a href="#codebook-prompts">Codebook Prompts</a></li>
         <li><a href="#recent-updates">Recent Updates</a></li>
@@ -953,6 +954,95 @@ Authorization: Bearer {{YOUR_TOKEN}}
         </ul>
       </section>
 
+      <section id="markdown-contributions">
+        <h2>Markdown Contributions</h2>
+        <p>CodebookMD integrates with VS Code's <span class="feature-highlight">markdown contribution system</span> to discover and use markdown extensions from other VS Code extensions.</p>
+
+        <h4>Key Features</h4>
+        <ul>
+          <li><strong>Automatic Extension Discovery:</strong> Finds all VS Code extensions that contribute markdown enhancements</li>
+          <li><strong>Plugin Integration:</strong> Supports markdown-it plugins from other extensions</li>
+          <li><strong>Seamless Rendering:</strong> Enhanced markdown rendering in CodebookMD webviews</li>
+          <li><strong>Zero Configuration:</strong> Works automatically with installed extensions</li>
+        </ul>
+
+        <h4>How It Works</h4>
+        <p>CodebookMD automatically scans all installed VS Code extensions for markdown contributions including:</p>
+        <ul>
+          <li><code>markdown.markdownItPlugins</code> - Custom markdown-it plugins</li>
+          <li><code>markdown.previewStyles</code> - Additional CSS styles for preview</li>
+          <li><code>markdown.previewScripts</code> - JavaScript for enhanced functionality</li>
+        </ul>
+
+        <h4>Supported Extensions</h4>
+        <p>Works with popular VS Code markdown extensions such as:</p>
+        <ul>
+          <li><strong>Markdown All in One</strong> - Table formatting, math, mermaid diagrams</li>
+          <li><strong>Markdown Preview Enhanced</strong> - Advanced preview features</li>
+          <li><strong>Mermaid Markdown Syntax Highlighting</strong> - Diagram rendering</li>
+          <li><strong>Markdown+Math</strong> - LaTeX math rendering</li>
+          <li><strong>Any extension</strong> that contributes to VS Code's markdown system</li>
+        </ul>
+
+        <h4>Development Integration</h4>
+        <p>For extension developers:</p>
+        <pre><code>// Example package.json contribution
+"contributes": {
+  "markdown.markdownItPlugins": true,
+  "markdown.previewStyles": [
+    "./media/custom.css"
+  ],
+  "markdown.previewScripts": [
+    "./media/custom.js"
+  ]
+}</code></pre>
+
+        <h4>Benefits</h4>
+        <ul>
+          <li><strong>Enhanced Rendering:</strong> Rich markdown features in CodebookMD notebooks</li>
+          <li><strong>Consistency:</strong> Same markdown features available in both VS Code preview and CodebookMD</li>
+          <li><strong>Extensibility:</strong> Automatically benefits from new markdown extensions</li>
+          <li><strong>Performance:</strong> Efficient discovery and integration system</li>
+        </ul>
+
+        <h4>Example Use Cases</h4>
+        <p>With markdown contributions, you can use enhanced features in your CodebookMD notebooks:</p>
+        <pre><code>## Math Equations (with Markdown+Math extension)
+$$E = mc^2$$
+
+## Mermaid Diagrams (with Mermaid extensions)
+```mermaid
+graph TD;
+    A-->B;
+    A-->C;
+    B-->D;
+    C-->D;
+```
+
+## Enhanced Tables (with Markdown All in One)
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Math    | ✅     | LaTeX support |
+| Diagrams| ✅     | Mermaid, PlantUML |
+| Tables  | ✅     | Auto-formatting |</code></pre>
+
+        <h4>Implementation Details</h4>
+        <p>The system includes several key components:</p>
+        <ul>
+          <li><code>collectMarkdownContributions()</code> - Discovers extension contributions</li>
+          <li><code>createMarkdownItWithPlugins()</code> - Creates enhanced markdown-it instance</li>
+          <li><code>renderMarkdownWithContributions()</code> - Renders markdown with extensions</li>
+          <li><code>MarkdownRenderingService</code> - Manages the rendering pipeline</li>
+        </ul>
+
+        <h4>Troubleshooting</h4>
+        <ul>
+          <li><strong>Missing Features:</strong> Ensure the extension is installed and enabled</li>
+          <li><strong>Rendering Issues:</strong> Check extension compatibility with markdown-it</li>
+          <li><strong>Performance:</strong> Large numbers of extensions may affect startup time</li>
+        </ul>
+      </section>
+
       <section id="env-variables">
         <h2>Environment Variables</h2>
         <p>CodebookMD now supports environment variables from VS Code settings in shell scripts.</p>
@@ -1093,6 +1183,9 @@ console.log(`I've been told that your favorite color is ${favoriteColor}.`);
         <h2>Recent Updates</h2>
         <h4>New in Latest Version</h4>
         <ul>
+          <li><span class="feature-highlight">Markdown Contributions:</span> Automatic integration with VS Code markdown extensions</li>
+          <li><span class="feature-highlight">Enhanced Rendering:</span> Support for markdown-it plugins from other extensions</li>
+          <li><span class="feature-highlight">Extension Discovery:</span> Zero-configuration markdown extension compatibility</li>
           <li><span class="feature-highlight">Codebook Prompts:</span> Interactive prompts for dynamic user input in code blocks</li>
           <li><span class="feature-highlight">String and Date Inputs:</span> Support for text and date input types with validation</li>
           <li><span class="feature-highlight">Multiple Prompts:</span> Use multiple prompts in a single code block</li>
