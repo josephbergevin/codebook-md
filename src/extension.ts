@@ -17,6 +17,7 @@ import { WelcomeViewProvider } from './webview/welcomeView';
 import { DocumentationViewProvider } from './webview/documentationView';
 import * as configModal from './webview/configModal';
 import { createNewNotebook, createNotebookFromSelection } from './createNotebook';
+import { getMarkdownRenderingService } from './markdownRenderer';
 
 const kernel = new Kernel();
 
@@ -230,7 +231,7 @@ class MarkdownProvider implements NotebookSerializer {
 }
 
 // This method is called when your extension is activated
-export function activate(context: ExtensionContext) {
+export async function activate(context: ExtensionContext) {
   // Add this line at the beginning of your activate function
   console.log("Extension activated");
 
@@ -335,6 +336,12 @@ export function activate(context: ExtensionContext) {
   };
 
   context.subscriptions.push(workspace.registerNotebookSerializer('codebook-md', new MarkdownProvider(), notebookSettings));
+
+  // Initialize markdown contribution points integration
+  console.log('Initializing markdown contribution points integration...');
+  const markdownService = getMarkdownRenderingService();
+  await markdownService.initialize();
+  console.log('Markdown contribution points integration initialized.');
 
   // Create an instance of a notebook editor provider, for setting up toolbar icons
   const notebookCellStatusBarItemProvider = notebooks.registerNotebookCellStatusBarItemProvider(
@@ -899,6 +906,24 @@ export function activate(context: ExtensionContext) {
 
 // This method is called when your extension is deactivated
 export function deactivate() { }
+
+// Export markdown contribution function for VS Code's markdown preview
+export function extendMarkdownIt(md: unknown): unknown {
+  try {
+    const markdownService = getMarkdownRenderingService();
+    // VS Code passes its markdown-it instance to us
+    // We enhance it with our collected plugins from other extensions
+    if (md && typeof md === 'object') {
+      // The markdown service has already collected plugins from other extensions
+      // We just return the enhanced instance
+      return markdownService.getEngine();
+    }
+    return md;
+  } catch (error) {
+    console.error('Error in extendMarkdownIt:', error);
+    return md;
+  }
+}
 
 // Export helper functions
 export {

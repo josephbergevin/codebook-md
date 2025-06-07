@@ -690,6 +690,9 @@
         ]
       }
     ],
+    "markdown": {
+      "markdownItPlugins": true
+    },
     "notebooks": [
       {
         "type": "codebook-md",
@@ -716,10 +719,14 @@
     "test": "jest",
     "test:silent": "jest --silent"
   },
+  "dependencies": {
+    "markdown-it": "^14.0.0"
+  },
   "devDependencies": {
     "@eslint/js": "^9.6.0",
     "@types/chai": "^4.3.16",
     "@types/jest": "^29.0.0",
+    "@types/markdown-it": "^14.1.2",
     "@types/mocha": "^10.0.7",
     "@types/node": "^20.14.9",
     "@types/vscode": "^1.88.0",

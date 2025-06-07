@@ -12,5 +12,5 @@
 		"skipLibCheck": true,
 		"esModuleInterop": true
 	},
-	"exclude": ["node_modules/", ".vscode-test/", "apiplayground/", "dist/"]
+	"exclude": ["node_modules/", ".vscode-test/", "apiplayground/", "dist/", "codebook-md/", "tooling/", "test/"]
 }

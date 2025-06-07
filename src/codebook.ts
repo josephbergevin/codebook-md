@@ -303,6 +303,7 @@ export const languageTypeScript = new Language("TypeScript", ["ts"], true);
 // non-executable languages
 export const languageHttp = new Language("Http", [], true);
 export const languageRust = new Language("Rust", [], false);
+export const languageMermaid = new Language("Mermaid", ["mmd"], false);
 
 const languages = [
   languageGo,
@@ -313,6 +314,7 @@ const languages = [
   languageTypeScript,
   languageHttp,
   languageRust,
+  languageMermaid,
 ];
 
 // languagesByAbbrev is a map of language abbreviations to their corresponding Language object
@@ -451,7 +453,8 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
   }
 
   function parseCodeBlock(leadingWhitespace: string, languageSyntax: string): void {
-    const language = languagesByAbbrev.get(languageSyntax.toLowerCase())?.displayName.toLowerCase() ?? languageSyntax.toLowerCase();
+    const languageInfo = languagesByAbbrev.get(languageSyntax.toLowerCase());
+    const language = languageInfo?.displayName.toLowerCase() ?? languageSyntax.toLowerCase();
     const startSourceIdx = ++i;
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -470,6 +473,17 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
     const trailingWhitespace = parseWhitespaceLines(false);
     if (languageSyntax === "text") {
       cells[cells.length - 1].outputs = [{ items: [{ data: textEncoder.encode(content), mime: "text/plain" }] }];
+    } else if (languageInfo && !languageInfo.isExecutable) {
+      // For non-executable languages like Mermaid, treat as markdown content
+      // This allows the markdown preview system to render them properly
+      const markdownContent = '```' + languageSyntax + '\n' + content + '\n```';
+      cells.push({
+        language: 'markdown',
+        content: markdownContent,
+        kind: NotebookCellKind.Markup,
+        leadingWhitespace: leadingWhitespace,
+        trailingWhitespace: trailingWhitespace,
+      });
     } else {
       cells.push({
         language,
