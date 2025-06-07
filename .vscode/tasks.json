@@ -4,7 +4,7 @@
 	"version": "2.0.0",
 	"tasks": [
     {
-			"label": "npm run test",
+			"label": "npm test",
 			"detail": "Calls npm run test",
 			"type": "shell",
 			"command": "npm",
