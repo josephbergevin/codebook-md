@@ -11,4 +11,9 @@ module.exports = {
       },
     ],
   },
+  // Ignore VS Code test directories to avoid haste module naming collisions
+  modulePathIgnorePatterns: [
+    '<rootDir>/.vscode-test/',
+    '<rootDir>/out/',
+  ],
 };
