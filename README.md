@@ -312,9 +312,7 @@ With compatible extensions installed, you can use enhanced markdown features in 
 
 **Math Equations:**
 
-```
 $$E = mc^2$$
-```
 
 **Mermaid Diagrams:**
 
