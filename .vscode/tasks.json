@@ -9,7 +9,15 @@
 			"type": "shell",
 			"command": "npm",
 			"args": ["test"],
-			"problemMatcher": ["$tsc"]
+			"problemMatcher": ["$tsc"],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": true
+      }
 		},
     {
 			"label": "npm run compile",
@@ -17,7 +25,15 @@
 			"type": "shell",
 			"command": "npm",
 			"args": ["run", "compile"],
-			"problemMatcher": ["$tsc"]
+			"problemMatcher": ["$tsc"],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": true
+      }
 		},
     {
 			"label": "npm run lint",
@@ -25,8 +41,32 @@
 			"type": "shell",
 			"command": "npm",
 			"args": ["run", "lint"],
-			"problemMatcher": ["$tsc"]
+			"problemMatcher": ["$tsc"],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": true
+      }
 		},
+    {
+      "label": "npm install",
+      "detail": "Calls npm install",
+      "type": "shell",
+      "command": "npm",
+      "args": ["install"],
+      "problemMatcher": ["$tsc"],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": true
+      }
+    },
 		{
 			"type": "npm",
 			"script": "watch",
@@ -41,14 +81,6 @@
 				"isDefault": true
 			}
     },
-    {
-			"label": "npm install",
-			"detail": "Calls npm install",
-			"type": "shell",
-			"command": "npm",
-			"args": ["install"],
-			"problemMatcher": ["$tsc"]
-		},
 		{
 			"type": "npm",
 			"script": "watch-tests",
