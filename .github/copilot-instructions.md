@@ -20,6 +20,7 @@ CodebookMD is a VS Code extension that brings Jupyter-like notebook functionalit
 
 #### Code Quality Checks:
 
+- Code Quality checks should be run from the VS Code task runner, not manually in the terminal. After running the task, any failures will be output to the #problems panel. You can use the `get_errors` tool to see the results of the check that was run.
 - Ensure all generated code passes the following checks (only to be run as tasks, not manually in the terminal, if possible):
   - `npm run compile` for building the extension
   - `npm install` for installing dependencies
