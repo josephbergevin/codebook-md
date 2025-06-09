@@ -1,27 +1,91 @@
 import { window, workspace } from 'vscode';
 import * as path from 'path';
 
+// Helper to get the primary workspace folder path
+function getPrimaryWorkspaceFolderPath(): string | undefined {
+  if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
+    return workspace.workspaceFolders[0].uri.fsPath;
+  }
+  return undefined;
+}
+
+// Module-level configuration accessor
 const codebookConfig = workspace.getConfiguration('codebook-md');
 
-// basePath is the workspace root path
-const rootPath = codebookConfig.get('rootPath', '');
+// Revised function to resolve execPath to an absolute path
+function resolveToAbsolutePath(execPathSetting: string, currentFilePath?: string, workspaceFolderPath?: string): string {
+  let resolvedPath: string;
+
+  if (path.isAbsolute(execPathSetting)) {
+    resolvedPath = execPathSetting;
+  } else if (execPathSetting.startsWith('./') || execPathSetting.startsWith('../')) {
+    // For paths like './foo' or '../bar'
+    const baseDir = currentFilePath ? path.dirname(currentFilePath) : workspaceFolderPath;
+    if (baseDir) {
+      resolvedPath = path.resolve(baseDir, execPathSetting);
+    } else {
+      throw new Error(`Cannot resolve relative execPath "${execPathSetting}" starting with './' or '../' without an active file or workspace folder.`);
+    }
+  } else {
+    // For paths like 'foo' or 'foo/bar' (not starting with ./ or ../)
+    if (workspaceFolderPath) {
+      resolvedPath = path.resolve(workspaceFolderPath, execPathSetting);
+    } else {
+      throw new Error(`Cannot resolve relative execPath "${execPathSetting}" (not starting with './' or '../') without a workspace folder.`);
+    }
+  }
+  return path.normalize(resolvedPath); // Normalize to clean up (e.g. /./ -> /)
+}
 
 // getExecPath is a convenience function to get the execPath from the configuration
 export function getExecPath(): string {
-  const execPath = codebookConfig.get('execPath', '');
-  const currentFile = window.activeTextEditor?.document.fileName ?? '';
-  return fullExecPath(execPath, currentFile, rootPath);
+  // Default from package.json is "./codebook-md-exec/"
+  const execPathSetting = codebookConfig.get<string>('execPath', "./codebook-md-exec/");
+  const currentFile = window.activeTextEditor?.document.fileName; // Can be undefined
+
+  // Determine the workspace path to use for resolving execPath.
+  // Priority:
+  // 1. 'codebook-md.rootPath' setting (if absolute).
+  // 2. 'codebook-md.rootPath' setting (if relative, resolve against primary workspace folder).
+  // 3. Primary workspace folder path.
+  let wsPathForResolution: string | undefined;
+  const rootPathSetting = codebookConfig.get<string>('rootPath', '');
+
+  if (rootPathSetting) {
+    if (path.isAbsolute(rootPathSetting)) {
+      wsPathForResolution = rootPathSetting;
+    } else {
+      // rootPathSetting is relative, try to resolve it against the primary workspace folder.
+      const primaryWs = getPrimaryWorkspaceFolderPath();
+      if (primaryWs) {
+        wsPathForResolution = path.resolve(primaryWs, rootPathSetting);
+      }
+      // If rootPathSetting is relative but no primaryWs, wsPathForResolution remains undefined.
+      // resolveToAbsolutePath will handle this scenario.
+    }
+  } else {
+    // No rootPathSetting provided, use the primary workspace folder path.
+    wsPathForResolution = getPrimaryWorkspaceFolderPath();
+  }
+
+  try {
+    return resolveToAbsolutePath(execPathSetting, currentFile, wsPathForResolution);
+  } catch (e: unknown) {
+    let errorMessage = `Failed to determine execution path for setting "${execPathSetting}"`;
+    if (e instanceof Error) {
+      errorMessage += `: ${e.message}`;
+    }
+    console.error(errorMessage, e); // Log for debugging
+    window.showErrorMessage(errorMessage); // Inform the user
+    // Re-throw so the caller (e.g., language cell constructor) knows this critical path determination failed.
+    throw new Error(errorMessage);
+  }
 }
 
-export function fullExecPath(execPath: string, currentFile: string, workspacePath: string): string {
-  if (execPath === '' && workspacePath !== '') {
-    return workspacePath;
-  } else if (execPath.startsWith('./')) {
-    const currentPath = path.dirname(currentFile ?? '');
-    return path.join(currentPath, execPath.slice(2));
-  }
-  return execPath;
-}
+// export function fullExecPath(execPath: string, currentFile: string, workspacePath: string): string {
+//   const execPathSetting = codebookConfig.get<string>('execPath', "./codebook-md-exec/");
+//   return resolveToAbsolutePath(execPathSetting, currentFile, workspacePath);
+// }
 
 // getFullPath returns the full path for a potentially relative path
 // If the path is absolute, it is returned as-is
