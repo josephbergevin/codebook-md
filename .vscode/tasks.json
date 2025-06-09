@@ -5,10 +5,10 @@
 	"tasks": [
     {
 			"label": "npm test",
-			"detail": "Calls npm run test",
+			"detail": "Calls npm test",
 			"type": "shell",
 			"command": "npm",
-			"args": ["run", "test"],
+			"args": ["test"],
 			"problemMatcher": ["$tsc"]
 		},
     {
