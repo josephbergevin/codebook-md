@@ -4,6 +4,26 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.2] - 2025-06-09
+
+### Fixed
+
+- **Command System Improvements:**
+  - Simplified working directory creation and error handling for better reliability
+  - Enhanced error reporting and debugging for command execution issues
+- **Configuration System Enhancements:**
+  - Enhanced execPath resolution with improved path handling logic
+  - Better error handling for invalid or missing path configurations
+  - Fixed missing `fullExecPath` function that was causing test failures
+  - Improved workspace path resolution for more robust configuration management
+
+### Technical Implementation
+
+- Streamlined directory creation process with cleaner error handling
+- Enhanced `fullExecPath` function implementation for consistent path resolution
+- Improved error messages and debugging information for configuration issues
+- Better integration between command execution and path resolution systems
+
 ## [0.19.1] - 2025-06-07
 
 ### Added
