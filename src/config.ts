@@ -82,10 +82,13 @@ export function getExecPath(): string {
   }
 }
 
-// export function fullExecPath(execPath: string, currentFile: string, workspacePath: string): string {
-//   const execPathSetting = codebookConfig.get<string>('execPath', "./codebook-md-exec/");
-//   return resolveToAbsolutePath(execPathSetting, currentFile, workspacePath);
-// }
+export function fullExecPath(execPath: string, currentFile: string, workspacePath: string): string {
+  // If execPath is empty, return the workspace path
+  if (!execPath) {
+    return workspacePath;
+  }
+  return resolveToAbsolutePath(execPath, currentFile, workspacePath);
+}
 
 // getFullPath returns the full path for a potentially relative path
 // If the path is absolute, it is returned as-is
