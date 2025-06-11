@@ -4,6 +4,32 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.3] - 2025-06-11
+
+### Fixed
+
+- **Go Language Support Bug Fixes:**
+  - Fixed intermittent "go.mod file not found" errors when executing Go cell-blocks
+  - Resolved "EROFS: read-only file system" errors caused by incorrect file path resolution
+  - Eliminated race condition in test file preparation that could cause execution failures
+  - Improved path resolution fallbacks for better handling of untitled files and missing active editors
+  - Enhanced file writing logic to properly handle both relative and absolute file paths
+
+### Technical Implementation
+
+- Fixed `writeDirAndFileSyncSafe` function in `io.ts` to properly construct full file paths
+- Converted asynchronous file operations to synchronous in Go test preparation to prevent race conditions
+- Added robust path fallback mechanisms using workspace folders and current working directory
+- Improved error handling and defensive programming for edge cases
+- Added comprehensive test suite for Go language support with 8 test cases covering configuration, path resolution, and code generation
+
+### Testing
+
+- Created new `go.test.ts` with comprehensive coverage of Go language functionality
+- Added tests for path resolution edge cases and fallback scenarios
+- Verified fix eliminates intermittent execution failures
+- All 101 tests now passing including new Go-specific test suite
+
 ## [0.19.2] - 2025-06-09
 
 ### Fixed

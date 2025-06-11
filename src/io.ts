@@ -2,6 +2,7 @@
 import { ChildProcessWithoutNullStreams, spawn, spawnSync, execSync } from "child_process";
 import { window, env, Uri, workspace } from "vscode";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
+import * as path from "path";
 
 /**
  * Gets environment variables from VS Code settings and merges them with process.env
@@ -132,7 +133,8 @@ export const mkdirIfNotExistsSafe = (dir: string): void => {
 export function writeDirAndFileSyncSafe(dir: string, file: string, data: string) {
   try {
     mkdirIfNotExistsSafe(dir);
-    writeFileSync(file, data);
+    const fullPath = path.isAbsolute(file) ? file : path.join(dir, file);
+    writeFileSync(fullPath, data);
   } catch (error) {
     console.error("error writing file: ", error);
   }
