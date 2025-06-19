@@ -275,7 +275,6 @@ const codebookChatHandler: ChatRequestHandler = async (
       stream.markdown('You can configure CodebookMD through VS Code settings:\n\n');
       stream.markdown('**Key Configuration Options:**\n');
       stream.markdown('- `codebook-md.execPath`: Directory for temporary execution files\n');
-      stream.markdown('- `codebook-md.deleteExecFileOnSuccess`: Auto-delete temp files after successful execution\n');
       stream.markdown('- `codebook-md.output.*`: Control output display settings\n');
       stream.markdown('- Language-specific settings for `bash`, `javascript`, `typescript`, etc.\n\n');
       stream.markdown('You can also configure individual notebooks using the configuration modal that appears in the sidebar when you have a CodebookMD file open.');

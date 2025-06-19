@@ -77,11 +77,6 @@
           "description": "Prefix for identifying permalinks. When matched in a markdown, the permalink will be converted to a link to the same file/lines in VS Code.",
           "type": "string"
         },
-        "codebook-md.deleteExecFileOnSuccess": {
-          "description": "Delete the temporary exec file after a successful run.",
-          "type": "boolean",
-          "default": true
-        },
         "codebook-md.output": {
           "type": "object",
           "properties": {

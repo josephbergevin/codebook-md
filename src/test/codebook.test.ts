@@ -46,7 +46,6 @@ jest.mock('../config', () => ({
   getLanguageExecPath: jest.fn().mockReturnValue('./codebook-md/'),
   getCodebookMDExecPath: jest.fn().mockReturnValue('./codebook-md/'),
   getBaseExecConfig: jest.fn().mockReturnValue({
-    deleteExecFileOnSuccess: true,
     showExecutableCodeInOutput: true,
     showOutputOnRun: true,
     replaceOutputCell: true,
