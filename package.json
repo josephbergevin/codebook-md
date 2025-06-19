@@ -44,10 +44,12 @@
     "Education",
     "Programming Languages",
     "Formatters",
+    "Chat",
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:markdown"
+    "onLanguage:markdown",
+    "onStartupFinished"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -566,6 +568,14 @@
         }
       }
     },
+    "chatParticipants": [
+      {
+        "id": "codebook-md",
+        "name": "codebook",
+        "description": "CodebookMD assistant for notebook management and code execution",
+        "isSticky": true
+      }
+    ],
     "commands": [
       {
         "command": "codebook-md.createNewNotebook",

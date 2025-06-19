@@ -2,7 +2,7 @@ import {
   languages, commands, window, notebooks, workspace,
   ExtensionContext, StatusBarAlignment, NotebookCell,
   NotebookSerializer, NotebookData, NotebookCellData,
-  CancellationToken, Uri,
+  CancellationToken, Uri, chat, ChatRequestHandler,
 } from 'vscode';
 import * as folders from './folders';
 
@@ -229,6 +229,115 @@ class MarkdownProvider implements NotebookSerializer {
     return Buffer.from(codebook.writeCellsToMarkdown(data.cells));
   }
 }
+
+// Chat participant handler
+const codebookChatHandler: ChatRequestHandler = async (
+  request, context, stream
+) => {
+  // Handle different types of requests related to CodebookMD
+  const prompt = request.prompt.toLowerCase();
+
+  try {
+    if (prompt.includes('create') && prompt.includes('notebook')) {
+      stream.markdown('I can help you create a new CodebookMD notebook! You can:\n\n');
+      stream.markdown('- Use the command `CodebookMD: New Notebook` to create a new notebook file\n');
+      stream.markdown('- Use `CodebookMD: New Notebook from Selection` to create a notebook from selected text\n');
+      stream.markdown('- Create a `.md` file manually and add code blocks with supported languages like:\n');
+      stream.markdown('  - `go`, `javascript`, `typescript`, `python`, `bash`, `sql`, `http`\n\n');
+      stream.markdown('Would you like me to create a new notebook for you?');
+
+      return {
+        metadata: {
+          command: 'createNotebook'
+        }
+      };
+    }
+
+    if (prompt.includes('execute') || prompt.includes('run')) {
+      stream.markdown('CodebookMD supports executing code blocks in multiple languages:\n\n');
+      stream.markdown('**Supported Languages:**\n');
+      stream.markdown('- **Go**: Execute Go code snippets\n');
+      stream.markdown('- **JavaScript/TypeScript**: Run JS/TS code with Node.js\n');
+      stream.markdown('- **Python**: Execute Python scripts\n');
+      stream.markdown('- **Bash/Shell**: Run shell commands\n');
+      stream.markdown('- **SQL**: Execute SQL queries\n');
+      stream.markdown('- **HTTP**: Make HTTP requests\n\n');
+      stream.markdown('To execute a code block, click the ▶️ button that appears when you hover over the code block, or use the `Ctrl+Enter` keyboard shortcut.');
+
+      return {
+        metadata: {
+          command: 'executeCode'
+        }
+      };
+    }
+
+    if (prompt.includes('configure') || prompt.includes('config') || prompt.includes('settings')) {
+      stream.markdown('You can configure CodebookMD through VS Code settings:\n\n');
+      stream.markdown('**Key Configuration Options:**\n');
+      stream.markdown('- `codebook-md.execPath`: Directory for temporary execution files\n');
+      stream.markdown('- `codebook-md.deleteExecFileOnSuccess`: Auto-delete temp files after successful execution\n');
+      stream.markdown('- `codebook-md.output.*`: Control output display settings\n');
+      stream.markdown('- Language-specific settings for `bash`, `javascript`, `typescript`, etc.\n\n');
+      stream.markdown('You can also configure individual notebooks using the configuration modal that appears in the sidebar when you have a CodebookMD file open.');
+
+      return {
+        metadata: {
+          command: 'configure'
+        }
+      };
+    }
+
+    if (prompt.includes('help') || prompt.includes('how') || prompt.includes('what')) {
+      stream.markdown('# Welcome to CodebookMD! 📓\n\n');
+      stream.markdown('CodebookMD brings Jupyter-like notebook functionality to markdown files. Here\'s what you can do:\n\n');
+      stream.markdown('**✨ Key Features:**\n');
+      stream.markdown('- Execute code blocks directly in markdown files\n');
+      stream.markdown('- Support for multiple programming languages\n');
+      stream.markdown('- Interactive documentation with live code execution\n');
+      stream.markdown('- Organize notebooks in a sidebar tree view\n');
+      stream.markdown('- Configure output display and execution settings\n\n');
+      stream.markdown('**🚀 Getting Started:**\n');
+      stream.markdown('1. Create a new `.md` file or use `Ctrl+Shift+P` → "CodebookMD: New Notebook"\n');
+      stream.markdown('2. Add code blocks using triple backticks with language identifiers\n');
+      stream.markdown('3. Click the ▶️ button to execute code blocks\n');
+      stream.markdown('4. Use the CodebookMD sidebar to organize your notebooks\n\n');
+      stream.markdown('**Need specific help?** Ask me about:\n');
+      stream.markdown('- "How to create a notebook"\n');
+      stream.markdown('- "How to execute code"\n');
+      stream.markdown('- "How to configure settings"\n');
+
+      return {
+        metadata: {
+          command: 'help'
+        }
+      };
+    }
+
+    // Default response
+    stream.markdown('I\'m here to help with CodebookMD! I can assist with:\n\n');
+    stream.markdown('- Creating and managing notebooks\n');
+    stream.markdown('- Executing code in various languages\n');
+    stream.markdown('- Configuring extension settings\n');
+    stream.markdown('- General usage questions\n\n');
+    stream.markdown('What would you like to know about CodebookMD?');
+
+    return {
+      metadata: {
+        command: 'general'
+      }
+    };
+
+  } catch (error) {
+    stream.markdown('Sorry, I encountered an error while processing your request. Please try again or check the VS Code output panel for more details.');
+    console.error('CodebookMD chat participant error:', error);
+
+    return {
+      metadata: {
+        command: 'error'
+      }
+    };
+  }
+};
 
 // This method is called when your extension is activated
 export async function activate(context: ExtensionContext) {
@@ -902,6 +1011,51 @@ export async function activate(context: ExtensionContext) {
   // Register the command to create a new CodebookMD notebook from selection
   disposable = commands.registerCommand('codebook-md.createNotebookFromSelection', createNotebookFromSelection);
   context.subscriptions.push(disposable);
+
+  // Register the chat participant
+  const codebookChatParticipant = chat.createChatParticipant('codebook-md', codebookChatHandler);
+  codebookChatParticipant.iconPath = Uri.joinPath(context.extensionUri, 'extension/src/img/logo_3_128x128.png');
+  codebookChatParticipant.followupProvider = {
+    provideFollowups(result) {
+      const followups = [];
+
+      if (result.metadata?.command === 'createNotebook') {
+        followups.push({
+          prompt: 'How to execute code in notebooks',
+          label: 'How to execute code',
+          command: undefined
+        });
+      } else if (result.metadata?.command === 'executeCode') {
+        followups.push({
+          prompt: 'How to configure CodebookMD settings',
+          label: 'Configure settings',
+          command: undefined
+        });
+      } else if (result.metadata?.command === 'help' || result.metadata?.command === 'general') {
+        followups.push(
+          {
+            prompt: 'How to create a new notebook',
+            label: 'Create notebook',
+            command: undefined
+          },
+          {
+            prompt: 'How to execute code blocks',
+            label: 'Execute code',
+            command: undefined
+          },
+          {
+            prompt: 'How to configure settings',
+            label: 'Configure',
+            command: undefined
+          }
+        );
+      }
+
+      return followups;
+    }
+  };
+
+  context.subscriptions.push(codebookChatParticipant);
 }
 
 // This method is called when your extension is deactivated
