@@ -1,0 +1,10 @@
+{
+	"toolSetNameJoe": {
+		"tools": [
+			"search",
+			"problems"
+		],
+		"description": "description",
+		"icon": "search"
+	}
+}

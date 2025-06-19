@@ -1,135 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to Codebook MD</title>
-  <style>
-    body {
-      font-family: var(--vscode-font-family);
-      font-size: var(--vscode-font-size);
-      color: var(--vscode-foreground);
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .container {
-      padding: 10px;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    .logo-container {
-      padding-bottom: 10px;
-      max-width: 100%;
-      text-align: center;
-    }
-    .logo {
-      max-width: 128px;
-      height: auto;
-    }
-    h1, h4, h5 {
-      text-align: center;
-      margin: 0.8em 0 0.5em 0;
-    }
-    h1 {
-      font-size: 1.5em;
-    }
-    h4 {
-      font-size: 1.2em;
-      margin-top: 1.5em;
-    }
-    h5 {
-      font-size: 1.1em;
-      text-align: left;
-    }
-    p {
-      margin: 0.5em 0;
-      text-align: left;
-      line-height: 1.5;
-    }
-    ul {
-      text-align: left;
-      padding-left: 20px;
-    }
-    li {
-      margin-bottom: 0.3em;
-    }
-    ol {
-      text-align: left;
-      padding-left: 20px;
-    }
-    .feature-list li {
-      margin-bottom: 0.5em;
-    }
-    .instructions {
-      margin-top: 1em;
-      text-align: left;
-    }
-    .feature-highlight {
-      font-weight: bold;
-    }
-    .code-example {
-      font-family: var(--vscode-editor-font-family);
-      background-color: var(--vscode-editor-background);
-      padding: 2px 4px;
-      border-radius: 3px;
-    }
-    hr {
-      border: none;
-      border-top: 1px solid var(--vscode-panel-border);
-      margin: 1.5em 0;
-    }
-    .webview-link {
-      color: var(--vscode-textLink-foreground);
-      cursor: pointer;
-      text-decoration: none;
-    }
-    .webview-link:hover {
-      text-decoration: underline;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="logo-container">
-      <img class="logo" src="{{logoUri}}" alt="Codebook MD Logo" />
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to Codebook MD</title>
+    <style>
+      body {
+        font-family: var(--vscode-font-family);
+        font-size: var(--vscode-font-size);
+        color: var(--vscode-foreground);
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .container {
+        padding: 10px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .logo-container {
+        padding-bottom: 5px;
+        max-width: 100%;
+        text-align: center;
+      }
+      .logo {
+        max-width: 128px;
+        height: auto;
+      }
+      h1 {
+        text-align: center;
+        margin: 0.4em 0 0.5em 0;
+        font-size: 1.5em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo-container">
+        <img class="logo" src="{{logoUri}}" alt="Codebook MD Logo" />
+      </div>
+      <h1>Codebook MD</h1>
     </div>
-    <h1>Codebook MD</h1>
-    <p>
-      Bring your markdown to life! Execute code blocks and keep your notebooks organized.
-    </p>
-    
-    <hr>
-    
-    <h4>Organizing Markdown Files with Virtual Folders</h4>
-    
-    <h5>Features</h5>
-    <ul class="feature-list">
-      <li><span class="feature-highlight">Organize <code class="code-example">.md</code> files</span> into virtual folders</li>
-      <li><span class="feature-highlight">Create custom folder hierarchies</span> for easy navigation</li>
-      <li><span class="feature-highlight">Add frequently used notebooks</span> to specific folders</li>
-      <li><span class="feature-highlight">Rename files and folders</span> with custom display names</li>
-      <li><span class="feature-highlight">Access important documents</span> with one click</li>
-    </ul>
-    
-    <p>
-      Check out <a class="webview-link" onclick="openWebview('documentation')">Documentation</a> and <a class="webview-link" onclick="openWebview('notebooks')">My Notebooks</a> in the sidebar for more details on how to get started using these features.
-    </p>
-  </div>
-
-  <script>
-    (function() {
-      const vscode = acquireVsCodeApi();
-      
-      window.openWebview = function(view) {
-        vscode.postMessage({
-          command: 'openWebview',
-          view: view
-        });
-      };
-    })();
-  </script>
-</body>
+  </body>
 </html>

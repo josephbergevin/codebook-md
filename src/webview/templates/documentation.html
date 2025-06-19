@@ -83,6 +83,7 @@
       <ul>
         <li><a href="#virtual-folders">Virtual Folders (My Notebooks)</a></li>
         <li><a href="#create-notebooks">Creating New Notebooks</a></li>
+        <li><a href="#chat-participant">Chat Participant Integration</a></li>
         <li><a href="#dynamic-folders">Dynamic Folders (Current Context)</a></li>
         <li><a href="#executable-code">Executable Code Blocks</a></li>
         <li><a href="#codeblock-config">CodeBlock Configuration</a></li>
@@ -252,6 +253,79 @@ echo "Hello from CodebookMD!"
           <li>Keep code blocks focused on a single task or concept</li>
           <li>Add comments to explain complex code segments</li>
           <li>Use proper markdown formatting for readability</li>
+        </ul>
+      </section>
+
+      <section id="chat-participant">
+        <h2>Chat Participant Integration</h2>
+        <h3>Overview</h3>
+        <p>CodebookMD includes an integrated AI chat assistant that provides instant help and guidance through VS Code's chat interface. Get assistance with notebook management, code execution, and configuration directly within your development environment.</p>
+        
+        <h4>Key Features</h4>
+        <ul>
+          <li><span class="feature-highlight">Interactive Assistant:</span> Get help with notebook management and code execution</li>
+          <li><span class="feature-highlight">Context-Aware Responses:</span> Intelligent answers based on your specific questions</li>
+          <li><span class="feature-highlight">Follow-up Suggestions:</span> Relevant next steps and related topics</li>
+          <li><span class="feature-highlight">Rich Formatting:</span> Responses include markdown formatting for better readability</li>
+          <li><span class="feature-highlight">Comprehensive Coverage:</span> Help with creating notebooks, executing code, and configuring settings</li>
+        </ul>
+        
+        <h4>How to Use the Chat Participant</h4>
+        <ol>
+          <li>Open VS Code chat using one of these methods:
+            <ul>
+              <li>View → Chat from the menu bar</li>
+              <li>Use the keyboard shortcut <code>Ctrl+Alt+I</code> (Windows/Linux) or <code>Cmd+Alt+I</code> (macOS)</li>
+              <li>Click the chat icon in the Activity Bar</li>
+            </ul>
+          </li>
+          <li>Type <code>@codebook</code> followed by your question</li>
+          <li>Press Enter to get an instant response</li>
+        </ol>
+
+        <h4>Example Questions</h4>
+        <p>Here are some examples of questions you can ask the CodebookMD chat assistant:</p>
+        <ul>
+          <li><code>@codebook how do I create a notebook?</code></li>
+          <li><code>@codebook help with executing code blocks</code></li>
+          <li><code>@codebook configure my settings</code></li>
+          <li><code>@codebook what languages are supported?</code></li>
+          <li><code>@codebook how to set up environment variables?</code></li>
+          <li><code>@codebook what can you do?</code></li>
+        </ul>
+
+        <h4>Response Categories</h4>
+        <p>The chat assistant provides specialized help in several key areas:</p>
+        <ul>
+          <li><span class="feature-highlight">Notebook Creation:</span> Step-by-step guidance for creating new notebooks and converting existing content</li>
+          <li><span class="feature-highlight">Code Execution:</span> Information about supported languages, execution options, and troubleshooting</li>
+          <li><span class="feature-highlight">Configuration:</span> Help with extension settings, output configuration, and language-specific options</li>
+          <li><span class="feature-highlight">General Assistance:</span> Overview of features, best practices, and workflow tips</li>
+        </ul>
+
+        <h4>Follow-up Suggestions</h4>
+        <p>After each response, the chat assistant provides relevant follow-up suggestions to help you explore related functionality:</p>
+        <ul>
+          <li>Context-specific next steps based on your current question</li>
+          <li>Related features you might want to learn about</li>
+          <li>Configuration options relevant to your workflow</li>
+          <li>Best practices for the feature you're exploring</li>
+        </ul>
+
+        <h4>Discovery</h4>
+        <p>The CodebookMD extension with chat participant integration can be found in the VS Code Extensions marketplace by searching for:</p>
+        <ul>
+          <li><code>@tag:chat-participant</code> - Shows all extensions with chat participants</li>
+          <li><code>CodebookMD</code> - Direct search for the extension</li>
+          <li>Browse the "Chat" category in the Extensions marketplace</li>
+        </ul>
+
+        <h4>Benefits</h4>
+        <ul>
+          <li><span class="feature-highlight">Instant Help:</span> Get immediate assistance without leaving your coding environment</li>
+          <li><span class="feature-highlight">Contextual Guidance:</span> Receive relevant information based on your specific needs</li>
+          <li><span class="feature-highlight">Learning Support:</span> Discover new features and best practices through interactive conversation</li>
+          <li><span class="feature-highlight">Workflow Integration:</span> Seamlessly integrated into VS Code's chat interface</li>
         </ul>
       </section>
 
@@ -1181,7 +1255,17 @@ console.log(`I've been told that your favorite color is ${favoriteColor}.`);
 
       <section id="recent-updates">
         <h2>Recent Updates</h2>
-        <h4>New in Latest Version</h4>
+        <h4>New in Version 0.19.4</h4>
+        <ul>
+          <li><span class="feature-highlight">Chat Participant Integration:</span> Added '@codebook' chat participant for VS Code chat integration</li>
+          <li><span class="feature-highlight">Interactive AI Assistant:</span> Get help with notebook management and code execution directly in VS Code chat</li>
+          <li><span class="feature-highlight">Context-Aware Responses:</span> Intelligent answers about creating notebooks, executing code, and configuring settings</li>
+          <li><span class="feature-highlight">Follow-up Suggestions:</span> Relevant next steps and related topics based on your questions</li>
+          <li><span class="feature-highlight">Chat Discoverability:</span> Extension now discoverable through "@tag:chat-participant" search</li>
+          <li>Rich markdown formatting in chat responses for better readability</li>
+        </ul>
+        
+        <h4>Previous Updates</h4>
         <ul>
           <li><span class="feature-highlight">Markdown Contributions:</span> Automatic integration with VS Code markdown extensions</li>
           <li><span class="feature-highlight">Enhanced Rendering:</span> Support for markdown-it plugins from other extensions</li>

@@ -1,5 +1,5 @@
 import { ChildProcessWithoutNullStreams } from "child_process";
-import { readFile, writeFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 import { workspace, window, WorkspaceConfiguration, NotebookCell } from "vscode";
 import * as codebook from "../codebook";
@@ -169,15 +169,13 @@ export class Cell implements codebook.ExecutableCell {
       this.mainExecutable.addBeforeExecuteFunc(() => {
         // prepend the generate message and the build tag to the file contents
         // read the file contents from the this.config.execFile
-        readFile(this.config.execFile, 'utf8', (err, data) => {
-          if (err) {
-            console.error(err);
-            return;
-          }
-          let fileContents = data;
-          fileContents = `// +build ${this.config.execTypeTestConfig.buildTag}\n\n` + fileContents;
-          writeFileSync(this.config.execFile, fileContents);
-        });
+        try {
+          const fileContents = readFileSync(this.config.execFile, 'utf8');
+          const updatedFileContents = `// +build ${this.config.execTypeTestConfig.buildTag}\n\n` + fileContents;
+          writeFileSync(this.config.execFile, updatedFileContents);
+        } catch (err) {
+          console.error('Error updating test file with build tag:', err);
+        }
       });
 
       // Add output transformer to filter out Go test-specific output lines
@@ -387,7 +385,7 @@ export class Config {
 
     if (this.execType === 'test') {
       const currentFile = window.activeTextEditor?.document.fileName;
-      const currentPath = path.dirname(currentFile ?? '');
+      const currentPath = currentFile ? path.dirname(currentFile) : workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
       // Use our new, improved package name formatter with the full path
       this.execPkg = formatGoPackageName(this.execPathTest || this.execTypeTestConfig.execPath || currentPath);
       // Use execPathTest from cell config if available, otherwise use execTypeTestConfig.execPath or default to currentPath
@@ -419,7 +417,7 @@ export const formatGoPackageName = (pathStr: string): string => {
 
   // Get the current editor's path as default
   const currentFile = window.activeTextEditor?.document.fileName;
-  const currentPath = path.dirname(currentFile ?? '');
+  const currentPath = currentFile ? path.dirname(currentFile) : workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
   console.log(`Current editor directory: ${currentPath}`);
 
   // Handle different path scenarios
@@ -488,7 +486,7 @@ export const getDirAndExecFile = (execPathFromConfig: string, execFilename: stri
 
   // Get the current editor's path as default
   const currentFile = window.activeTextEditor?.document.fileName;
-  const currentPath = path.dirname(currentFile ?? '');
+  const currentPath = currentFile ? path.dirname(currentFile) : workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
   console.log(`Current editor directory: ${currentPath}`);
 
   // Handle different path scenarios

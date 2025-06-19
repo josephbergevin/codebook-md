@@ -4,6 +4,79 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.4] - 2025-06-19
+
+### Added
+
+- **Chat Participant Integration:**
+  - Added '@codebook' chat participant for VS Code chat integration
+  - Interactive AI assistant for notebook management and code execution help
+  - Context-aware responses about creating notebooks, executing code, and configuring settings
+  - Follow-up suggestions based on user query types
+  - Discoverable through "@tag:chat-participant" search in VS Code extensions marketplace
+  - Rich markdown formatting in chat responses for better readability
+  - Comprehensive error handling with user-friendly messages
+  - Support for multiple trigger words (create, execute, configure, help, etc.)
+
+### Changed
+
+- Added "Chat" category to extension categories for better discoverability
+- Enhanced extension activation events to include chat functionality
+- Updated documentation to include chat participant usage and implementation patterns
+
+### Technical Implementation
+
+- Implemented ChatRequestHandler interface for VS Code chat API integration
+- Added chat participant registration with custom icon and follow-up provider
+- Integrated chat functionality into extension activation lifecycle
+- Enhanced coding instructions with chat participant implementation guidelines
+
+## [0.19.3] - 2025-06-11
+
+### Fixed
+
+- **Go Language Support Bug Fixes:**
+  - Fixed intermittent "go.mod file not found" errors when executing Go cell-blocks
+  - Resolved "EROFS: read-only file system" errors caused by incorrect file path resolution
+  - Eliminated race condition in test file preparation that could cause execution failures
+  - Improved path resolution fallbacks for better handling of untitled files and missing active editors
+  - Enhanced file writing logic to properly handle both relative and absolute file paths
+
+### Technical Implementation
+
+- Fixed `writeDirAndFileSyncSafe` function in `io.ts` to properly construct full file paths
+- Converted asynchronous file operations to synchronous in Go test preparation to prevent race conditions
+- Added robust path fallback mechanisms using workspace folders and current working directory
+- Improved error handling and defensive programming for edge cases
+- Added comprehensive test suite for Go language support with 8 test cases covering configuration, path resolution, and code generation
+
+### Testing
+
+- Created new `go.test.ts` with comprehensive coverage of Go language functionality
+- Added tests for path resolution edge cases and fallback scenarios
+- Verified fix eliminates intermittent execution failures
+- All 101 tests now passing including new Go-specific test suite
+
+## [0.19.2] - 2025-06-09
+
+### Fixed
+
+- **Command System Improvements:**
+  - Simplified working directory creation and error handling for better reliability
+  - Enhanced error reporting and debugging for command execution issues
+- **Configuration System Enhancements:**
+  - Enhanced execPath resolution with improved path handling logic
+  - Better error handling for invalid or missing path configurations
+  - Fixed missing `fullExecPath` function that was causing test failures
+  - Improved workspace path resolution for more robust configuration management
+
+### Technical Implementation
+
+- Streamlined directory creation process with cleaner error handling
+- Enhanced `fullExecPath` function implementation for consistent path resolution
+- Improved error messages and debugging information for configuration issues
+- Better integration between command execution and path resolution systems
+
 ## [0.19.1] - 2025-06-07
 
 ### Added
@@ -306,30 +379,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Tree View feature for organizing markdown files
-- File link hover preview functionality
-- Custom settings support for workspace, user, and folder-level configurations
 
-## [0.8.0] - 2024
-
-### Added
-
-- Support for executing code blocks in multiple languages
-- Output configuration options for code execution results
-- Language support for:
-  - Golang
-  - Shell/Bash
-  - JavaScript
-  - TypeScript
-  - SQL
-
-## [0.7.5] - 2024
-
-### Fixed
-
-- Various bug fixes and performance improvements
-
-## [0.1.0] - 2024
-
-### Added
-
-- Development environment configuration- Basic project structure- Initial extension setup### Added## [0.0.1-0.0.3] - 2024- Core extension functionality- Basic markdown file support- Initial implementation of code block execution
+- Development environment configuration- Basic project structure- Initial extension setup### Added## [0.0.1-0.0.3] - 2024- Core extension functionality- Basic markdown file support- Initial implementation of code block execution### Added## [0.1.0] - 2024- Various bug fixes and performance improvements### Fixed## [0.7.5] - 2024 - SQL - TypeScript - JavaScript - Shell/Bash - Golang- Language support for:- Output configuration options for code execution results- Support for executing code blocks in multiple languages### Added## [0.8.0] - 2024- Custom settings support for workspace, user, and folder-level configurations- File link hover preview functionality

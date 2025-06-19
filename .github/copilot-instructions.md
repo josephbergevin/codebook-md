@@ -4,7 +4,19 @@ This document contains instructions and preferences for GitHub Copilot when work
 
 ## Project Overview
 
-CodebookMD is a VS Code extension that brings Jupyter-like notebook functionality to markdown files, allowing code execution and interactive documentation. The extension supports multiple languages and follows a modular architecture - but the core language support is implemented in TypeScript. The extension uses webviews for rendering interactive content and communicates with the VS Code API for various functionalities.
+This project (or this workspace) is CodebookMD. CodebookMD is a VS Code extension that brings Jupyter-like notebook functionality to markdown files, allowing code execution and interactive documentation. The extension supports multiple languages and follows a modular architecture - but the core language support is implemented in TypeScript. The extension uses webviews for rendering interactive content and communicates with the VS Code API for various functionalities.
+
+**New in this version**: CodebookMD now includes a chat participant feature that allows users to interact with an AI assistant directly within VS Code to get help with notebook management, code execution, and configuration. The chat participant is accessible through the "@codebook" mention in VS Code chat.
+
+## Project Reference
+
+- When the user is interacting with Copilot, this project can be referred to in any of the following ways:
+  - CodebookMD
+  - This extension
+  - The CodebookMD extension
+  - This project
+  - This workspace
+  - The CodebookMD codebase
 
 ## Code Conventions
 
@@ -20,7 +32,8 @@ CodebookMD is a VS Code extension that brings Jupyter-like notebook functionalit
 
 #### Code Quality Checks:
 
-- Ensure all generated code passes the following checks (vscode tasks)
+- Code Quality checks should be run from the VS Code task runner, not manually in the terminal. After running the task, any failures will be output to the #problems panel. You can use the `get_errors` tool to see the results of the check that was run.
+- Ensure all generated code passes the following checks (only to be run as tasks, not manually in the terminal, if possible):
   - `npm run compile` for building the extension
   - `npm install` for installing dependencies
   - `npm run lint` for linting
@@ -69,6 +82,20 @@ CodebookMD is a VS Code extension that brings Jupyter-like notebook functionalit
 - Handle message passing between webview and extension host
 - Use VS Code's styling variables for theming consistency
 - Implement proper cleanup in dispose() methods
+
+### Chat Participant Implementation
+
+- The chat participant is implemented using VS Code's ChatRequestHandler interface
+- The participant ID is 'codebook-md' and can be invoked with '@codebook' in VS Code chat
+- The chat handler provides context-aware responses about:
+  - Creating and managing notebooks
+  - Executing code in various languages
+  - Configuring extension settings
+  - General usage questions
+- Follow-up suggestions are provided based on the user's query type
+- Include proper error handling and user-friendly responses
+- Register the chat participant in the extension's activate function
+- Set an appropriate icon path for the chat participant
 
 ### Command Registration
 
@@ -144,6 +171,8 @@ CodebookMD is a VS Code extension that brings Jupyter-like notebook functionalit
 - Support proper extension activation events
 - Handle extension lifecycle events properly
 - Use VS Code's native UI components when possible
+- Implement chat participants using VS Code's chat API for enhanced user interaction
+- Ensure chat participants are properly registered with appropriate metadata
 
 ## Performance Considerations
 
