@@ -1,0 +1,9 @@
+{
+  "name": "npm-test-agent",
+  "type": "action",
+  "description": "Runs the local npm test script",
+  "command": {
+    "provider": "shell",
+    "shellCommand": "npm test"
+  }
+}
