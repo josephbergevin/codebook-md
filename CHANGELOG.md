@@ -4,6 +4,33 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.4] - 2025-06-19
+
+### Added
+
+- **Chat Participant Integration:**
+  - Added '@codebook' chat participant for VS Code chat integration
+  - Interactive AI assistant for notebook management and code execution help
+  - Context-aware responses about creating notebooks, executing code, and configuring settings
+  - Follow-up suggestions based on user query types
+  - Discoverable through "@tag:chat-participant" search in VS Code extensions marketplace
+  - Rich markdown formatting in chat responses for better readability
+  - Comprehensive error handling with user-friendly messages
+  - Support for multiple trigger words (create, execute, configure, help, etc.)
+
+### Changed
+
+- Added "Chat" category to extension categories for better discoverability
+- Enhanced extension activation events to include chat functionality
+- Updated documentation to include chat participant usage and implementation patterns
+
+### Technical Implementation
+
+- Implemented ChatRequestHandler interface for VS Code chat API integration
+- Added chat participant registration with custom icon and follow-up provider
+- Integrated chat functionality into extension activation lifecycle
+- Enhanced coding instructions with chat participant implementation guidelines
+
 ## [0.19.3] - 2025-06-11
 
 ### Fixed
@@ -352,30 +379,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Tree View feature for organizing markdown files
-- File link hover preview functionality
-- Custom settings support for workspace, user, and folder-level configurations
 
-## [0.8.0] - 2024
-
-### Added
-
-- Support for executing code blocks in multiple languages
-- Output configuration options for code execution results
-- Language support for:
-  - Golang
-  - Shell/Bash
-  - JavaScript
-  - TypeScript
-  - SQL
-
-## [0.7.5] - 2024
-
-### Fixed
-
-- Various bug fixes and performance improvements
-
-## [0.1.0] - 2024
-
-### Added
-
-- Development environment configuration- Basic project structure- Initial extension setup### Added## [0.0.1-0.0.3] - 2024- Core extension functionality- Basic markdown file support- Initial implementation of code block execution
+- Development environment configuration- Basic project structure- Initial extension setup### Added## [0.0.1-0.0.3] - 2024- Core extension functionality- Basic markdown file support- Initial implementation of code block execution### Added## [0.1.0] - 2024- Various bug fixes and performance improvements### Fixed## [0.7.5] - 2024 - SQL - TypeScript - JavaScript - Shell/Bash - Golang- Language support for:- Output configuration options for code execution results- Support for executing code blocks in multiple languages### Added## [0.8.0] - 2024- Custom settings support for workspace, user, and folder-level configurations- File link hover preview functionality

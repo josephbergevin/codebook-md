@@ -200,6 +200,31 @@ Codebook Prompts allow you to create interactive code blocks that request user i
 - **Descriptive Placeholders**: Custom placeholder text for clear user instructions
 - **Format Options**: Date formatting options for output flexibility
 
+### Chat Participant Integration
+
+CodebookMD now includes an integrated AI chat assistant accessible through VS Code's chat interface:
+
+- **Interactive Assistant**: Get help with notebook management, code execution, and configuration
+- **Easy Access**: Invoke with `@codebook` in VS Code chat
+- **Context-Aware**: Intelligent responses based on your specific questions
+- **Follow-up Suggestions**: Get relevant next steps and related topics
+- **Comprehensive Help**: Covers creating notebooks, executing code, and configuring settings
+- **Rich Formatting**: Responses include markdown formatting for better readability
+
+#### Using the Chat Participant
+
+To use the CodebookMD chat assistant:
+
+1. Open VS Code chat (View → Chat or `Ctrl+Alt+I`)
+2. Type `@codebook` followed by your question
+3. Examples:
+   - `@codebook how do I create a notebook?`
+   - `@codebook help with executing code blocks`
+   - `@codebook configure my settings`
+   - `@codebook what can you do?`
+
+The chat assistant provides instant help and guidance for all CodebookMD features, making it easier to get started and discover new functionality.
+
 ### Custom Settings
 
 Support for workspace, user, and folder-level configurations
@@ -218,31 +243,7 @@ When working with code blocks, you can access the configuration UI through the c
 
 ### File Link Hover
 
-File links detected in markdown code blocks can be hovered over to view the contents of the file.
-
-- Line Numbers: If a line number is specified, the file will be previewed at that line.
-- Line Range: If a line range is specified, the file will be previewed from the start line to the end line.
-
-### Output Configuration
-
-Output from executed code blocks can be configured in the following ways:
-
-- Below the code block
-- In the output panel at the bottom of the editor (coming soon)
-- In a new tab (coming soon)
-- In a file location specified in the settings (coming soon)
-
-### HTTP Requests Support
-
-Execute HTTP requests directly from markdown files:
-
-- **Native Support**: No additional extensions required
-- **Syntax Highlighting**: Proper highlighting for HTTP requests
-- **Comment Support**: Use `#` for comments
-- **Configuration Options**: Configure default settings for HTTP requests
-- **Full Request Support**: Headers, authentication, request bodies and more
-
-#### Examples of HTTP requests:
+#### Examples of HTTP requests:- **Full Request Support**: Headers, authentication, request bodies and more- **Configuration Options**: Configure default settings for HTTP requests- **Comment Support**: Use `#` for comments- **Syntax Highlighting**: Proper highlighting for HTTP requests- **Native Support**: No additional extensions requiredExecute HTTP requests directly from markdown files:### HTTP Requests Support- In a file location specified in the settings (coming soon)- In a new tab (coming soon)- In the output panel at the bottom of the editor (coming soon)- Below the code blockOutput from executed code blocks can be configured in the following ways:### Output Configuration- Line Range: If a line range is specified, the file will be previewed from the start line to the end line.- Line Numbers: If a line number is specified, the file will be previewed at that line.File links detected in markdown code blocks can be hovered over to view the contents of the file.
 
 ```http
 # Simple GET request example
