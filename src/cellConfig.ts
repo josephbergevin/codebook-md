@@ -166,7 +166,7 @@ export function getOutputConfigOptions(): ConfigOptions {
     showExecutableCodeInOutput: {
       type: 'boolean',
       default: true,
-      description: 'Show the executable code at the top of the output.'
+      description: 'Include the executable code in the output.'
     },
     showOutputOnRun: {
       type: 'boolean',
@@ -176,12 +176,12 @@ export function getOutputConfigOptions(): ConfigOptions {
     replaceOutputCell: {
       type: 'boolean',
       default: true,
-      description: 'Prepend the executable code to the output.'
+      description: 'Clear the output cell on run.'
     },
     showTimestamp: {
       type: 'boolean',
       default: true,
-      description: 'Show the timestamp at the top of the output.'
+      description: 'Include the timestamp in the output.'
     },
     timestampTimezone: {
       type: 'string',

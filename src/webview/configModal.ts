@@ -5,6 +5,38 @@ import { getCellConfig } from '../codebook';
 import { saveCellConfig, getLanguageConfigOptions, getOutputConfigOptions } from '../cellConfig';
 
 let currentPanel: WebviewPanel | undefined = undefined;
+let modalIsOpen: boolean = false;
+
+export function isConfigModalOpen(): boolean {
+  return modalIsOpen;
+}
+
+export async function updateConfigModalForCell(execCell: codebook.ExecutableCell, notebookCell?: NotebookCell): Promise<void> {
+  if (!currentPanel || !isConfigModalOpen()) {
+    return;
+  }
+
+  // Load existing configuration for the new cell
+  let existingCellConfig: Record<string, unknown> | undefined = undefined;
+  if (notebookCell) {
+    try {
+      existingCellConfig = await getCellConfig(notebookCell);
+      if (existingCellConfig) {
+        console.log('Loaded existing cell config for cell update:', existingCellConfig);
+      }
+    } catch (error) {
+      console.error('Error loading cell config during update:', error);
+    }
+  }
+
+  // Update the webview content with the new cell's configuration
+  currentPanel.webview.html = getWebviewContent(execCell, notebookCell, existingCellConfig);
+
+  // Update the panel title to indicate which cell is being configured
+  const cellIndex = notebookCell?.index ?? 'Unknown';
+  const languageId = notebookCell?.document.languageId ?? 'unknown';
+  currentPanel.title = `Code Block Config - Cell ${cellIndex} (${languageId})`;
+}
 
 export async function openConfigModal(execCell: codebook.ExecutableCell, notebookCell?: NotebookCell, context?: ExtensionContext): Promise<void> {
   // Get active editor's column to position our modal adjacent to it
@@ -28,13 +60,25 @@ export async function openConfigModal(execCell: codebook.ExecutableCell, noteboo
   }
 
   if (currentPanel) {
-    // If panel exists, reveal it in the appropriate column
+    // If panel exists, reveal it and update its content for the new cell
     currentPanel.reveal(modalColumn, true); // Second parameter makes it preserve focus on the editor
+
+    // Update the content for the new cell
+    currentPanel.webview.html = getWebviewContent(execCell, notebookCell, existingCellConfig);
+
+    // Update the panel title to indicate which cell is being configured
+    const cellIndex = notebookCell?.index ?? 'Unknown';
+    const languageId = notebookCell?.document.languageId ?? 'unknown';
+    currentPanel.title = `Code Block Config - Cell ${cellIndex} (${languageId})`;
   } else {
     // Create a compact modal-like panel
+    const cellIndex = notebookCell?.index ?? 'Unknown';
+    const languageId = notebookCell?.document.languageId ?? 'unknown';
+    const panelTitle = `Code Block Config - Cell ${cellIndex} (${languageId})`;
+
     currentPanel = window.createWebviewPanel(
       'codeBlockConfig',
-      'Code Block Config',
+      panelTitle,
       {
         viewColumn: modalColumn,
         preserveFocus: true // Keep focus on the editor
@@ -46,6 +90,9 @@ export async function openConfigModal(execCell: codebook.ExecutableCell, noteboo
       }
     );
 
+    // Mark the modal as open
+    modalIsOpen = true;
+
     // Make the panel behave more like a modal by setting a fixed size
     currentPanel.webview.options = {
       ...currentPanel.webview.options,
@@ -55,6 +102,7 @@ export async function openConfigModal(execCell: codebook.ExecutableCell, noteboo
     currentPanel.onDidDispose(
       () => {
         currentPanel = undefined;
+        modalIsOpen = false;
       },
       null,
       []

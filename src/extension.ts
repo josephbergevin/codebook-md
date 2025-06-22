@@ -381,6 +381,49 @@ export async function activate(context: ExtensionContext) {
 
   context.subscriptions.push(notebookChangeListener);
 
+  // Register notebook selection change listener for config modal updates
+  const notebookSelectionChangeListener = window.onDidChangeNotebookEditorSelection(event => {
+    // Only update if the config modal is open
+    if (!configModal.isConfigModalOpen()) {
+      return;
+    }
+
+    // Only process our notebook types
+    if (!event.notebookEditor.notebook.notebookType.startsWith('codebook-md')) {
+      return;
+    }
+
+    try {
+      // Get the currently selected cell
+      const selectedCells = event.selections;
+      if (selectedCells.length === 0 || selectedCells[0].isEmpty) {
+        return;
+      }
+
+      // Get the first selected cell
+      const firstSelection = selectedCells[0];
+      const selectedCellIndex = firstSelection.start;
+      const selectedCell = event.notebookEditor.notebook.cellAt(selectedCellIndex);
+
+      // Only update for code cells
+      if (selectedCell.kind !== 2) { // 2 = NotebookCellKind.Code
+        return;
+      }
+
+      // Create the executable cell for the selected cell
+      const execCell = codebook.NewExecutableCell(selectedCell);
+      if (execCell) {
+        // Update the config modal with the new cell
+        configModal.updateConfigModalForCell(execCell, selectedCell);
+        console.log(`Updated config modal for cell ${selectedCellIndex} (${selectedCell.document.languageId})`);
+      }
+    } catch (error) {
+      console.error('Error handling notebook selection change:', error);
+    }
+  });
+
+  context.subscriptions.push(notebookSelectionChangeListener);
+
   // Register the Welcome webview provider (should be first to appear at the top)
   const welcomeViewProvider = new WelcomeViewProvider(context);
   context.subscriptions.push(
