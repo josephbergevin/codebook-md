@@ -861,7 +861,6 @@ export class CodeBlockConfig {
       execPath: this.execPath,
       output: {
         showExecutableCodeInOutput: this.outputConfig.showExecutableCodeInOutput,
-        showOutputOnRun: this.outputConfig.showOutputOnRun,
         prependToOutputStrings: this.outputConfig.prependToOutputStrings,
         appendToOutputStrings: this.outputConfig.appendToOutputStrings,
         replaceOutputCell: this.outputConfig.replaceOutputCell,
@@ -907,7 +906,6 @@ export function getCellConfig(notebookCell: NotebookCell): any {
 // OutputConfig is a class that contains the configuration for the output of a cell
 export class OutputConfig {
   showExecutableCodeInOutput: boolean; // whether to print the executable code at the top of the output cell
-  showOutputOnRun: boolean; // whether to show the output on run
   replaceOutputCell: boolean; // whether to replace the output of the cell - if false, append the output
   showTimestamp: boolean; // whether to prepend the output with a timestamp
   timestampTimezone: string; // the timezone to use for the timestamp
@@ -920,7 +918,6 @@ export class OutputConfig {
     const outputConfig = workspace.getConfiguration('codebook-md.output');
     // initialize the output configuration with the default values
     this.showExecutableCodeInOutput = outputConfig.get('showExecutableCodeInOutput') || false;
-    this.showOutputOnRun = outputConfig.get('showOutputOnRun') || false;
     this.replaceOutputCell = outputConfig.get('replaceOutputCell') || true;
     this.showTimestamp = outputConfig.get('showTimestamp') || false;
     this.timestampTimezone = validTimezone(outputConfig.get('timestampTimezone') || "");
@@ -931,7 +928,6 @@ export class OutputConfig {
     // these config values are allowed to override the default output config, if they are set
     if (languageOutputConfig) {
       this.showExecutableCodeInOutput = languageOutputConfig.get('showExecutableCodeInOutput') || this.showExecutableCodeInOutput;
-      this.showOutputOnRun = languageOutputConfig.get('showOutputOnRun') || this.showOutputOnRun;
       this.replaceOutputCell = languageOutputConfig.get('replaceOutputCell') || this.replaceOutputCell;
       this.showTimestamp = languageOutputConfig.get('showTimestamp') || this.showTimestamp;
       this.timestampTimezone = validTimezone(languageOutputConfig.get('timestampTimezone') || this.timestampTimezone);
@@ -947,12 +943,6 @@ export class OutputConfig {
             break;
           case ".output.showExecutableCodeInOutput(false)":
             this.showExecutableCodeInOutput = false;
-            break;
-          case ".output.showOutputOnRun(true)":
-            this.showOutputOnRun = true;
-            break;
-          case ".output.showOutputOnRun(false)":
-            this.showOutputOnRun = false;
             break;
           case ".output.replaceOutputCell(true)":
             this.replaceOutputCell = true;
@@ -979,9 +969,6 @@ export class OutputConfig {
 
       if (cellConfig.output.showExecutableCodeInOutput !== undefined) {
         this.showExecutableCodeInOutput = cellConfig.output.showExecutableCodeInOutput;
-      }
-      if (cellConfig.output.showOutputOnRun !== undefined) {
-        this.showOutputOnRun = cellConfig.output.showOutputOnRun;
       }
       if (cellConfig.output.replaceOutputCell !== undefined) {
         this.replaceOutputCell = cellConfig.output.replaceOutputCell;

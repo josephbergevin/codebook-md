@@ -479,7 +479,6 @@ echo "Hello from CodebookMD!"
         <pre><code>{
   "codebook-md.output": {
     "showExecutableCodeInOutput": true,
-    "showOutputOnRun": true,
     "replaceOutputCell": true,
     "showTimestamp": true
   }
@@ -612,7 +611,6 @@ console.log(greeting);
             <ul>
               <li>Option: <strong>showExecutableCodeInOutput</strong> - Show/hide the executed code in the output</li>
               <li>Option: <strong>replaceOutputCell</strong> - Replace existing output or append new output on each run</li>
-              <li>Option: <strong>showOutputOnRun</strong> - Control whether output is shown after execution</li>
               <li>Option: <strong>showTimestamp</strong> - Add execution timestamps to track when code was run</li>
               <li>Option: <strong>timestampTimezone</strong> - Set timezone for execution timestamps (e.g., 'UTC', 'America/New_York')</li>
             </ul>
@@ -642,8 +640,7 @@ print("Hello from Python!")
   "codebook-md.python": {
     "pythonCmd": "python3",
     "output": {
-      "showExecutableCodeInOutput": true,
-      "showOutputOnRun": true
+      "showExecutableCodeInOutput": true
     }
   }
 }</code></pre>
@@ -666,7 +663,6 @@ print("Hello from Python!")
           <li><strong>Output Configuration:</strong> Control how execution results are displayed
             <ul>
               <li>Option: <strong>showExecutableCodeInOutput</strong> - Show/hide the executed code in the output</li>
-              <li>Option: <strong>showOutputOnRun</strong> - Control whether output is shown after execution</li>
               <li>Option: <strong>replaceOutputCell</strong> - Replace existing output or append new output on each run</li>
               <li>Option: <strong>showTimestamp</strong> - Add execution timestamps to track when code was run</li>
               <li>Option: <strong>timestampTimezone</strong> - Set timezone for execution timestamps</li>
@@ -727,7 +723,6 @@ echo "Hello from Bash!"
           <li><strong>Output Configuration:</strong> Control how execution results are displayed
             <ul>
               <li>Option: <strong>showExecutableCodeInOutput</strong> - Show/hide the executed code in the output</li>
-              <li>Option: <strong>showOutputOnRun</strong> - Control whether output is shown after execution</li>
               <li>Option: <strong>replaceOutputCell</strong> - Replace existing output or append new output on each run</li>
               <li>Option: <strong>showTimestamp</strong> - Add execution timestamps to track when code was run</li>
               <li>Option: <strong>timestampTimezone</strong> - Set timezone for execution timestamps</li>
@@ -782,7 +777,6 @@ SELECT 'Hello from SQL!' AS greeting;
           <li><strong>Output Configuration:</strong> Control how execution results are displayed
             <ul>
               <li>Option: <strong>showExecutableCodeInOutput</strong> - Show/hide the executed SQL in the output</li>
-              <li>Option: <strong>showOutputOnRun</strong> - Control whether output is shown after execution</li>
               <li>Option: <strong>replaceOutputCell</strong> - Replace existing output or append new output on each run</li>
               <li>Option: <strong>showTimestamp</strong> - Add execution timestamps to track when code was run</li>
               <li>Option: <strong>timestampTimezone</strong> - Set timezone for execution timestamps</li>
@@ -852,7 +846,6 @@ Authorization: Bearer {{YOUR_TOKEN}}
           <li><strong>Output Configuration:</strong> Control how execution results are displayed
             <ul>
               <li>Option: <strong>showExecutableCodeInOutput</strong> - Show/hide the executed curl command in the output</li>
-              <li>Option: <strong>showOutputOnRun</strong> - Control whether output is shown after execution</li>
               <li>Option: <strong>replaceOutputCell</strong> - Replace existing output or append new output on each run</li>
               <li>Option: <strong>showTimestamp</strong> - Add execution timestamps to track when code was run</li>
               <li>Option: <strong>timestampTimezone</strong> - Set timezone for execution timestamps</li>
@@ -908,7 +901,6 @@ Authorization: Bearer {{YOUR_TOKEN}}
     "config": {
       "output": {
         "showExecutableCodeInOutput": true,
-        "showOutputOnRun": true,
         "replaceOutputCell": false,
         "showTimestamp": true,
         "timestampTimezone": "America/New_York"

@@ -47,7 +47,6 @@ jest.mock('../config', () => ({
   getCodebookMDExecPath: jest.fn().mockReturnValue('./codebook-md/'),
   getBaseExecConfig: jest.fn().mockReturnValue({
     showExecutableCodeInOutput: true,
-    showOutputOnRun: true,
     replaceOutputCell: true,
     showTimestamp: true,
     timestampTimezone: 'UTC'
@@ -256,7 +255,6 @@ describe('CellContentConfig', () => {
       get: jest.fn().mockImplementation((key: string) => {
         switch (key) {
           case 'showExecutableCodeInOutput': return false;
-          case 'showOutputOnRun': return false;
           case 'replaceOutputCell': return true;
           case 'showTimestamp': return false;
           case 'timestampTimezone': return '';
@@ -290,7 +288,6 @@ describe('CellContentConfig', () => {
       get: jest.fn().mockImplementation((key: string) => {
         switch (key) {
           case 'showExecutableCodeInOutput': return false;
-          case 'showOutputOnRun': return false;
           case 'replaceOutputCell': return true;
           case 'showTimestamp': return false;
           case 'timestampTimezone': return '';
@@ -322,7 +319,6 @@ describe('CellContentConfig', () => {
       get: jest.fn().mockImplementation((key: string) => {
         switch (key) {
           case 'showExecutableCodeInOutput': return false;
-          case 'showOutputOnRun': return false;
           case 'replaceOutputCell': return true;
           case 'showTimestamp': return false;
           case 'timestampTimezone': return '';
@@ -345,7 +341,7 @@ describe('CellContentConfig', () => {
   it('should create correct config when called from Python', () => {
     const mockNotebookCell = {
       document: {
-        getText: jest.fn().mockReturnValue('print("Hello")\n# [>].output.showOutputOnRun(true)\n# This is a comment\n'),
+        getText: jest.fn().mockReturnValue('print("Hello")\n# [>].output.showTimestamp(true)\n# This is a comment\n'),
         languageId: 'python'
       } as unknown
     } as NotebookCell;
@@ -354,7 +350,6 @@ describe('CellContentConfig', () => {
       get: jest.fn().mockImplementation((key: string) => {
         switch (key) {
           case 'showExecutableCodeInOutput': return false;
-          case 'showOutputOnRun': return false;
           case 'replaceOutputCell': return true;
           case 'showTimestamp': return false;
           case 'timestampTimezone': return '';
@@ -370,8 +365,8 @@ describe('CellContentConfig', () => {
 
     expect(codeBlockConfig.innerScope).toBe('print("Hello")');
     expect(codeBlockConfig.comments).toEqual(['# This is a comment']);
-    expect(codeBlockConfig.commands).toEqual(['.output.showOutputOnRun(true)']);
-    expect(codeBlockConfig.outputConfig.showOutputOnRun).toBe(true);
+    expect(codeBlockConfig.commands).toEqual(['.output.showTimestamp(true)']);
+    expect(codeBlockConfig.outputConfig.showTimestamp).toBe(true);
   });
 
   it('should create correct config when called from Shell', () => {
@@ -386,7 +381,6 @@ describe('CellContentConfig', () => {
       get: jest.fn().mockImplementation((key: string) => {
         switch (key) {
           case 'showExecutableCodeInOutput': return false;
-          case 'showOutputOnRun': return false;
           case 'replaceOutputCell': return true;
           case 'showTimestamp': return false;
           case 'timestampTimezone': return '';
@@ -418,7 +412,6 @@ describe('CellContentConfig', () => {
       get: jest.fn().mockImplementation((key: string) => {
         switch (key) {
           case 'showExecutableCodeInOutput': return false;
-          case 'showOutputOnRun': return false;
           case 'replaceOutputCell': return true;
           case 'showTimestamp': return false;
           case 'timestampTimezone': return '';
@@ -466,7 +459,6 @@ describe('CellContentConfig', () => {
       get: jest.fn().mockImplementation((key: string) => {
         switch (key) {
           case 'showExecutableCodeInOutput': return false;
-          case 'showOutputOnRun': return false;
           case 'replaceOutputCell': return true;
           case 'showTimestamp': return false;
           case 'timestampTimezone': return '';
@@ -488,7 +480,6 @@ describe('CellContentConfig', () => {
     console.log("Cell Config:", codeBlockConfig.cellConfig);
     console.log("Output Config:", {
       showExecutableCodeInOutput: codeBlockConfig.outputConfig.showExecutableCodeInOutput,
-      showOutputOnRun: codeBlockConfig.outputConfig.showOutputOnRun,
       replaceOutputCell: codeBlockConfig.outputConfig.replaceOutputCell,
       showTimestamp: codeBlockConfig.outputConfig.showTimestamp,
       timestampTimezone: codeBlockConfig.outputConfig.timestampTimezone
@@ -497,7 +488,6 @@ describe('CellContentConfig', () => {
     // Only showExecutableCodeInOutput should be set from the cell config
     expect(codeBlockConfig.outputConfig.showExecutableCodeInOutput).toBe(true);
     // The rest should be their default values (false/true/empty)
-    expect(codeBlockConfig.outputConfig.showOutputOnRun).toBe(false);
     expect(codeBlockConfig.outputConfig.replaceOutputCell).toBe(true);
     expect(codeBlockConfig.outputConfig.showTimestamp).toBe(false);
     // timestampTimezone default is '' (empty string) unless set in config
@@ -530,7 +520,6 @@ describe('CellContentConfig', () => {
       get: jest.fn().mockImplementation((key: string) => {
         switch (key) {
           case 'showExecutableCodeInOutput': return false;
-          case 'showOutputOnRun': return false;
           case 'replaceOutputCell': return true;
           case 'showTimestamp': return false;
           case 'timestampTimezone': return '';

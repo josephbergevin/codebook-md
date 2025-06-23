@@ -113,7 +113,6 @@ This project (or this workspace) is CodebookMD. CodebookMD is a VS Code extensio
 - Support language-specific comment syntax
 - Follow the established pattern for notebook output configurations:
   - showExecutableCodeInOutput
-  - showOutputOnRun
   - replaceOutputCell
   - showTimestamp
   - timestampTimezone

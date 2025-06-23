@@ -941,7 +941,6 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
         const existingCellConfigData = ${JSON.stringify(currentCellConfig)};
         const existingOutputConfigData = {
           showExecutableCodeInOutput: ${existingOutputConfig ? existingOutputConfig.showExecutableCodeInOutput : false},
-          showOutputOnRun: ${existingOutputConfig ? existingOutputConfig.showOutputOnRun : false},
           replaceOutputCell: ${existingOutputConfig ? existingOutputConfig.replaceOutputCell : true},
           showTimestamp: ${existingOutputConfig ? existingOutputConfig.showTimestamp : false},
           timestampTimezone: "${existingOutputConfig ? existingOutputConfig.timestampTimezone : 'UTC'}"

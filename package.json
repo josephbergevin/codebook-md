@@ -85,11 +85,6 @@
               "default": true,
               "description": "Show the executable code at the top of the output (default: false)."
             },
-            "showOutputOnRun": {
-              "type": "boolean",
-              "default": true,
-              "description": "Show the output cell on run (default: true)."
-            },
             "replaceOutputCell": {
               "type": "boolean",
               "default": true,
@@ -182,11 +177,6 @@
                   "default": true,
                   "description": "Show the executable code at the top of the output (default: false)."
                 },
-                "showOutputOnRun": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the output cell on run (default: true)."
-                },
                 "replaceOutputCell": {
                   "type": "boolean",
                   "default": true,
@@ -222,11 +212,6 @@
                   "default": true,
                   "description": "Show the executable code at the top of the output (default: false)."
                 },
-                "showOutputOnRun": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the output cell on run (default: true)."
-                },
                 "replaceOutputCell": {
                   "type": "boolean",
                   "default": true,
@@ -257,11 +242,6 @@
                   "default": true,
                   "description": "Show the executable code at the top of the output (default: false)."
                 },
-                "showOutputOnRun": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the output cell on run (default: true)."
-                },
                 "replaceOutputCell": {
                   "type": "boolean",
                   "default": true,
@@ -291,11 +271,6 @@
                   "type": "boolean",
                   "default": true,
                   "description": "Show the executable code at the top of the output (default: false)."
-                },
-                "showOutputOnRun": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the output cell on run (default: true)."
                 },
                 "replaceOutputCell": {
                   "type": "boolean",
@@ -331,11 +306,6 @@
                   "default": true,
                   "description": "Show the executable code at the top of the output (default: false)."
                 },
-                "showOutputOnRun": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the output cell on run (default: true)."
-                },
                 "replaceOutputCell": {
                   "type": "boolean",
                   "default": true,
@@ -370,11 +340,6 @@
                   "type": "boolean",
                   "default": true,
                   "description": "Show the executable code at the top of the output (default: false)."
-                },
-                "showOutputOnRun": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the output cell on run (default: true)."
                 },
                 "replaceOutputCell": {
                   "type": "boolean",
@@ -420,11 +385,6 @@
                   "type": "boolean",
                   "default": true,
                   "description": "Show the executable code at the top of the output (default: true)."
-                },
-                "showOutputOnRun": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the output cell on run (default: true)."
                 },
                 "replaceOutputCell": {
                   "type": "boolean",
@@ -489,12 +449,6 @@
           "type": "boolean",
           "default": true,
           "description": "Show the executable code at the top of the output",
-          "scope": "window"
-        },
-        "codebook-md.output.showOutputOnRun": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show the output cell on run",
           "scope": "window"
         },
         "codebook-md.output.replaceOutputCell": {
