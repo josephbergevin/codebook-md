@@ -312,6 +312,53 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
   // Get existing output configuration from the cell's outputConfig
   const existingOutputConfig = codeBlockConfig.outputConfig;
 
+  // Function to get language icon text and class
+  const getLanguageIcon = (langId: string): { text: string; class: string; } => {
+    const iconMap: Record<string, { text: string; class: string; }> = {
+      'javascript': { text: 'JS', class: 'js' },
+      'typescript': { text: 'TS', class: 'ts' },
+      'python': { text: 'PY', class: 'py' },
+      'go': { text: 'GO', class: 'go' },
+      'java': { text: 'JAVA', class: 'java' },
+      'csharp': { text: 'C#', class: 'cs' },
+      'cpp': { text: 'C++', class: 'cpp' },
+      'c': { text: 'C', class: 'c' },
+      'rust': { text: 'RS', class: 'rust' },
+      'php': { text: 'PHP', class: 'php' },
+      'ruby': { text: 'RB', class: 'ruby' },
+      'swift': { text: 'SWIFT', class: 'swift' },
+      'kotlin': { text: 'KT', class: 'kotlin' },
+      'scala': { text: 'SCALA', class: 'scala' },
+      'r': { text: 'R', class: 'r' },
+      'sql': { text: 'SQL', class: 'sql' },
+      'mysql': { text: 'SQL', class: 'sql' },
+      'postgresql': { text: 'SQL', class: 'sql' },
+      'sqlite': { text: 'SQL', class: 'sql' },
+      'bash': { text: 'SH', class: 'bash' },
+      'shell': { text: 'SH', class: 'shell' },
+      'shellscript': { text: 'SH', class: 'shellscript' },
+      'powershell': { text: 'PS1', class: 'powershell' },
+      'cmd': { text: 'CMD', class: 'cmd' },
+      'http': { text: 'HTTP', class: 'http' },
+      'html': { text: 'HTML', class: 'html' },
+      'css': { text: 'CSS', class: 'css' },
+      'scss': { text: 'SCSS', class: 'scss' },
+      'less': { text: 'LESS', class: 'less' },
+      'json': { text: 'JSON', class: 'json' },
+      'xml': { text: 'XML', class: 'xml' },
+      'yaml': { text: 'YAML', class: 'yaml' },
+      'yml': { text: 'YAML', class: 'yaml' },
+      'toml': { text: 'TOML', class: 'toml' },
+      'dockerfile': { text: 'DOCK', class: 'dockerfile' },
+      'makefile': { text: 'MAKE', class: 'makefile' },
+      'markdown': { text: 'MD', class: 'md' }
+    };
+
+    return iconMap[langId.toLowerCase()] || { text: 'CODE', class: 'default' };
+  };
+
+  const languageIcon = getLanguageIcon(languageId);
+
   // Create execution type configuration for non-Go languages - empty since we only show this for Go now
   const executionTypeHTML = ''; // No longer showing execution type dropdown for non-Go languages
 
@@ -654,6 +701,55 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
           height: 20px;
           margin-right: 8px;
         }
+        .language-icon {
+          width: 20px;
+          height: 20px;
+          margin-right: 8px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          font-weight: bold;
+          border-radius: 2px;
+          color: white;
+          text-transform: uppercase;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+        }
+        .language-icon.js { background-color: #f7df1e; color: #000; }
+        .language-icon.ts { background-color: #3178c6; }
+        .language-icon.py { background-color: #3776ab; }
+        .language-icon.go { background-color: #00add8; }
+        .language-icon.java { background-color: #ed8b00; }
+        .language-icon.cs { background-color: #239120; }
+        .language-icon.cpp { background-color: #00599c; }
+        .language-icon.c { background-color: #a8b9cc; color: #000; }
+        .language-icon.rust { background-color: #dea584; color: #000; }
+        .language-icon.php { background-color: #777bb4; }
+        .language-icon.ruby { background-color: #cc342d; }
+        .language-icon.swift { background-color: #fa7343; }
+        .language-icon.kotlin { background-color: #7f52ff; }
+        .language-icon.scala { background-color: #dc322f; }
+        .language-icon.r { background-color: #276dc3; }
+        .language-icon.sql { background-color: #336791; }
+        .language-icon.bash,
+        .language-icon.shell,
+        .language-icon.shellscript { background-color: #89e051; color: #000; }
+        .language-icon.powershell { background-color: #012456; }
+        .language-icon.cmd { background-color: #4d4d4d; }
+        .language-icon.http { background-color: #61dafb; color: #000; }
+        .language-icon.html { background-color: #e34c26; }
+        .language-icon.css { background-color: #1572b6; }
+        .language-icon.scss { background-color: #cf649a; }
+        .language-icon.less { background-color: #1d365d; }
+        .language-icon.json { background-color: #292929; }
+        .language-icon.xml { background-color: #0060ac; }
+        .language-icon.yaml { background-color: #cb171e; }
+        .language-icon.toml { background-color: #9c4221; }
+        .language-icon.dockerfile { background-color: #384d54; }
+        .language-icon.makefile { background-color: #427819; }
+        .language-icon.md { background-color: #083fa1; }
+        .language-icon.default { background-color: #6cc04a; color: #000; }
         .header h1 {
           font-size: 1.2em;
           margin: 0;
@@ -807,6 +903,7 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
     <body>
       <div class="header">
         <div class="header-left">
+          <span class="language-icon ${languageIcon.class}">${languageIcon.text}</span>
           <span class="codicon codicon-gear"></span>
           <h1>Code Block Config - Language: ${languageId}</h1>
         </div>
@@ -814,7 +911,7 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
       </div>
       
       <div class="content">
-      <div class="help-link" onclick="openDocumentation('executable-code')">>
+      <div class="help-link" onclick="openDocumentation('executable-code')">
         <span class="codicon codicon-question"></span>
         <span>Learn more about executable code blocks</span>
       </div>
