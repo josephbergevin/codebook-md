@@ -4,6 +4,41 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.6] - 2025-06-22
+
+### Added
+
+- **Enhanced Config Modal UI:**
+  - Added blue outline to config modal matching VS Code's selected cell styling
+  - Implemented sticky header that remains visible when scrolling through configuration options
+  - Added language-specific file icons to modal header matching VS Code's file explorer style
+  - Comprehensive language icon support for 30+ programming languages with proper color coding
+  - Professional styling improvements for better integration with VS Code's UI theme
+
+### Removed
+
+- **Configuration Cleanup:**
+  - Removed deprecated `showOutputOnRun` configuration option from all components
+  - Cleaned up package.json configuration schemas removing unused output options
+  - Removed obsolete test references and documentation for deprecated features
+  - Streamlined configuration system for better maintainability
+
+### Changed
+
+- **Improved User Experience:**
+  - Config modal now has visual consistency with VS Code's focus styling using `--vscode-focusBorder`
+  - Language icons display appropriate text abbreviations (JS, TS, PY, GO, etc.) with language-specific colors
+  - Header remains accessible during long configuration sessions with sticky positioning
+  - Enhanced modal layout with proper content wrapping and spacing
+
+### Technical Implementation
+
+- Updated CSS styling for modal container with border radius and focus styling
+- Implemented `position: sticky` header with proper z-index and background styling
+- Added comprehensive language icon mapping with 30+ language support
+- Removed all `showOutputOnRun` references from codebase, tests, and documentation
+- Enhanced webview template with improved semantic structure and accessibility
+
 ## [0.19.4] - 2025-06-19
 
 ### Added
