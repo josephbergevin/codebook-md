@@ -57,7 +57,6 @@ jest.mock('vscode', () => {
         get: (key: string) => {
           switch (key) {
             case 'showExecutableCodeInOutput': return true;
-            case 'showOutputOnRun': return true;
             case 'replaceOutputCell': return true;
             case 'showTimestamp': return true;
             case 'timestampTimezone': return 'UTC';

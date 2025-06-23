@@ -168,11 +168,6 @@ export function getOutputConfigOptions(): ConfigOptions {
       default: true,
       description: 'Include the executable code in the output.'
     },
-    showOutputOnRun: {
-      type: 'boolean',
-      default: true,
-      description: 'Show the output cell on run.'
-    },
     replaceOutputCell: {
       type: 'boolean',
       default: true,
