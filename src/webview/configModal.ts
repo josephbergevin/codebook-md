@@ -555,11 +555,14 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
           font-family: var(--vscode-font-family);
           font-size: var(--vscode-font-size);
           color: var(--vscode-foreground);
-          padding: 16px;
+          padding: 0;
           /* Set max dimensions to make it more modal-like */
           max-width: 500px;
           margin: 0 auto;
           box-sizing: border-box;
+          /* Add blue outline to match selected cell styling */
+          border: 2px solid var(--vscode-focusBorder);
+          border-radius: 4px;
         }
         .codicon {
           font-size: 16px;
@@ -629,12 +632,18 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
           margin-right: 8px;
         }
         .header {
+          position: sticky;
+          top: 0;
+          z-index: 1000;
+          background: var(--vscode-editor-background);
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 16px;
+          margin: 0;
           border-bottom: 1px solid var(--vscode-panel-border);
-          padding-bottom: 8px;
+          padding: 12px 16px;
+          /* Add subtle shadow to emphasize the sticky header */
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         .header-left {
           display: flex;
@@ -790,6 +799,9 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
           opacity: 1;
           color: var(--vscode-textLink-foreground);
         }
+        .content {
+          padding: 16px;
+        }
       </style>
     </head>
     <body>
@@ -801,7 +813,8 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
         <button type="button" class="close-button" onclick="closeModal()" title="Close">×</button>
       </div>
       
-      <div class="help-link" onclick="openDocumentation('executable-code')">
+      <div class="content">
+      <div class="help-link" onclick="openDocumentation('executable-code')">>
         <span class="codicon codicon-question"></span>
         <span>Learn more about executable code blocks</span>
       </div>
@@ -924,6 +937,7 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
       <div class="modal-actions">
         <button type="button" onclick="saveConfig()">Save Configuration</button>
         <button type="button" onclick="closeModal()">Close</button>
+      </div>
       </div>
        <script>
         const vscode = acquireVsCodeApi();
