@@ -4,6 +4,39 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.7] - 2025-08-01
+
+### Added
+
+- **Front Matter Parsing Support:**
+  - Added comprehensive YAML front matter parsing for markdown files
+  - Support for agent mode configuration and model specification in front matter
+  - Enhanced markdown parsing to handle metadata blocks at the beginning of files
+  - Improved notebook cell extraction with front matter awareness
+
+### Fixed
+
+- **Path Resolution Improvements:**
+  - Implemented smart relative path resolution for more reliable file operations
+  - Fixed import formatting issues in Go run mode for better dependency handling
+  - Enhanced path resolution logic to handle workspace-relative and absolute paths correctly
+  - Improved file path handling across different execution contexts
+
+### Changed
+
+- **Configuration System Cleanup:**
+  - Removed deprecated configuration scopes and cleaned up settings architecture
+  - Streamlined configuration hierarchy for better maintainability
+  - Updated configuration documentation to reflect current system structure
+  - Enhanced configuration validation and error handling
+
+### Technical Implementation
+
+- Enhanced markdown parser to extract and process YAML front matter blocks
+- Improved path resolution algorithms with fallback mechanisms
+- Cleaned up deprecated configuration references throughout codebase
+- Added comprehensive test coverage for new front matter and path resolution features
+
 ## [0.19.6] - 2025-06-22
 
 ### Added
