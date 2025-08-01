@@ -682,4 +682,92 @@ describe('Smart Relative Path Resolution', () => {
     expect(result.lineEnd).toBe(20);
     expect(result.language).toBe('ts');
   });
+
+  it('should parse markdown with Front Matter correctly', () => {
+    const markdownWithFrontMatter = `---
+mode: "agent"
+model: Claude Sonnet 4
+tools: ["codebase"]
+description: "Create a complete implementation for a new Nozzle extractor pack feature"
+---
+
+# Nozzle Extractor - Creating a New Pack Feature
+
+Your goal is to create a complete implementation for a new pack feature in the Nozzle extractor system.
+
+\`\`\`python
+print("Hello, World!")
+\`\`\`
+
+This is another paragraph.`;
+
+    const cells = codebook.parseMarkdown(markdownWithFrontMatter);
+
+    // Should have 3 cells: markdown content, code block, and final markdown
+    expect(cells).toHaveLength(3);
+
+    // First cell should contain the header and first paragraph (Front Matter should be hidden)
+    expect(cells[0].kind).toBe(1); // NotebookCellKind.Markup
+    expect(cells[0].language).toBe('markdown');
+    expect(cells[0].content).toBe('# Nozzle Extractor - Creating a New Pack Feature\n\nYour goal is to create a complete implementation for a new pack feature in the Nozzle extractor system.');
+
+    // Second cell should be the Python code
+    expect(cells[1].kind).toBe(2); // NotebookCellKind.Code
+    expect(cells[1].language).toBe('python');
+    expect(cells[1].content).toBe('print("Hello, World!")');
+
+    // Third cell should be the final paragraph
+    expect(cells[2].kind).toBe(1); // NotebookCellKind.Markup
+    expect(cells[2].language).toBe('markdown');
+    expect(cells[2].content).toBe('This is another paragraph.');
+
+    // Ensure Front Matter is not present in any cell
+    cells.forEach(cell => {
+      expect(cell.content).not.toContain('mode: "agent"');
+      expect(cell.content).not.toContain('model: Claude Sonnet 4');
+    });
+  });
+
+  it('should parse markdown without Front Matter correctly', () => {
+    const markdownWithoutFrontMatter = `# Regular Markdown
+
+This is a regular markdown file without Front Matter.
+
+\`\`\`javascript
+console.log("Hello, World!");
+\`\`\``;
+
+    const cells = codebook.parseMarkdown(markdownWithoutFrontMatter);
+
+    // Should have 2 cells: markdown content and code
+    expect(cells).toHaveLength(2);
+
+    // First cell should contain the header and paragraph
+    expect(cells[0].content).toBe('# Regular Markdown\n\nThis is a regular markdown file without Front Matter.');
+
+    // Second cell should be the JavaScript code
+    expect(cells[1].content).toBe('console.log("Hello, World!");');
+    expect(cells[1].language).toBe('javascript');
+  });
+
+  it('should handle malformed Front Matter correctly', () => {
+    const markdownWithMalformedFrontMatter = `---
+mode: "agent"
+model: Claude Sonnet 4
+description: "Missing closing marker"
+
+# This should be treated as regular markdown
+
+The Front Matter above is malformed (no closing ---) so it should be treated as regular content.`;
+
+    const cells = codebook.parseMarkdown(markdownWithMalformedFrontMatter);
+
+    // Should treat everything as regular markdown since Front Matter is malformed
+    expect(cells).toHaveLength(1);
+
+    // First cell should include the opening --- as regular content since it's malformed
+    expect(cells[0].content).toContain('---');
+    expect(cells[0].content).toContain('mode: "agent"');
+    expect(cells[0].content).toContain('# This should be treated as regular markdown');
+  });
 });
