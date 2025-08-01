@@ -6,7 +6,23 @@ This document contains instructions and preferences for GitHub Copilot when work
 
 This project (or this workspace) is CodebookMD. CodebookMD is a VS Code extension that brings Jupyter-like notebook functionality to markdown files, allowing code execution and interactive documentation. The extension supports multiple languages and follows a modular architecture - but the core language support is implemented in TypeScript. The extension uses webviews for rendering interactive content and communicates with the VS Code API for various functionalities.
 
-**New in this version**: CodebookMD now includes a chat participant feature that allows users to interact with an AI assistant directly within VS Code to get help with notebook management, code execution, and configuration. The chat participant is accessible through the "@codebook" mention in VS Code chat.
+**Key Features**: CodebookMD includes a chat participant feature (@codebook in VS Code chat), multi-language code execution with output capturing, dynamic folder organization in the sidebar, and automatic integration with VS Code's markdown extension ecosystem.
+
+## Architecture Overview
+
+### Core Components Flow
+
+1. **Kernel** (`src/kernel.ts`) - Central execution engine that processes notebook cells
+2. **Language Implementations** (`src/languages/`) - Each language has its own Cell class implementing ExecutableCell interface
+3. **Command Execution** (`src/codebook.ts`) - Manages spawning processes and capturing output with special markers (StartOutput/EndOutput)
+4. **Webview Providers** (`src/webview/`) - Handle sidebar panels (Welcome, Documentation, My Notebooks)
+5. **Configuration System** - Supports workspace, user, and per-cell configuration via CellContentConfig
+
+### Critical Data Flow Patterns
+
+- Notebook cells → Kernel → Language-specific Cell class → Command execution → Output capture
+- Configuration: VS Code settings → CellContentConfig → OutputConfig → per-language config objects
+- File organization: `.vscode/codebook-md.json` → FolderGroup system → webview display
 
 ## Project Reference
 
@@ -107,23 +123,83 @@ This project (or this workspace) is CodebookMD. CodebookMD is a VS Code extensio
 - Ensure command registrations are updated when new commands are added
 - Ensure command names are consistent with the established naming conventions
 
-### Configuration
+### Configuration System Architecture
 
-- Use CellContentConfig for code block configurations
-- Support language-specific comment syntax
-- Follow the established pattern for notebook output configurations:
-  - showExecutableCodeInOutput
-  - replaceOutputCell
-  - showTimestamp
-  - timestampTimezone
+#### Multi-Level Configuration Hierarchy
 
-### Language Support
+1. **VS Code Settings** (`package.json` contributes.configuration)
+2. **CellContentConfig** - Per-notebook configuration layer
+3. **OutputConfig** - Controls execution output behavior
+4. **Language-specific configs** - E.g., `codebook-md.go.execType`
 
-- Implement new language support in src/languages/
-- Follow the ExecutableCell interface contract
-- Include proper error handling for missing language tools
-- Support language-specific comment syntax
-- Implement proper command execution and output handling
+#### Key Configuration Patterns
+
+- Use `config.getFullPath()` for path resolution across workspace/relative paths
+- Configuration file: `.vscode/codebook-md.json` for folder organization
+- Environment variables: Access `terminal.integrated.env.*` settings via VS Code API
+- Per-cell config: Comments like `# [>].output.showTimestamp(true)` in code blocks
+
+### Notebook Organization System
+
+#### FolderGroup Architecture
+
+- **Static Folders**: User-defined in `.vscode/codebook-md.json`
+- **Dynamic Folder Groups**: Auto-generated based on current file context
+- **Entity Management**: Use `FolderGroupEntity` class for move/delete operations
+- **Path Resolution**: Always use `config.getFullPath()` for workspace-relative paths
+
+#### Tree View Operations
+
+- Commands use 1-based groupIndex from webview, convert to 0-based for array access
+- Entity IDs encode group/folder/file hierarchy for webview operations
+- Refresh pattern: Call `refreshNotebooksView()` after structural changes
+
+## Language Support Implementation
+
+### ExecutableCell Interface Pattern
+
+All language implementations must follow this contract in `src/languages/*.ts`:
+
+```typescript
+interface ExecutableCell {
+  execute(): ChildProcessWithoutNullStreams;
+  executables(): Executable[];
+  allowKeepOutput(): boolean;
+  codeBlockConfig(): CodeBlockConfig;
+  toString(): string;
+  commentPrefixes(): string[];
+  defaultCommentPrefix(): string;
+}
+```
+
+### Language-Specific Cell Classes
+
+- Each language has a `Cell` class in `src/languages/[language].ts`
+- Language cells parse code content and handle execution context (e.g., Go's main vs test execution modes)
+- Use `codebook.Command` class for shell execution with `beforeExecuteFuncs` for setup
+- Example: Go supports both `go run` and `go test` modes based on configuration
+
+### Output Capturing System
+
+- Use `codebook.StartOutput` and `codebook.EndOutput` markers for controlled output capture
+- Go language requires these markers; shell scripts capture all output by default
+- Real-time output streaming via stdout/stderr event handlers in kernel.executeCell
+
+## Critical Developer Workflows
+
+### Build & Test Commands (Use VS Code Tasks, Not Terminal)
+
+- **Build**: Use task `npm run compile` (not manual terminal)
+- **Lint**: Use task `npm run lint` (check errors in Problems panel with `get_errors` tool)
+- **Test**: Use task `npm test` (all tests must pass)
+- **Watch mode**: Use task `npm: watch` for development
+- Access task output via Problems panel, not terminal output
+
+### Extension Development Patterns
+
+- **Command Registration**: Register in both `extension.ts` activate() AND `package.json` contributes.commands
+- **Webview Lifecycle**: Always implement dispose() methods, use `context.subscriptions.push()`
+- **Configuration Access**: Use `workspace.getConfiguration('codebook-md.[section]')` pattern
 
 ## Error Handling
 
