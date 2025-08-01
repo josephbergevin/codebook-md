@@ -340,6 +340,38 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
   }
   let i = 0;
 
+  // Check for Front Matter at the beginning of the file
+  const frontMatterResult = parseFrontMatter(lines);
+  if (frontMatterResult.hasFrontMatter) {
+    i = frontMatterResult.endIndex;
+    // Front Matter is parsed but not added to cells (it remains hidden)
+    // You could optionally store frontMatterResult.content as metadata
+  }
+
+  // Helper function to detect and parse Front Matter
+  function parseFrontMatter(lines: string[]): { hasFrontMatter: boolean; endIndex: number; content?: string; } {
+    // Front Matter must start at the very beginning of the file
+    if (lines.length === 0 || lines[0].trim() !== '---') {
+      return { hasFrontMatter: false, endIndex: 0 };
+    }
+
+    // Look for the closing --- marker
+    for (let j = 1; j < lines.length; j++) {
+      if (lines[j].trim() === '---') {
+        // Found closing marker, extract Front Matter content
+        const frontMatterContent = lines.slice(1, j).join('\n');
+        return {
+          hasFrontMatter: true,
+          endIndex: j + 1, // Start parsing after the closing ---
+          content: frontMatterContent
+        };
+      }
+    }
+
+    // If we reach here, there's an opening --- but no closing ---, treat as regular content
+    return { hasFrontMatter: false, endIndex: 0 };
+  }
+
   // Each parse function starts with line i, leaves i on the line after the last line parsed
   while (i < lines.length) {
     const leadingWhitespace = i === 0 ? parseWhitespaceLines(true) : '';
