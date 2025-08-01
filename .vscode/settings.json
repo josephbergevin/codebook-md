@@ -13,28 +13,8 @@
 	"editor.formatOnSave": true,
 	"files.insertFinalNewline": true,
 	"files.trimFinalNewlines": true,
-	"conventionalCommits.scopes": [
-		"codebook",
-		"codebook/cell",
-		"codebook/config",
-		"codebook/output",
-		"codebook/hover",
-		"extension",
-		"fmt",
-		"kernel",
-		"lang",
-		"lang/bash",
-		"lang/sh",
-		"lang/go",
-		"lang/js",
-		"lang/py",
-		"lang/sql",
-		"lang/ts",
-		"io",
-		"tooling"
-	],
 	"codebook-md.rootPath": "${workspaceFolder}",
-	"codebook-md.tempPath": "./apiplayground/",
+	"codebook-md.execPath": "./apiplayground/",
 	"codebook-md.go": {
 		"execType": "test",
 		"execTypeRunFilename": "main.go",
@@ -58,28 +38,24 @@
 		}
 	},
 	"codebook-md.bash": {
-		"execSingleLineAsCommand": true
-	},
-	"codebook-md.shell": {
+		"execSingleLineAsCommand": true,
 		"output": {
-		"showTimestamp": true,
-		"timestampTimezone": "MDT",
-		"showExecutableCodeInOutput": true
-		}
+      "showTimestamp": true,
+      "timestampTimezone": "MDT",
+      "showExecutableCodeInOutput": true
+		},
 	},
-  "codebook-md": {
-    "dynamicFolderGroup": {
-      "enabled": true,
-      "name": "Relevant Docs",
-      "description": "Relevant docs for the current file",
-      "subFolderInclusions": [
-        ".github",
-        ".vscode",
-        "apiplayground",
-        "tooling"
-      ],
-      "exclusions": []
-    }
+  "codebook-md.dynamicFolderGroup": {
+    "enabled": true,
+    "name": "Relevant Docs",
+    "description": "Relevant docs for the current file",
+    "subFolderInclusions": [
+      ".github",
+      ".vscode",
+      "apiplayground",
+      "tooling"
+    ],
+    "exclusions": []
   },
 	"notebook.experimental.cellChat": true,
 	"notebook.output.scrolling": true,
