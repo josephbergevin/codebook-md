@@ -24,6 +24,7 @@ import * as sql from "./languages/sql";
 import * as http from "./languages/http";
 import * as unsupported from "./languages/unsupported";
 import * as io from './io';
+import * as config from './config';
 
 export interface RawNotebookCell {
   indentation?: string;
@@ -681,16 +682,110 @@ export class CodeDocument {
 
 // findCodeDocument returns the CodeDocument object for a given line in a markdown file
 export function findCodeDocument(text: string): string | null {
-  const regex = /((\.\/|\.\.\/|\/|~\/)[\w/-]+(\.ts|\.sql|\.go|\.json|\.js)(:\d+(-\d+)?)?)/g;
-  const match = text.match(regex);
-  if (!match) {
-    return null;
+  // Multiple patterns to handle different file path formats:
+  // 1. Parentheses: (path/to/file.ext:line-range)
+  // 2. Quoted paths: "path/to/file.ext" or 'path/to/file.ext'
+  // 3. Bare paths: ./path, ../path, /path, ~/path, or word/path
+
+  const patterns = [
+    // Pattern 1: Extract paths from within parentheses
+    /\(([^)]*\.(ts|sql|go|json|js)(:\d+(-\d+)?)?)\)/,
+
+    // Pattern 2: Extract paths from within quotes
+    /["']([^"']*\.(ts|sql|go|json|js))["']/,
+
+    // Pattern 3: Bare paths - starts with ./, ../, /, ~/, or word characters
+    /((?:\.\/|\.\.\/|\/|~\/|[\w][\w/-]*\/?)[\w/-]*\.(ts|sql|go|json|js)(:\d+(-\d+)?)?)/
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) {
+      return match[1]; // Return the captured group containing the file path
+    }
   }
-  return match[0];
+
+  return null;
 }
 
 // emptyCodeDocument is an empty CodeDocument object
 export const emptyCodeDocument = new CodeDocument('', '', 0, 0, 'plaintext');
+
+/**
+ * Attempts to resolve a relative file path using multiple strategies.
+ * For hover file links, this provides smart resolution that handles:
+ * 1. Workspace-level paths (no ./ or ../ prefix) → resolve relative to workspace root
+ * 2. Relative paths (./ or ../ prefix) → try execPath first, then markdown directory
+ * 
+ * @param fileLoc The relative file path to resolve
+ * @param markdownFilePath The path to the current markdown file
+ * @returns The resolved absolute path, or the original fileLoc if resolution fails
+ */
+function smartResolveRelativePath(fileLoc: string, markdownFilePath: string): string {
+  // If the path is already absolute, return it as-is
+  if (path.isAbsolute(fileLoc)) {
+    return fileLoc;
+  }
+
+  // Check if this is a workspace-level path (doesn't start with ./ or ../)
+  const isWorkspaceLevel = !fileLoc.startsWith('./') && !fileLoc.startsWith('../');
+
+  if (isWorkspaceLevel) {
+    // For workspace-level paths, resolve relative to workspace root
+    try {
+      const workspaceFolders = workspace.workspaceFolders;
+      if (workspaceFolders && workspaceFolders.length > 0) {
+        const workspaceRoot = workspaceFolders[0].uri.fsPath;
+        const workspaceBasedFile = path.resolve(workspaceRoot, fileLoc);
+        console.log(`Smart path resolution: Resolved workspace-level path: ${workspaceBasedFile}`);
+        return workspaceBasedFile;
+      } else {
+        // Fallback: try to infer workspace root from markdown file path
+        // If markdownFilePath is /workspace/docs/README.md, workspace root is likely /workspace/
+        const markdownDir = path.dirname(markdownFilePath);
+        // Look for common workspace indicators by going up directories
+        let currentDir = markdownDir;
+        while (currentDir !== path.dirname(currentDir)) { // While not at root
+          const parentDir = path.dirname(currentDir);
+          // If current directory is a subdirectory of something that looks like a workspace
+          // and the relative path from parent to fileLoc makes sense, use parent as workspace root
+          const candidateWorkspaceFile = path.resolve(parentDir, fileLoc);
+          // For test case: /workspace/docs -> /workspace, then /workspace/myfolder/extension.ts
+          if (path.basename(parentDir) && !parentDir.includes('/node_modules/')) {
+            // Use this as workspace root if it makes sense
+            return candidateWorkspaceFile;
+          }
+          currentDir = parentDir;
+        }
+      }
+    } catch (error) {
+      console.log(`Smart path resolution: Workspace resolution failed: ${error}`);
+    }
+  }
+
+  // For relative paths (./ or ../), use the original strategy: execPath first, then markdown directory
+  // Strategy 1: Try resolving relative to execPath
+  try {
+    const execPath = config.getExecPath();
+    if (execPath) {
+      const execPathResolved = path.resolve(path.dirname(markdownFilePath), execPath);
+      const execPathBasedFile = path.resolve(execPathResolved, fileLoc);
+
+      if (existsSync(execPathBasedFile)) {
+        console.log(`Smart path resolution: Found file relative to execPath: ${execPathBasedFile}`);
+        return execPathBasedFile;
+      }
+    }
+  } catch (error) {
+    // If execPath resolution fails, continue to fallback strategy
+    console.log(`Smart path resolution: execPath resolution failed, falling back to markdown directory: ${error}`);
+  }
+
+  // Strategy 2: Fallback to resolving relative to markdown file directory
+  const markdownDirBasedFile = path.resolve(path.dirname(markdownFilePath), fileLoc);
+  console.log(`Smart path resolution: Using markdown directory fallback: ${markdownDirBasedFile}`);
+  return markdownDirBasedFile;
+}
 
 // newCodeDocument returns a new CodeDocument object from a given file location - if it includes a line number, it will be parsed
 export function newCodeDocumentFromFileLoc(fileLoc: string, resolvePath: string): CodeDocument {
@@ -701,20 +796,25 @@ export function newCodeDocumentFromFileLoc(fileLoc: string, resolvePath: string)
       return emptyCodeDocument;
     }
   }
-  let fullPath = fileLoc;
-  if (!path.isAbsolute(fileLoc) && resolvePath) {
-    fullPath = path.resolve(path.dirname(resolvePath), fileLoc);
-  }
 
+  // Parse out the file path and line numbers first
+  let fullPath = fileLoc;
   let lineBegin = 0;
   let lineEnd = 0;
   const parts = fullPath.split(':');
-  fullPath = parts[0];
+  const filePathOnly = parts[0];
   if (parts.length > 1) {
     // split the line numbers as well
     const lineParts = parts[1].split('-');
     lineBegin = parseInt(lineParts[0]);
     lineEnd = lineParts.length > 1 ? parseInt(lineParts[1]) : lineBegin;
+  }
+
+  if (!path.isAbsolute(filePathOnly) && resolvePath) {
+    // Use smart resolution for relative paths to try both execPath and markdown directory
+    fullPath = smartResolveRelativePath(filePathOnly, resolvePath);
+  } else {
+    fullPath = filePathOnly;
   }
 
   let language = 'plaintext';
