@@ -39,6 +39,8 @@ import * as codebook from '../codebook';
 import {
   WorkspaceConfiguration, NotebookCell
 } from 'vscode';
+import * as fs from 'fs';
+import * as config from '../config';
 
 // Mock the config.ts module
 jest.mock('../config', () => ({
@@ -78,6 +80,12 @@ jest.mock('../config', () => ({
     execFilename: 'codebook_md_exec_http.sh',
     verbose: true
   })
+}));
+
+// Mock fs module for testing file existence
+jest.mock('fs', () => ({
+  ...jest.requireActual('fs'),
+  existsSync: jest.fn()
 }));
 
 // Mock the entire cellConfig module
@@ -141,6 +149,20 @@ describe('md.ts Test Suite', () => {
     const line = 'here is a file: (../extension.ts:9-15)';
     const got = codebook.findCodeDocument(line);
     const want = '../extension.ts:9-15';
+    expect(got).toBe(want);
+  });
+
+  it('CodeDocument - workspace-level file location with line numbers', () => {
+    const line = 'here is a file: (myfolder/extension.ts:9-15)';
+    const got = codebook.findCodeDocument(line);
+    const want = 'myfolder/extension.ts:9-15';
+    expect(got).toBe(want);
+  });
+
+  it('CodeDocument - nested workspace-level file location with single line number', () => {
+    const line = 'check this file: (src/languages/python.go:42)';
+    const got = codebook.findCodeDocument(line);
+    const want = 'src/languages/python.go:42';
     expect(got).toBe(want);
   });
 
@@ -537,5 +559,127 @@ describe('CellContentConfig', () => {
     expect(codeBlockConfig.comments).toEqual(['// This is a comment']);
     expect(codeBlockConfig.commands).toEqual(['.output.showExecutableCodeInOutput(true)']);
     expect(codeBlockConfig.outputConfig.showExecutableCodeInOutput).toBe(true);
+  });
+});
+
+describe('Smart Relative Path Resolution', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should use execPath resolution when file exists in execPath', () => {
+    const mockExistsSync = fs.existsSync as jest.MockedFunction<typeof fs.existsSync>;
+    const mockGetExecPath = config.getExecPath as jest.MockedFunction<typeof config.getExecPath>;
+
+    // Setup mocks
+    mockGetExecPath.mockReturnValue('./codebook-md-exec');
+    mockExistsSync.mockImplementation((path: fs.PathLike) => {
+      const pathStr = path.toString();
+      // File exists in execPath - more precise matching
+      return pathStr === '/workspace/docs/codebook-md-exec/src/test.ts';
+    });
+
+    const fileLoc = './src/test.ts';
+    const resolvePath = '/workspace/docs/README.md';
+
+    const result = codebook.newCodeDocumentFromFileLoc(fileLoc, resolvePath);
+
+    // Should resolve to execPath version
+    expect(result.fileLoc).toBe('/workspace/docs/codebook-md-exec/src/test.ts');
+    expect(mockGetExecPath).toHaveBeenCalled();
+  });
+
+  it('should fallback to markdown directory when file does not exist in execPath', () => {
+    const mockExistsSync = fs.existsSync as jest.MockedFunction<typeof fs.existsSync>;
+    const mockGetExecPath = config.getExecPath as jest.MockedFunction<typeof config.getExecPath>;
+
+    // Setup mocks
+    mockGetExecPath.mockReturnValue('./codebook-md-exec');
+    mockExistsSync.mockImplementation((path: fs.PathLike) => {
+      const pathStr = path.toString();
+      // File does NOT exist in execPath, but exists in markdown directory
+      return pathStr.includes('/workspace/docs/src/test.ts') && !pathStr.includes('codebook-md-exec');
+    });
+
+    const fileLoc = './src/test.ts';
+    const resolvePath = '/workspace/docs/README.md';
+
+    const result = codebook.newCodeDocumentFromFileLoc(fileLoc, resolvePath);
+
+    // Should fallback to markdown directory
+    expect(result.fileLoc).toBe('/workspace/docs/src/test.ts');
+    expect(mockGetExecPath).toHaveBeenCalled();
+  });
+
+  it('should handle absolute paths without modification', () => {
+    const mockGetExecPath = config.getExecPath as jest.MockedFunction<typeof config.getExecPath>;
+
+    const fileLoc = '/absolute/path/to/test.ts';
+    const resolvePath = '/workspace/docs/README.md';
+
+    const result = codebook.newCodeDocumentFromFileLoc(fileLoc, resolvePath);
+
+    // Should use absolute path as-is
+    expect(result.fileLoc).toBe('/absolute/path/to/test.ts');
+    // Should not call getExecPath for absolute paths
+    expect(mockGetExecPath).not.toHaveBeenCalled();
+  });
+
+  it('should handle workspace-level file location', () => {
+    const mockGetExecPath = config.getExecPath as jest.MockedFunction<typeof config.getExecPath>;
+
+    const fileLoc = 'myfolder/extension.ts';
+    const resolvePath = '/workspace/docs/README.md';
+
+    const result = codebook.newCodeDocumentFromFileLoc(fileLoc, resolvePath);
+
+    // Should use absolute path as-is
+    expect(result.fileLoc).toBe('/workspace/myfolder/extension.ts');
+    // Should not call getExecPath for absolute paths
+    expect(mockGetExecPath).not.toHaveBeenCalled();
+  });
+
+
+  it('should handle execPath resolution failure gracefully', () => {
+    const mockExistsSync = fs.existsSync as jest.MockedFunction<typeof fs.existsSync>;
+    const mockGetExecPath = config.getExecPath as jest.MockedFunction<typeof config.getExecPath>;
+
+    // Setup mocks to simulate execPath failure
+    mockGetExecPath.mockImplementation(() => {
+      throw new Error('Unable to determine execPath');
+    });
+    mockExistsSync.mockReturnValue(false);
+
+    const fileLoc = './src/test.ts';
+    const resolvePath = '/workspace/docs/README.md';
+
+    const result = codebook.newCodeDocumentFromFileLoc(fileLoc, resolvePath);
+
+    // Should fallback to markdown directory even when execPath fails
+    expect(result.fileLoc).toBe('/workspace/docs/src/test.ts');
+    expect(mockGetExecPath).toHaveBeenCalled();
+  });
+
+  it('should parse line numbers correctly with smart resolution', () => {
+    const mockExistsSync = fs.existsSync as jest.MockedFunction<typeof fs.existsSync>;
+    const mockGetExecPath = config.getExecPath as jest.MockedFunction<typeof config.getExecPath>;
+
+    // Setup mocks
+    mockGetExecPath.mockReturnValue('./codebook-md-exec');
+    mockExistsSync.mockImplementation((path: fs.PathLike) => {
+      const pathStr = path.toString();
+      return pathStr.includes('/workspace/codebook-md-exec/src/test.ts');
+    });
+
+    const fileLoc = './src/test.ts:10-20';
+    const resolvePath = '/workspace/README.md';
+
+    const result = codebook.newCodeDocumentFromFileLoc(fileLoc, resolvePath);
+
+    // Should resolve file path correctly and parse line numbers
+    expect(result.fileLoc).toBe('/workspace/codebook-md-exec/src/test.ts');
+    expect(result.lineBegin).toBe(10);
+    expect(result.lineEnd).toBe(20);
+    expect(result.language).toBe('ts');
   });
 });
