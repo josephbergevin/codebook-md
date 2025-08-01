@@ -139,6 +139,151 @@ func main() {
     });
   });
 
+  describe('Import Formatting Fix', () => {
+    it('should format imports correctly in run mode (single import)', () => {
+      // Mock workspace configuration for run mode
+      (workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: jest.fn((key: string) => {
+          switch (key) {
+            case 'execType':
+              return 'run';
+            case 'execTypeRunConfig':
+              return {
+                execPath: tempDir,
+                filename: 'main.go'
+              };
+            case 'excludeOutputPrefixes':
+              return [];
+            default:
+              return undefined;
+          }
+        })
+      });
+
+      // Mock cell with single import
+      const mockCellWithSingleImport = {
+        ...mockNotebookCell,
+        document: {
+          getText: jest.fn().mockReturnValue(`
+import "fmt"
+
+func main() {
+  fmt.Println("Hello, World!")
+}
+          `.trim())
+        } as unknown as TextDocument
+      } as unknown as NotebookCell;
+
+      const cell = new Cell(mockCellWithSingleImport);
+
+      // Should contain properly formatted single import
+      expect(cell.executableCode).toContain('import "fmt"');
+      expect(cell.executableCode).toContain('package main');
+      expect(cell.executableCode).toContain('func main()');
+
+      // Should NOT have the array stringification issue
+      expect(cell.executableCode).not.toContain('[object Object]');
+      expect(cell.executableCode).not.toContain('Array');
+    });
+
+    it('should format imports correctly in run mode (multiple imports)', () => {
+      // Mock workspace configuration for run mode
+      (workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: jest.fn((key: string) => {
+          switch (key) {
+            case 'execType':
+              return 'run';
+            case 'execTypeRunConfig':
+              return {
+                execPath: tempDir,
+                filename: 'main.go'
+              };
+            case 'excludeOutputPrefixes':
+              return [];
+            default:
+              return undefined;
+          }
+        })
+      });
+
+      // Mock cell with multiple imports
+      const mockCellWithMultipleImports = {
+        ...mockNotebookCell,
+        document: {
+          getText: jest.fn().mockReturnValue(`
+import (
+  "fmt"
+  "time"
+)
+
+func main() {
+  fmt.Println("Hello, World!")
+  time.Sleep(1 * time.Second)
+}
+          `.trim())
+        } as unknown as TextDocument
+      } as unknown as NotebookCell;
+
+      const cell = new Cell(mockCellWithMultipleImports);
+
+      // Should contain properly formatted import block
+      expect(cell.executableCode).toContain('import (');
+      expect(cell.executableCode).toContain('"fmt"');
+      expect(cell.executableCode).toContain('"time"');
+      expect(cell.executableCode).toContain(')');
+      expect(cell.executableCode).toContain('package main');
+      expect(cell.executableCode).toContain('func main()');
+
+      // Should NOT have the array stringification issue
+      expect(cell.executableCode).not.toContain('[object Object]');
+      expect(cell.executableCode).not.toContain('Array');
+    });
+
+    it('should handle no imports in run mode', () => {
+      // Mock workspace configuration for run mode
+      (workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: jest.fn((key: string) => {
+          switch (key) {
+            case 'execType':
+              return 'run';
+            case 'execTypeRunConfig':
+              return {
+                execPath: tempDir,
+                filename: 'main.go'
+              };
+            case 'excludeOutputPrefixes':
+              return [];
+            default:
+              return undefined;
+          }
+        })
+      });
+
+      // Mock cell with no imports
+      const mockCellNoImports = {
+        ...mockNotebookCell,
+        document: {
+          getText: jest.fn().mockReturnValue(`
+func main() {
+  println("Hello, World!")
+}
+          `.trim())
+        } as unknown as TextDocument
+      } as unknown as NotebookCell;
+
+      const cell = new Cell(mockCellNoImports);
+
+      // Should contain package main and func main without import section
+      expect(cell.executableCode).toContain('package main');
+      expect(cell.executableCode).toContain('func main()');
+      expect(cell.executableCode).not.toContain('import');
+
+      // Should NOT have the array stringification issue
+      expect(cell.executableCode).not.toContain('[object Object]');
+      expect(cell.executableCode).not.toContain('Array');
+    });
+  });
+
   describe('File Path Resolution', () => {
     it('should resolve paths correctly even without active editor', () => {
       // Set up mock to simulate no active editor  

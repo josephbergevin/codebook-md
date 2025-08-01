@@ -120,7 +120,18 @@ export class Cell implements codebook.ExecutableCell {
     } else {
       // For run mode, we add output markers for capturing output properly
       const formattedInnerScope = `fmt.Println("${codebook.StartOutput}")\n${this.innerScope}\nfmt.Println("${codebook.EndOutput}")`;
-      this.executableCode = `package main\n${this.imports}\n\nfunc main() {\nlog.SetOutput(os.Stdout)\n${formattedInnerScope}\n${this.outerScope}\n}\n`;
+
+      // Format imports properly for run mode
+      let importsSection = '';
+      if (this.imports.length > 0) {
+        if (this.imports.length === 1) {
+          importsSection = `import ${this.imports[0]}\n\n`;
+        } else {
+          importsSection = `import (\n\t${this.imports.join("\n\t")}\n)\n\n`;
+        }
+      }
+
+      this.executableCode = `package main\n\n${importsSection}func main() {\nlog.SetOutput(os.Stdout)\n${formattedInnerScope}\n${this.outerScope}\n}\n`;
     }
 
     // define dir and mainFile as empty strings
