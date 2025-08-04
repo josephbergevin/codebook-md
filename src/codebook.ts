@@ -344,8 +344,28 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
   const frontMatterResult = parseFrontMatter(lines);
   if (frontMatterResult.hasFrontMatter) {
     i = frontMatterResult.endIndex;
-    // Front Matter is parsed but not added to cells (it remains hidden)
-    // You could optionally store frontMatterResult.content as metadata
+
+    // Check if user wants to show Front Matter in notebook
+    const shouldShowFrontMatter = getShouldShowFrontMatter();
+    if (shouldShowFrontMatter && frontMatterResult.content) {
+      cells.push({
+        language: 'yaml',
+        content: frontMatterResult.content,
+        kind: NotebookCellKind.Markup,
+        leadingWhitespace: '',
+        trailingWhitespace: ''
+      });
+    }
+  }
+
+  // Helper function to get Front Matter visibility setting
+  function getShouldShowFrontMatter(): boolean {
+    try {
+      const config = workspace.getConfiguration('codebook-md.frontMatter');
+      return config.get('showInNotebook', false);
+    } catch {
+      return false; // Default to hidden if config access fails
+    }
   }
 
   // Helper function to detect and parse Front Matter

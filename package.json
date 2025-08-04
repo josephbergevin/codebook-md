@@ -102,6 +102,11 @@
             }
           }
         },
+        "codebook-md.frontMatter.showInNotebook": {
+          "type": "boolean",
+          "description": "Show YAML Front Matter as the first cell in notebooks",
+          "scope": "window"
+        },
         "codebook-md.go": {
           "type": "object",
           "properties": {
@@ -586,6 +591,11 @@
         "command": "codebook-md.removeFolderFromFolderGroup",
         "title": "Remove Folder",
         "icon": "$(trash)"
+      },
+      {
+        "command": "codebook-md.toggleFrontMatter",
+        "title": "Toggle Front Matter Visibility",
+        "category": "CodebookMD"
       }
     ],
     "menus": {

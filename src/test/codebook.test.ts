@@ -2,11 +2,13 @@
 jest.mock('vscode', () => {
   const mockWorkspace = {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    getConfiguration: jest.fn().mockImplementation((_section) => {
+    getConfiguration: jest.fn().mockImplementation((section) => {
       return {
         get: jest.fn().mockImplementation((key, defaultValue) => {
           if (key === 'rootPath') return '';
           if (key === 'notebookConfigPath') return '${notebookPath}.config.json';
+          // For Front Matter configuration, default to hidden (false)
+          if (section === 'codebook-md.frontMatter' && key === 'showInNotebook') return false;
           return defaultValue;
         }),
         update: jest.fn()
@@ -769,5 +771,44 @@ The Front Matter above is malformed (no closing ---) so it should be treated as 
     expect(cells[0].content).toContain('---');
     expect(cells[0].content).toContain('mode: "agent"');
     expect(cells[0].content).toContain('# This should be treated as regular markdown');
+  });
+
+  it('should show Front Matter when setting is enabled', () => {
+    // Mock the configuration to return true for showInNotebook
+    const { workspace } = jest.requireMock('vscode');
+    workspace.getConfiguration.mockImplementation((section: string) => ({
+      get: jest.fn().mockImplementation((key: string, defaultValue: unknown) => {
+        if (section === 'codebook-md.frontMatter' && key === 'showInNotebook') return true;
+        if (key === 'rootPath') return '';
+        if (key === 'notebookConfigPath') return '${notebookPath}.config.json';
+        return defaultValue;
+      }),
+      update: jest.fn()
+    }));
+
+    const markdownWithFrontMatter = `---
+mode: "agent"
+model: Claude Sonnet 4
+description: "Test Front Matter visibility"
+---
+
+# Main Content
+
+This is the main content.`;
+
+    const cells = codebook.parseMarkdown(markdownWithFrontMatter);
+
+    // Should have 2 cells: Front Matter (YAML) and main content (markdown)
+    expect(cells).toHaveLength(2);
+
+    // First cell should be the Front Matter as YAML
+    expect(cells[0].kind).toBe(1); // NotebookCellKind.Markup
+    expect(cells[0].language).toBe('yaml');
+    expect(cells[0].content).toBe('mode: "agent"\nmodel: Claude Sonnet 4\ndescription: "Test Front Matter visibility"');
+
+    // Second cell should be the main content
+    expect(cells[1].kind).toBe(1); // NotebookCellKind.Markup
+    expect(cells[1].language).toBe('markdown');
+    expect(cells[1].content).toBe('# Main Content\n\nThis is the main content.');
   });
 });

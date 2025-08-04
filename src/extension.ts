@@ -1045,6 +1045,20 @@ export async function activate(context: ExtensionContext) {
   });
   context.subscriptions.push(disposable);
 
+  // Register command to toggle Front Matter visibility
+  disposable = commands.registerCommand('codebook-md.toggleFrontMatter', async () => {
+    const config = workspace.getConfiguration('codebook-md.frontMatter');
+    const currentValue = config.get('showInNotebook', false);
+    const newValue = !currentValue;
+
+    await config.update('showInNotebook', newValue, true);
+
+    // Show a message to the user
+    const status = newValue ? 'shown' : 'hidden';
+    window.showInformationMessage(`Front Matter will now be ${status} in notebooks. Reopen the notebook to see changes.`);
+  });
+  context.subscriptions.push(disposable);
+
   // Register the command to create a new CodebookMD notebook
   // Uses the improved implementation from createNotebook.ts
   disposable = commands.registerCommand('codebook-md.createNewNotebook', createNewNotebook);
