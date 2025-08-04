@@ -266,3 +266,17 @@ interface ExecutableCell {
 - Handle sensitive data appropriately
 
 Remember these instructions when suggesting changes or implementing new features in the CodebookMD codebase.
+
+### VS Code Settings UI Configuration Tip
+
+**To ensure a setting appears in the VS Code Settings UI, define it as a flat property in `package.json` (not nested in an object), e.g.:**
+
+```json
+"codebook-md.frontMatter.showInNotebook": {
+  "type": "boolean",
+  "description": "Show YAML Front Matter as the first cell in notebooks",
+  "scope": "window"
+},
+```
+
+If you nest settings inside an object (e.g., `"codebook-md.frontMatter": { ... }`), they will not be user-configurable in the UI. Always use the flat property format for user-facing settings.
