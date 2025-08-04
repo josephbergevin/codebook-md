@@ -171,6 +171,12 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
             commands.executeCommand('codebook-md.moveFolderGroupEntityDown', data.objectId);
           }
           break;
+        case 'openDocumentation':
+          if (data.section) {
+            // Use the existing openDocumentation command with section parameter
+            commands.executeCommand('codebook-md.openDocumentation', data.section);
+          }
+          break;
       }
     });
 

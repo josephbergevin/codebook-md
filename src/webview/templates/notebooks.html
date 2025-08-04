@@ -1,540 +1,662 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Notebooks</title>
-  <style>
-    body {
-      font-family: var(--vscode-font-family);
-      font-size: var(--vscode-font-size);
-      color: var(--vscode-foreground);
-      padding: 0;
-      margin: 0;
-    }
-    .container {
-      padding: 10px;
-      position: relative;
-      padding-top: 55px; /* Add padding to account for the fixed top-actions height */
-    }
-    .top-actions {
-      display: flex;
-      justify-content: flex-end;
-      padding: 10px;
-      border-bottom: 1px solid var(--vscode-panel-border);
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      background-color: var(--vscode-editor-background);
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    }
-    .global-actions {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin: 20px 0;
-    }
-    .folder-group {
-      margin-bottom: 25px;
-      border-radius: 6px;
-      overflow: hidden;
-      border: 1px solid var(--vscode-panel-border);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-    .folder-group-header {
-      background-color: color-mix(in srgb, var(--vscode-sideBar-background) 96%, var(--vscode-focusBorder) 4%);
-      padding: 12px;
-      border-bottom: 1px solid var(--vscode-panel-border);
-      position: relative;
-      display: flex;
-      flex-direction: column;
-    }
-    .folder-group-header::after {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      height: 100%;
-      width: 3px;
-      background-color: rgba(25, 136, 158, 0.6);
-    }
-    .folder-group-title {
-      margin: 0 0 5px 5px;
-      font-size: 1.1em;
-      color: var(--vscode-sideBarTitle-foreground);
-      font-weight: 600;
-    }
-    .folder-group-description {
-      margin: 0 0 10px 5px;
-      font-size: 0.9em;
-      opacity: 0.8;
-      line-height: 1.4;
-    }
-    .folder-group-actions {
-      display: flex;
-      gap: 5px;
-      margin-left: 5px;
-    }
-    .folder-group-content {
-      padding: 10px;
-    }
-    .folder {
-      margin-bottom: 10px;
-      position: relative;
-    }
-    .folder-header {
-      display: flex;
-      align-items: center;
-      font-weight: bold;
-      cursor: pointer;
-      padding: 5px;
-      border-radius: 4px;
-      position: relative;
-    }
-    .folder-header:hover {
-      background-color: var(--vscode-list-hoverBackground);
-    }
-    .folder-name {
-      margin-left: 5px;
-      flex-grow: 1;
-    }
-    .folder-icon {
-      width: 16px;
-      height: 16px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .folder-icon svg path {
-      fill: #19889e;
-    }
-    .folder-content {
-      padding-left: 20px;
-    }
-    .file {
-      display: flex;
-      align-items: center;
-      padding: 3px 5px;
-      margin: 2px 0;
-      cursor: pointer;
-      border-radius: 4px;
-      position: relative;
-    }
-    .file:hover {
-      background-color: var(--vscode-list-hoverBackground);
-    }
-    .file-icon {
-      width: 16px;
-      height: 16px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .file-icon svg path {
-      fill: #97e4f3;
-    }
-    .file-name {
-      margin-left: 5px;
-      flex-grow: 1;
-    }
-    .hidden {
-      display: none;
-    }
-    .subfolder {
-      margin-left: 15px;
-    }
-    .no-data {
-      font-style: italic;
-      opacity: 0.8;
-      margin: 10px 0;
-    }
-    .actions {
-      display: none;
-      position: absolute;
-      right: 5px;
-      top: 50%;
-      transform: translateY(-50%);
-      background-color: var(--vscode-editor-background);
-      border-radius: 4px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      z-index: 10;
-    }
-    .folder-header:hover .actions,
-    .file:hover .actions {
-      display: flex;
-    }
-    .action-button {
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      padding: 4px 8px;
-      margin: 0 2px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--vscode-foreground);
-      border-radius: 3px;
-      font-size: var(--vscode-font-size);
-    }
-    .action-button:hover {
-      background-color: var(--vscode-button-hoverBackground);
-    }
-    .action-button svg {
-      width: 14px;
-      height: 14px;
-    }
-    .refresh-button {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .icon-svg {
-      width: 16px;
-      height: 16px;
-    }
-    /* Apply the blue color to all SVG paths */
-    .icon-svg path {
-      fill: #90e1f1;
-    }
-    .icon-folder path,
-    .folder-icon svg path {
-      fill: #19889e;
-    }
-    .context-icon path {
-      fill: #90e1f1;
-    }
-    .dynamic-folder-group {
-      border-color: color-mix(in srgb, var(--vscode-sideBar-background) 96%, #60FF67 4%);
-      box-shadow: 0 1px 4px rgba(96, 255, 103, 0.2);
-    }
-    .dynamic-header {
-      background-color: color-mix(in srgb, var(--vscode-sideBar-background) 96%, #60FF67 4%);
-    }
-    .dynamic-header .folder-group-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    /* Keep folder and file icons the same as user-defined FolderGroups */
-    .dynamic-folder-group .folder-icon svg path {
-      fill: #19889e;
-    }
-    .dynamic-folder-group .file-icon svg path {
-      fill: #90e1f1;
-    }
-    .new-notebook-button, .selection-notebook-button {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .dropdown {
-      position: relative;
-      display: inline-block;
-    }
-    .dropdown-content {
-      display: none;
-      position: absolute;
-      right: 0;
-      background-color: var(--vscode-editor-background);
-      min-width: 200px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      z-index: 15;
-      border-radius: 4px;
-      border: 1px solid var(--vscode-panel-border);
-    }
-    .dropdown-content button {
-      width: 100%;
-      text-align: left;
-      padding: 10px 12px;
-      justify-content: flex-start;
-      border-radius: 0;
-    }
-    .dropdown-content button:hover {
-      background-color: var(--vscode-list-hoverBackground);
-      color: var(--vscode-button-foreground);
-      border-left: 3px solid var(--vscode-button-background);
-      padding-left: 9px; /* Compensate for the border */
-    }
-    .dropdown-content.show {
-      display: block;
-    }
-    .dropdown-button {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .dropdown-icon {
-      width: 10px;
-      height: 10px;
-      margin-left: 5px;
-    }
-    
-    /* Styles for collapsible folder groups */
-    .folder-group-header {
-      cursor: pointer;
-    }
-    .folder-group-title {
-      display: flex;
-      align-items: center;
-    }
-    .folder-group-chevron {
-      width: 16px;
-      height: 16px;
-      margin-right: 5px;
-      transition: transform 0.2s ease;
-    }
-    .folder-group.collapsed .folder-group-chevron {
-      transform: rotate(-90deg);
-    }
-    .folder-group.collapsed .folder-group-content {
-      display: none;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="top-actions">
-      <button class="action-button refresh-button" title="Refresh View" onclick="refresh()">
-        <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-          <path d="M13.451 5.609l-.579-.939-1.068.812-.076.094c-.335.415-.927 1.341-1.124 2.876l-.021.165.033.163.071.345c0 1.654-1.346 3-3 3-.795 0-1.545-.311-2.107-.868-.563-.567-.873-1.317-.873-2.111 0-1.431 1.007-2.632 2.351-2.929v2.926s2.528-2.087 2.984-2.461c.456-.373.202-.746-.254-.373-.354.287-2.984 2.461-2.984 2.461v-2.926c-2.077.463-3.635 2.319-3.635 4.544 0 2.559 2.087 4.646 4.647 4.646 2.559 0 4.646-2.088 4.646-4.646 0-.598-.127-1.631-.484-2.606-.229-.486-.471-.961-.846-1.351-.463-.489-.075-.952.397-.452.472.478.785.942 1.056 1.368.418.713.589 1.356.589 3.041 0 3.206-2.607 5.813-5.813 5.813-3.206 0-5.813-2.607-5.813-5.813 0-3.206 2.607-5.813 5.813-5.813 1.859 0 3.516.886 4.572 2.256l.169.216.035-.18c.233-.535.496-.858.872-1.016.13-.055.21-.031.137.043z"/>
-        </svg>
-        Refresh
-      </button>
-      <button class="action-button new-folder-group-button" title="Create New Folder Group" onclick="createNewFolderGroup()">
-        <svg class="icon-svg icon-folder" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-          <path d="M14.5 3H7.71l-2-2H1.5l-.5.5v11l.5.5h13l.5-.5v-9l-.5-.5zM14 13H2V4h5.71l2 2H14v7z"/>
-          <path d="M8.5 8v-1h-1v1h-1v1h1v1h1v-1h1v-1h-1z"/>
-        </svg>
-        New Folder Group
-      </button>
-      <div class="dropdown">
-        <button class="action-button dropdown-button" title="Create New Notebook">
-          <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-            <path d="M14 1H3L2 2v11l1 1h11l1-1V2l-1-1zM13 13H4V3h1v3l1-1h1l1 1V3h1v3l1-1h1l1 1V3h1v10z"/>
-            <path d="M7 10h3v1H7z"/>
-            <path d="M11 7H8v1h3z"/>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Notebooks</title>
+    <style>
+      body {
+        font-family: var(--vscode-font-family);
+        font-size: var(--vscode-font-size);
+        color: var(--vscode-foreground);
+        padding: 0;
+        margin: 0;
+      }
+      .container {
+        padding: 10px;
+        position: relative;
+        padding-top: 55px; /* Add padding to account for the fixed top-actions height */
+      }
+      .top-actions {
+        display: flex;
+        justify-content: flex-end;
+        padding: 10px;
+        border-bottom: 1px solid var(--vscode-panel-border);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background-color: var(--vscode-editor-background);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      .global-actions {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin: 20px 0;
+      }
+      .folder-group {
+        margin-bottom: 25px;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid var(--vscode-panel-border);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+      .folder-group-header {
+        background-color: color-mix(
+          in srgb,
+          var(--vscode-sideBar-background) 96%,
+          var(--vscode-focusBorder) 4%
+        );
+        padding: 12px;
+        border-bottom: 1px solid var(--vscode-panel-border);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+      }
+      .folder-group-header::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 3px;
+        background-color: rgba(25, 136, 158, 0.6);
+      }
+      .folder-group-title {
+        margin: 0 0 5px 5px;
+        font-size: 1.1em;
+        color: var(--vscode-sideBarTitle-foreground);
+        font-weight: 600;
+      }
+      .folder-group-description {
+        margin: 0 0 10px 5px;
+        font-size: 0.9em;
+        opacity: 0.8;
+        line-height: 1.4;
+      }
+      .folder-group-actions {
+        display: flex;
+        gap: 5px;
+        margin-left: 5px;
+      }
+      .folder-group-content {
+        padding: 10px;
+      }
+      .folder {
+        margin-bottom: 10px;
+        position: relative;
+      }
+      .folder-header {
+        display: flex;
+        align-items: center;
+        font-weight: bold;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 4px;
+        position: relative;
+      }
+      .folder-header:hover {
+        background-color: var(--vscode-list-hoverBackground);
+      }
+      .folder-name {
+        margin-left: 5px;
+        flex-grow: 1;
+      }
+      .folder-icon {
+        width: 16px;
+        height: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .folder-icon svg path {
+        fill: #19889e;
+      }
+      .folder-content {
+        padding-left: 20px;
+      }
+      .file {
+        display: flex;
+        align-items: center;
+        padding: 3px 5px;
+        margin: 2px 0;
+        cursor: pointer;
+        border-radius: 4px;
+        position: relative;
+      }
+      .file:hover {
+        background-color: var(--vscode-list-hoverBackground);
+      }
+      .file-icon {
+        width: 16px;
+        height: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .file-icon svg path {
+        fill: #97e4f3;
+      }
+      .file-name {
+        margin-left: 5px;
+        flex-grow: 1;
+      }
+      .hidden {
+        display: none;
+      }
+      .subfolder {
+        margin-left: 15px;
+      }
+      .no-data {
+        font-style: italic;
+        opacity: 0.8;
+        margin: 10px 0;
+      }
+      .actions {
+        display: none;
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: var(--vscode-editor-background);
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        z-index: 10;
+      }
+      .folder-header:hover .actions,
+      .file:hover .actions {
+        display: flex;
+      }
+      .action-button {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 4px 8px;
+        margin: 0 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--vscode-foreground);
+        border-radius: 3px;
+        font-size: var(--vscode-font-size);
+      }
+      .action-button:hover {
+        background-color: var(--vscode-button-hoverBackground);
+      }
+      .action-button svg {
+        width: 14px;
+        height: 14px;
+      }
+      .refresh-button {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .icon-svg {
+        width: 16px;
+        height: 16px;
+      }
+      /* Apply the blue color to all SVG paths */
+      .icon-svg path {
+        fill: #90e1f1;
+      }
+      .icon-folder path,
+      .folder-icon svg path {
+        fill: #19889e;
+      }
+      .context-icon path {
+        fill: #90e1f1;
+      }
+      .dynamic-folder-group {
+        border-color: color-mix(
+          in srgb,
+          var(--vscode-sideBar-background) 96%,
+          #60ff67 4%
+        );
+        box-shadow: 0 1px 4px rgba(96, 255, 103, 0.2);
+      }
+      .dynamic-header {
+        background-color: color-mix(
+          in srgb,
+          var(--vscode-sideBar-background) 96%,
+          #60ff67 4%
+        );
+      }
+      .dynamic-header .folder-group-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      /* Keep folder and file icons the same as user-defined FolderGroups */
+      .dynamic-folder-group .folder-icon svg path {
+        fill: #19889e;
+      }
+      .dynamic-folder-group .file-icon svg path {
+        fill: #90e1f1;
+      }
+      .new-notebook-button,
+      .selection-notebook-button {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .dropdown {
+        position: relative;
+        display: inline-block;
+      }
+      .dropdown-content {
+        display: none;
+        position: absolute;
+        right: 0;
+        background-color: var(--vscode-editor-background);
+        min-width: 200px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        z-index: 15;
+        border-radius: 4px;
+        border: 1px solid var(--vscode-panel-border);
+      }
+      .dropdown-content button {
+        width: 100%;
+        text-align: left;
+        padding: 10px 12px;
+        justify-content: flex-start;
+        border-radius: 0;
+      }
+      .dropdown-content button:hover {
+        background-color: var(--vscode-list-hoverBackground);
+        color: var(--vscode-button-foreground);
+        border-left: 3px solid var(--vscode-button-background);
+        padding-left: 9px; /* Compensate for the border */
+      }
+      .dropdown-content.show {
+        display: block;
+      }
+      .dropdown-button {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .dropdown-icon {
+        width: 10px;
+        height: 10px;
+        margin-left: 5px;
+      }
+
+      /* Styles for collapsible folder groups */
+      .folder-group-header {
+        cursor: pointer;
+      }
+      .folder-group-title {
+        display: flex;
+        align-items: center;
+      }
+      .folder-group-chevron {
+        width: 16px;
+        height: 16px;
+        margin-right: 5px;
+        transition: transform 0.2s ease;
+      }
+      .folder-group.collapsed .folder-group-chevron {
+        transform: rotate(-90deg);
+      }
+      .folder-group.collapsed .folder-group-content {
+        display: none;
+      }
+
+      /* Footer styles */
+      .footer {
+        margin-top: 30px;
+        padding: 15px 10px;
+        border-top: 1px solid var(--vscode-panel-border);
+        text-align: center;
+        opacity: 0.8;
+      }
+      .footer-link {
+        color: var(--vscode-textLink-foreground);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.9em;
+        cursor: pointer;
+      }
+      .footer-link:hover {
+        color: var(--vscode-textLink-activeForeground);
+        text-decoration: underline;
+      }
+      .footer-link svg {
+        width: 14px;
+        height: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="top-actions">
+        <button
+          class="action-button refresh-button"
+          title="Refresh View"
+          onclick="refresh()"
+        >
+          <svg
+            class="icon-svg"
+            viewBox="0 0 16 16"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M13.451 5.609l-.579-.939-1.068.812-.076.094c-.335.415-.927 1.341-1.124 2.876l-.021.165.033.163.071.345c0 1.654-1.346 3-3 3-.795 0-1.545-.311-2.107-.868-.563-.567-.873-1.317-.873-2.111 0-1.431 1.007-2.632 2.351-2.929v2.926s2.528-2.087 2.984-2.461c.456-.373.202-.746-.254-.373-.354.287-2.984 2.461-2.984 2.461v-2.926c-2.077.463-3.635 2.319-3.635 4.544 0 2.559 2.087 4.646 4.647 4.646 2.559 0 4.646-2.088 4.646-4.646 0-.598-.127-1.631-.484-2.606-.229-.486-.471-.961-.846-1.351-.463-.489-.075-.952.397-.452.472.478.785.942 1.056 1.368.418.713.589 1.356.589 3.041 0 3.206-2.607 5.813-5.813 5.813-3.206 0-5.813-2.607-5.813-5.813 0-3.206 2.607-5.813 5.813-5.813 1.859 0 3.516.886 4.572 2.256l.169.216.035-.18c.233-.535.496-.858.872-1.016.13-.055.21-.031.137.043z"
+            />
           </svg>
-          New Notebook
-          <svg class="dropdown-icon" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-            <path d="M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z" transform="rotate(180 8 8)"/>
-          </svg>
+          Refresh
         </button>
-        <div class="dropdown-content">
-          <button class="action-button new-notebook-button" title="Create New Notebook" onclick="createNewNotebook()">
-            <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-              <path d="M14 1H3L2 2v11l1 1h11l1-1V2l-1-1zM13 13H4V3h1v3l1-1h1l1 1V3h1v3l1-1h1l1 1V3h1v10z"/>
-              <path d="M7 10h3v1H7z"/>
-              <path d="M11 7H8v1h3z"/>
+        <button
+          class="action-button new-folder-group-button"
+          title="Create New Folder Group"
+          onclick="createNewFolderGroup()"
+        >
+          <svg
+            class="icon-svg icon-folder"
+            viewBox="0 0 16 16"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M14.5 3H7.71l-2-2H1.5l-.5.5v11l.5.5h13l.5-.5v-9l-.5-.5zM14 13H2V4h5.71l2 2H14v7z"
+            />
+            <path d="M8.5 8v-1h-1v1h-1v1h1v1h1v-1h1v-1h-1z" />
+          </svg>
+          New Folder Group
+        </button>
+        <div class="dropdown">
+          <button
+            class="action-button dropdown-button"
+            title="Create New Notebook"
+          >
+            <svg
+              class="icon-svg"
+              viewBox="0 0 16 16"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M14 1H3L2 2v11l1 1h11l1-1V2l-1-1zM13 13H4V3h1v3l1-1h1l1 1V3h1v3l1-1h1l1 1V3h1v10z"
+              />
+              <path d="M7 10h3v1H7z" />
+              <path d="M11 7H8v1h3z" />
             </svg>
             New Notebook
-          </button>
-          <button class="action-button selection-notebook-button" title="Create Notebook from Selection" onclick="createNotebookFromSelection()">
-            <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-              <path d="M14 1H3L2 2v11l1 1h11l1-1V2l-1-1zM13 13H4V3h1v3l1-1h1l1 1V3h1v3l1-1h1l1 1V3h1v10z"/>
-              <path d="M7 11h3v1H7z"/>
-              <path d="M11 8H8v1h3z"/>
-              <path d="M4.5 7h4v1h-4z"/>
-              <path d="M4.5 9h5v1h-5z"/>
+            <svg
+              class="dropdown-icon"
+              viewBox="0 0 16 16"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z"
+                transform="rotate(180 8 8)"
+              />
             </svg>
-            From Selection
           </button>
+          <div class="dropdown-content">
+            <button
+              class="action-button new-notebook-button"
+              title="Create New Notebook"
+              onclick="createNewNotebook()"
+            >
+              <svg
+                class="icon-svg"
+                viewBox="0 0 16 16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M14 1H3L2 2v11l1 1h11l1-1V2l-1-1zM13 13H4V3h1v3l1-1h1l1 1V3h1v3l1-1h1l1 1V3h1v10z"
+                />
+                <path d="M7 10h3v1H7z" />
+                <path d="M11 7H8v1h3z" />
+              </svg>
+              New Notebook
+            </button>
+            <button
+              class="action-button selection-notebook-button"
+              title="Create Notebook from Selection"
+              onclick="createNotebookFromSelection()"
+            >
+              <svg
+                class="icon-svg"
+                viewBox="0 0 16 16"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M14 1H3L2 2v11l1 1h11l1-1V2l-1-1zM13 13H4V3h1v3l1-1h1l1 1V3h1v3l1-1h1l1 1V3h1v10z"
+                />
+                <path d="M7 11h3v1H7z" />
+                <path d="M11 8H8v1h3z" />
+                <path d="M4.5 7h4v1h-4z" />
+                <path d="M4.5 9h5v1h-5z" />
+              </svg>
+              From Selection
+            </button>
+          </div>
         </div>
       </div>
+      {{folders}}
+
+      <!-- Footer -->
+      <div class="footer">
+        <a
+          class="footer-link"
+          onclick="openDocumentation('virtual-folders')"
+          title="Learn about Virtual Folders"
+        >
+          <svg
+            class="icon-svg"
+            viewBox="0 0 16 16"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M14 1H3L2 2v11l1 1h11l1-1V2l-1-1zM13 13H4V3h9v10zM10 4H5v1h5V4zm0 2H5v1h5V6zm-3 2H5v1h2V8z"
+            />
+          </svg>
+          Learn about Virtual Folders
+        </a>
+      </div>
     </div>
-    {{folders}}
-  </div>
-  <script>
-    (function() {
-      const vscode = acquireVsCodeApi();
-      
-      // Setup dropdown toggle functionality
-      document.addEventListener('DOMContentLoaded', function() {
-        const dropdownButton = document.querySelector('.dropdown-button');
-        const dropdownContent = document.querySelector('.dropdown-content');
-        
-        // Toggle dropdown when clicking the dropdown button
-        if (dropdownButton && dropdownContent) {
-          dropdownButton.addEventListener('click', function(event) {
+    <script>
+      (function () {
+        const vscode = acquireVsCodeApi();
+
+        // Setup dropdown toggle functionality
+        document.addEventListener("DOMContentLoaded", function () {
+          const dropdownButton = document.querySelector(".dropdown-button");
+          const dropdownContent = document.querySelector(".dropdown-content");
+
+          // Toggle dropdown when clicking the dropdown button
+          if (dropdownButton && dropdownContent) {
+            dropdownButton.addEventListener("click", function (event) {
+              event.stopPropagation();
+              dropdownContent.classList.toggle("show");
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener("click", function (event) {
+              if (!event.target.closest(".dropdown")) {
+                dropdownContent.classList.remove("show");
+              }
+            });
+          }
+        });
+
+        window.toggleFolder = function (header) {
+          const content = header.nextElementSibling;
+          if (content) {
+            content.classList.toggle("hidden");
+          }
+        };
+
+        window.openFile = function (filePath, itemPath) {
+          vscode.postMessage({
+            command: "openFile",
+            filePath: itemPath, // Use the relative path stored in data-item-path
+          });
+        };
+
+        window.refresh = function () {
+          vscode.postMessage({
+            command: "refresh",
+          });
+        };
+
+        window.createNewFolderGroup = function () {
+          vscode.postMessage({
+            command: "createNewFolderGroup",
+          });
+        };
+
+        window.createNewNotebook = function () {
+          vscode.postMessage({
+            command: "createNewNotebook",
+          });
+        };
+
+        window.createNotebookFromSelection = function () {
+          vscode.postMessage({
+            command: "createNotebookFromSelection",
+          });
+        };
+
+        window.openDocumentation = function (section) {
+          vscode.postMessage({
+            command: "openDocumentation",
+            section: section,
+          });
+        };
+
+        window.addFolder = function () {
+          vscode.postMessage({
+            command: "addFolder",
+          });
+        };
+
+        window.addFolderToGroup = function (groupIndex) {
+          vscode.postMessage({
+            command: "addFolder",
+            groupIndex: groupIndex,
+          });
+        };
+
+        window.addFile = function (groupIndex) {
+          vscode.postMessage({
+            command: "addFile",
+            groupIndex: groupIndex,
+          });
+        };
+
+        window.addSubFolder = function (folderName) {
+          vscode.postMessage({
+            command: "addSubFolder",
+            folderName: folderName,
+          });
+        };
+
+        window.addFileToFolder = function (folderName, groupIndex) {
+          vscode.postMessage({
+            command: "addFileToFolder",
+            folderName: folderName,
+            groupIndex: groupIndex ? parseInt(groupIndex, 10) : undefined,
+          });
+        };
+
+        window.removeFolder = function (folderName, event) {
+          if (event) {
             event.stopPropagation();
-            dropdownContent.classList.toggle('show');
+            event.preventDefault();
+          }
+
+          vscode.postMessage({
+            command: "removeFolder",
+            folderName: folderName,
           });
-          
-          // Close dropdown when clicking outside
-          document.addEventListener('click', function(event) {
-            if (!event.target.closest('.dropdown')) {
-              dropdownContent.classList.remove('show');
-            }
+          return false;
+        };
+
+        window.removeFile = function (name, path, event) {
+          if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+          }
+
+          vscode.postMessage({
+            command: "removeFile",
+            entry: { name, path },
           });
-        }
-      });
-      
-      window.toggleFolder = function(header) {
-        const content = header.nextElementSibling;
-        if (content) {
-          content.classList.toggle('hidden');
-        }
-      };
-      
-      window.openFile = function(filePath, itemPath) {
-        vscode.postMessage({
-          command: 'openFile',
-          filePath: itemPath // Use the relative path stored in data-item-path
-        });
-      };
-      
-      window.refresh = function() {
-        vscode.postMessage({
-          command: 'refresh'
-        });
-      };
-      
-      window.createNewFolderGroup = function() {
-        vscode.postMessage({
-          command: 'createNewFolderGroup'
-        });
-      };
-      
-      window.createNewNotebook = function() {
-        vscode.postMessage({
-          command: 'createNewNotebook'
-        });
-      };
-      
-      window.createNotebookFromSelection = function() {
-        vscode.postMessage({
-          command: 'createNotebookFromSelection'
-        });
-      };
-      
-      window.addFolder = function() {
-        vscode.postMessage({
-          command: 'addFolder'
-        });
-      };
-      
-      window.addFolderToGroup = function(groupIndex) {
-        vscode.postMessage({
-          command: 'addFolder',
-          groupIndex: groupIndex
-        });
-      };
-      
-      window.addFile = function(groupIndex) {
-        vscode.postMessage({
-          command: 'addFile',
-          groupIndex: groupIndex
-        });
-      };
-      
-      window.addSubFolder = function(folderName) {
-        vscode.postMessage({
-          command: 'addSubFolder',
-          folderName: folderName
-        });
-      };
-      
-      window.addFileToFolder = function(folderName, groupIndex) {
-        vscode.postMessage({
-          command: 'addFileToFolder',
-          folderName: folderName,
-          groupIndex: groupIndex ? parseInt(groupIndex, 10) : undefined
-        });
-      };
-      
-      window.removeFolder = function(folderName, event) {
-        if (event) {
-          event.stopPropagation();
-          event.preventDefault();
-        }
-        
-        vscode.postMessage({
-          command: 'removeFolder',
-          folderName: folderName
-        });
-        return false;
-      };
-      
-      window.removeFile = function(name, path, event) {
-        if (event) {
-          event.stopPropagation();
-          event.preventDefault();
-        }
-        
-        vscode.postMessage({
-          command: 'removeFile',
-          entry: { name, path }
-        });
-        return false;
-      };
-      
-      window.removeObject = function(objectId, event) {
-        if (event) {
-          event.stopPropagation();
-          event.preventDefault();
-        }
-        
-        vscode.postMessage({
-          command: 'removeObjectFromFolderGroup',
-          objectId: objectId
-        });
-        return false;
-      };
-      
-      window.renameFile = function(name, path) {
-        vscode.postMessage({
-          command: 'renameFile',
-          entry: { name, path }
-        });
-      };
-      
-      window.renameFolder = function(folderName, currentName) {
-        vscode.postMessage({
-          command: 'renameFolder',
-          folderName: folderName,
-          currentName: currentName
-        });
-      };
-      
-      window.moveItemUp = function(objectId, event) {
-        if (event) {
-          event.stopPropagation();
-          event.preventDefault();
-        }
-        
-        vscode.postMessage({
-          command: 'moveItemUp',
-          objectId: objectId
-        });
-        return false;
-      };
-      
-      window.moveItemDown = function(objectId, event) {
-        if (event) {
-          event.stopPropagation();
-          event.preventDefault();
-        }
-        
-        vscode.postMessage({
-          command: 'moveItemDown',
-          objectId: objectId
-        });
-        return false;
-      };
-      
-      // Function to toggle folder group expansion
-      window.toggleFolderGroup = function(folderGroupElement, event) {
-        if (event) {
-          event.stopPropagation();
-        }
-        
-        // Toggle the collapsed class on the folder group
-        folderGroupElement.classList.toggle('collapsed');
-        
-        // We don't need to return anything as we're just toggling a class
-      };
-    })();
-  </script>
-</body>
+          return false;
+        };
+
+        window.removeObject = function (objectId, event) {
+          if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+          }
+
+          vscode.postMessage({
+            command: "removeObjectFromFolderGroup",
+            objectId: objectId,
+          });
+          return false;
+        };
+
+        window.renameFile = function (name, path) {
+          vscode.postMessage({
+            command: "renameFile",
+            entry: { name, path },
+          });
+        };
+
+        window.renameFolder = function (folderName, currentName) {
+          vscode.postMessage({
+            command: "renameFolder",
+            folderName: folderName,
+            currentName: currentName,
+          });
+        };
+
+        window.moveItemUp = function (objectId, event) {
+          if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+          }
+
+          vscode.postMessage({
+            command: "moveItemUp",
+            objectId: objectId,
+          });
+          return false;
+        };
+
+        window.moveItemDown = function (objectId, event) {
+          if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+          }
+
+          vscode.postMessage({
+            command: "moveItemDown",
+            objectId: objectId,
+          });
+          return false;
+        };
+
+        // Function to toggle folder group expansion
+        window.toggleFolderGroup = function (folderGroupElement, event) {
+          if (event) {
+            event.stopPropagation();
+          }
+
+          // Toggle the collapsed class on the folder group
+          folderGroupElement.classList.toggle("collapsed");
+
+          // We don't need to return anything as we're just toggling a class
+        };
+      })();
+    </script>
+  </body>
 </html>

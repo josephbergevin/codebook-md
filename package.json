@@ -659,14 +659,14 @@
           "type": "webview"
         },
         {
-          "id": "codebook-md-documentation-view",
-          "name": "Documentation",
+          "id": "codebook-md-notebooks-view",
+          "name": "My Notebooks",
           "icon": "extension/src/img/icon_logo_v1.svg",
           "type": "webview"
         },
         {
-          "id": "codebook-md-notebooks-view",
-          "name": "My Notebooks",
+          "id": "codebook-md-documentation-view",
+          "name": "Documentation",
           "icon": "extension/src/img/icon_logo_v1.svg",
           "type": "webview"
         }
