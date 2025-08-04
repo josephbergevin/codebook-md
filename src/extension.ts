@@ -383,13 +383,17 @@ export async function activate(context: ExtensionContext) {
 
   // Register notebook selection change listener for config modal updates
   const notebookSelectionChangeListener = window.onDidChangeNotebookEditorSelection(event => {
+    console.log('=== NOTEBOOK SELECTION CHANGE EVENT ===');
+
     // Only update if the config modal is open
     if (!configModal.isConfigModalOpen()) {
+      console.log('Config modal not open, returning');
       return;
     }
 
     // Only process our notebook types
     if (!event.notebookEditor.notebook.notebookType.startsWith('codebook-md')) {
+      console.log('Not a codebook-md notebook, returning');
       return;
     }
 
@@ -397,6 +401,7 @@ export async function activate(context: ExtensionContext) {
       // Get the currently selected cell
       const selectedCells = event.selections;
       if (selectedCells.length === 0 || selectedCells[0].isEmpty) {
+        console.log('No selected cells or empty selection, returning');
         return;
       }
 
@@ -405,17 +410,30 @@ export async function activate(context: ExtensionContext) {
       const selectedCellIndex = firstSelection.start;
       const selectedCell = event.notebookEditor.notebook.cellAt(selectedCellIndex);
 
-      // Only update for code cells
-      if (selectedCell.kind !== 2) { // 2 = NotebookCellKind.Code
-        return;
-      }
+      console.log(`Selected cell ${selectedCellIndex}: kind=${selectedCell.kind}, language=${selectedCell.document.languageId}`);
 
-      // Create the executable cell for the selected cell
-      const execCell = codebook.NewExecutableCell(selectedCell);
-      if (execCell) {
-        // Update the config modal with the new cell
-        configModal.updateConfigModalForCell(execCell, selectedCell);
-        console.log(`Updated config modal for cell ${selectedCellIndex} (${selectedCell.document.languageId})`);
+      // Handle both markdown cells (kind=1) and code cells (kind=2)
+      if (selectedCell.kind === 1) {
+        // Markdown cell (NotebookCellKind.Markup)
+        console.log('Detected markdown cell (kind=1), switching to notebook-only mode');
+        configModal.updateConfigModalForNotebook(event.notebookEditor.notebook);
+        console.log(`Updated config modal to notebook-only mode for markdown cell ${selectedCellIndex}`);
+        return;
+      } else if (selectedCell.kind === 2) {
+        // Code cell (NotebookCellKind.Code)
+        console.log('Detected code cell (kind=2), updating config modal');
+        const execCell = codebook.NewExecutableCell(selectedCell);
+        if (execCell) {
+          // Update the config modal with the new cell
+          configModal.updateConfigModalForCell(execCell, selectedCell);
+          console.log(`Updated config modal for cell ${selectedCellIndex} (${selectedCell.document.languageId})`);
+        } else {
+          console.log('Could not create executable cell');
+        }
+        return;
+      } else {
+        console.log(`Unknown cell kind: ${selectedCell.kind}, returning`);
+        return;
       }
     } catch (error) {
       console.error('Error handling notebook selection change:', error);
@@ -531,6 +549,15 @@ export async function activate(context: ExtensionContext) {
       }
     }
 
+    // Check if this is a markdown cell
+    if (cell.document.languageId === 'markdown') {
+      console.log('Detected markdown cell, opening notebook-only config modal');
+      // For markdown cells, open the notebook-only config modal (hides Code Block Config section)
+      const activeNotebook = cell.notebook;
+      configModal.openNotebookConfigModal(null, activeNotebook, context);
+      return;
+    }
+
     // Get the current cell's output configuration
     const execCell = codebook.NewExecutableCell(cell);
     if (!execCell) {
@@ -539,6 +566,40 @@ export async function activate(context: ExtensionContext) {
     }
     // Open config modal with the current configuration
     configModal.openConfigModal(execCell, cell, context);
+  });
+
+  context.subscriptions.push(disposable);
+
+  // Register command to open notebook config modal (notebook-level only)
+  disposable = commands.registerCommand('codebook-md.openNotebookConfig', async () => {
+    console.log('Opening notebook configuration');
+
+    // Get the active notebook
+    const activeNotebook = window.activeNotebookEditor?.notebook;
+    if (!activeNotebook) {
+      window.showWarningMessage('No active notebook found.');
+      return;
+    }
+
+    // For notebook-level config, we don't need a specific cell
+    // Just create a dummy executable cell for the modal structure
+    const dummyCell = activeNotebook.cellAt(0);
+    if (!dummyCell) {
+      window.showWarningMessage('Notebook has no cells.');
+      return;
+    }
+
+    const execCell = codebook.NewExecutableCell(dummyCell);
+    if (!execCell) {
+      // If first cell is not executable, still open modal for notebook config
+      // Create a minimal executable cell for the structure
+      window.showWarningMessage('Opening notebook configuration. First cell is not executable.');
+      configModal.openNotebookConfigModal(null, activeNotebook, context);
+      return;
+    }
+
+    // Open config modal in notebook-only mode
+    configModal.openNotebookConfigModal(execCell, activeNotebook, context);
   });
 
   context.subscriptions.push(disposable);

@@ -88,6 +88,7 @@
         <li><a href="#executable-code">Executable Code Blocks</a></li>
         <li><a href="#codeblock-config">CodeBlock Configuration</a></li>
         <li><a href="#custom-cellconfig">Custom CellConfig JSON Files</a></li>
+        <li><a href="#front-matter">Front Matter Configuration</a></li>
         <li><a href="#output-config">Output Configuration</a></li>
         <li><a href="#file-links">File Links &amp; Hover Preview</a></li>
         <li><a href="#custom-settings">Custom Settings</a></li>
@@ -993,6 +994,217 @@ Authorization: Bearer {{YOUR_TOKEN}}
           <li><strong>Consistent Naming:</strong> Use descriptive notebook names as configuration files inherit the notebook name</li>
           <li><strong>Regular Cleanup:</strong> Remove configuration files for deleted notebooks to keep directories clean</li>
           <li><strong>Documentation:</strong> Comment complex configurations in team documentation</li>
+        </ul>
+      </section>
+
+      <section id="front-matter">
+        <h2>Front Matter Configuration</h2>
+        <p>CodebookMD supports YAML front matter in markdown files, allowing you to store notebook-level metadata and configuration directly in your documents.</p>
+        
+        <h3>Overview</h3>
+        <p>Front matter is a YAML block at the beginning of your markdown file that contains metadata and configuration options. It's delimited by triple dashes (<code>---</code>) and provides a clean way to store notebook-level settings.</p>
+        
+        <h4>Key Features</h4>
+        <ul>
+          <li><span class="feature-highlight">Notebook Metadata:</span> Store title, description, tags, and other metadata</li>
+          <li><span class="feature-highlight">Configuration Options:</span> Set notebook-level execution and display preferences</li>
+          <li><span class="feature-highlight">Visual Configuration:</span> Edit front matter through an intuitive interface</li>
+          <li><span class="feature-highlight">YAML Standards:</span> Compatible with other markdown processors and static site generators</li>
+          <li><span class="feature-highlight">Version Control Friendly:</span> Plain text format works well with git and other VCS</li>
+        </ul>
+        
+        <h3>Basic Front Matter Structure</h3>
+        <p>Front matter appears at the very beginning of your markdown file:</p>
+        <pre><code>---
+title: "My Data Analysis Notebook"
+description: "Analysis of sales data for Q3 2024"
+author: "John Doe"
+tags: 
+  - data-analysis
+  - python
+  - visualization
+created: 2024-03-15
+updated: 2024-03-20
+codebook:
+  showTimestamp: true
+  execPath: "./analysis"
+---
+
+# My Data Analysis Notebook
+
+This notebook contains analysis of our Q3 sales data...
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+```</code></pre>
+        
+        <h3>Accessing Front Matter Configuration</h3>
+        <p>CodebookMD provides multiple ways to view and edit front matter in your notebooks:</p>
+        
+        <h4>Method 1: Notebook Configuration Modal</h4>
+        <p>The easiest way to manage front matter is through the configuration interface:</p>
+        <ol>
+          <li><strong>From Notebook Toolbar:</strong> Click the gear icon (⚙️) in the notebook toolbar at the top of any notebook</li>
+          <li><strong>From Markdown Cells:</strong> When a markdown cell is selected, click the gear icon to open notebook-level configuration</li>
+          <li><strong>Front Matter Section:</strong> The configuration modal includes a dedicated "Front Matter" section where you can view and edit the YAML content</li>
+          <li><strong>Visual Interface:</strong> Use the expandable text area to modify front matter with syntax highlighting</li>
+          <li><strong>Save Changes:</strong> Click "Save Front Matter" to apply your changes to the notebook</li>
+        </ol>
+        
+        <h4>Method 2: Direct Editing in Markdown</h4>
+        <p>You can also edit front matter directly in your markdown file:</p>
+        <ol>
+          <li>Open your notebook in VS Code</li>
+          <li>Navigate to the top of the file</li>
+          <li>Edit the YAML content between the <code>---</code> delimiters</li>
+          <li>Save the file to apply changes</li>
+        </ol>
+        
+        <h4>Method 3: Display as First Cell</h4>
+        <p>CodebookMD can optionally display front matter as the first cell in your notebook:</p>
+        <ol>
+          <li>Open VS Code Settings (Cmd/Ctrl + ,)</li>
+          <li>Search for "codebook front matter"</li>
+          <li>Enable "Front Matter: Show In Notebook"</li>
+          <li>Front matter will appear as an editable cell at the top of your notebook</li>
+        </ol>
+        
+        <h3>Supported Front Matter Fields</h3>
+        <p>While you can include any YAML content in front matter, CodebookMD recognizes several special fields:</p>
+        
+        <h4>Metadata Fields</h4>
+        <ul>
+          <li><code>title</code>: The notebook's title</li>
+          <li><code>description</code>: A description of the notebook's purpose</li>
+          <li><code>author</code>: The notebook author(s)</li>
+          <li><code>tags</code>: Array of tags for categorization</li>
+          <li><code>created</code>: Creation date (YYYY-MM-DD format)</li>
+          <li><code>updated</code>: Last updated date (YYYY-MM-DD format)</li>
+          <li><code>version</code>: Version number or identifier</li>
+        </ul>
+        
+        <h4>CodebookMD Configuration</h4>
+        <p>Use the <code>codebook</code> section for notebook-level configuration:</p>
+        <pre><code>---
+codebook:
+  # Output configuration
+  showTimestamp: true
+  timestampTimezone: "America/New_York"
+  showExecutableCodeInOutput: false
+  replaceOutputCell: true
+  
+  # Execution configuration
+  execPath: "./notebooks"
+  
+  # Language-specific settings
+  python:
+    pythonCmd: "python3.11"
+  go:
+    execType: "test"
+    goimportsCmd: "goimports"
+---</code></pre>
+        
+        <h3>Configuration Modal Interface</h3>
+        <p>The Front Matter section in the configuration modal provides:</p>
+        
+        <h4>Features</h4>
+        <ul>
+          <li><strong>Collapsible Section:</strong> The Front Matter section is collapsed by default to keep the interface clean</li>
+          <li><strong>Syntax Highlighting:</strong> YAML content is displayed with proper syntax highlighting</li>
+          <li><strong>Expandable Text Area:</strong> Large text area for comfortable editing of complex front matter</li>
+          <li><strong>Save Functionality:</strong> Dedicated "Save Front Matter" button to apply changes</li>
+          <li><strong>Error Handling:</strong> Validation feedback for invalid YAML syntax</li>
+        </ul>
+        
+        <h4>Working with the Interface</h4>
+        <ol>
+          <li><strong>Open Configuration:</strong> Click the gear icon in the notebook toolbar or from a markdown cell</li>
+          <li><strong>Expand Front Matter:</strong> Click on "Front Matter" to expand the section</li>
+          <li><strong>Edit Content:</strong> Modify the YAML content in the text area</li>
+          <li><strong>Save Changes:</strong> Click "Save Front Matter" to apply your modifications</li>
+          <li><strong>View Results:</strong> Front matter is immediately updated in your notebook file</li>
+        </ol>
+        
+        <h3>Use Cases and Examples</h3>
+        
+        <h4>Data Science Notebook</h4>
+        <pre><code>---
+title: "Customer Segmentation Analysis"
+description: "K-means clustering analysis of customer data"
+author: "Data Science Team"
+tags: 
+  - machine-learning
+  - clustering
+  - customer-analysis
+created: 2024-08-01
+updated: 2024-08-04
+codebook:
+  showTimestamp: true
+  execPath: "./data"
+  python:
+    pythonCmd: "python3"
+---</code></pre>
+        
+        <h4>Development Documentation</h4>
+        <pre><code>---
+title: "API Integration Guide"
+description: "Step-by-step guide for integrating with our REST API"
+author: "Engineering Team"
+version: "2.1"
+tags:
+  - api
+  - integration
+  - documentation
+codebook:
+  showExecutableCodeInOutput: true
+  http:
+    verbose: true
+---</code></pre>
+        
+        <h4>Educational Content</h4>
+        <pre><code>---
+title: "Introduction to Go Programming"
+description: "Beginner-friendly tutorial covering Go basics"
+author: "Education Team"
+difficulty: "beginner"
+estimated_time: "45 minutes"
+tags:
+  - tutorial
+  - go
+  - programming
+codebook:
+  go:
+    execType: "run"
+    execTypeRunFilename: "example.go"
+---</code></pre>
+        
+        <h3>Best Practices</h3>
+        <ul>
+          <li><strong>Keep It Simple:</strong> Include only necessary metadata to avoid clutter</li>
+          <li><strong>Use Consistent Fields:</strong> Establish team conventions for field names and formats</li>
+          <li><strong>Update Dates:</strong> Keep the <code>updated</code> field current when making significant changes</li>
+          <li><strong>Meaningful Tags:</strong> Use descriptive tags that help with organization and discovery</li>
+          <li><strong>Configuration Separation:</strong> Use front matter for notebook-level settings, cell-specific configuration for individual code blocks</li>
+          <li><strong>Version Control:</strong> Front matter is plain text and works well with git diff and merge tools</li>
+          <li><strong>Documentation:</strong> Include a <code>description</code> field to explain the notebook's purpose</li>
+        </ul>
+        
+        <h3>Integration with VS Code Settings</h3>
+        <p>Control how front matter is displayed and handled:</p>
+        <pre><code>{
+  "codebook-md.frontMatter.showInNotebook": true
+}</code></pre>
+        
+        <p>When enabled, front matter appears as the first cell in your notebook, making it easy to edit alongside your content. When disabled, front matter is hidden from the notebook view but remains accessible through the configuration modal.</p>
+        
+        <h3>Benefits</h3>
+        <ul>
+          <li><span class="feature-highlight">Organized Metadata:</span> Keep important information about your notebooks in a structured format</li>
+          <li><span class="feature-highlight">Searchable Content:</span> Front matter fields can be indexed and searched by external tools</li>
+          <li><span class="feature-highlight">Configuration Management:</span> Set notebook-level preferences without cluttering individual cells</li>
+          <li><span class="feature-highlight">Tool Compatibility:</span> Works with static site generators like Jekyll, Hugo, and GitBook</li>
+          <li><span class="feature-highlight">Team Collaboration:</span> Standardized metadata helps teams understand and maintain notebooks</li>
         </ul>
       </section>
 

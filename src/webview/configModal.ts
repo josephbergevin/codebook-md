@@ -1,11 +1,89 @@
-import { window, WebviewPanel, ViewColumn, Uri, ExtensionContext, env, commands, NotebookCell, workspace } from 'vscode';
+import { window, WebviewPanel, ViewColumn, Uri, ExtensionContext, env, commands, NotebookCell, NotebookDocument, workspace } from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
 import * as codebook from '../codebook';
 import { getCellConfig } from '../codebook';
 import { saveCellConfig, getLanguageConfigOptions, getOutputConfigOptions } from '../cellConfig';
 
 let currentPanel: WebviewPanel | undefined = undefined;
 let modalIsOpen: boolean = false;
+
+/**
+ * Updates or adds front matter to markdown content
+ * @param content The current markdown content
+ * @param frontMatter The new front matter content (without --- delimiters)
+ * @returns Updated markdown content with front matter
+ */
+function updateFrontMatterInMarkdown(content: string, frontMatter: string): string {
+  const lines = content.split(/\r?\n/);
+  const trimmedFrontMatter = frontMatter.trim();
+
+  // Check if there's existing front matter
+  let hasFrontMatter = false;
+  let frontMatterEndIndex = 0;
+
+  if (lines.length > 0 && lines[0].trim() === '---') {
+    // Look for closing --- marker
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].trim() === '---') {
+        hasFrontMatter = true;
+        frontMatterEndIndex = i + 1;
+        break;
+      }
+    }
+  }
+
+  if (trimmedFrontMatter === '') {
+    // Remove front matter if empty
+    if (hasFrontMatter) {
+      // Remove the front matter section
+      const remainingContent = lines.slice(frontMatterEndIndex).join('\n');
+      return remainingContent.replace(/^\n+/, ''); // Remove leading newlines
+    }
+    // No front matter to remove
+    return content;
+  }
+
+  // Add or update front matter
+  const frontMatterLines = [
+    '---',
+    ...trimmedFrontMatter.split('\n'),
+    '---'
+  ];
+
+  if (hasFrontMatter) {
+    // Replace existing front matter
+    const remainingContent = lines.slice(frontMatterEndIndex);
+    return [...frontMatterLines, '', ...remainingContent].join('\n');
+  } else {
+    // Add new front matter at the beginning
+    return [...frontMatterLines, '', ...lines].join('\n');
+  }
+}
+
+/**
+ * Extracts front matter content from markdown
+ * @param content The markdown content
+ * @returns The front matter content without --- delimiters, or empty string if none
+ */
+function extractFrontMatterFromMarkdown(content: string): string {
+  const lines = content.split(/\r?\n/);
+
+  if (lines.length === 0 || lines[0].trim() !== '---') {
+    return '';
+  }
+
+  // Look for closing --- marker
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i].trim() === '---') {
+      // Found closing marker, extract content
+      return lines.slice(1, i).join('\n');
+    }
+  }
+
+  // No closing marker found
+  return '';
+}
 
 export function isConfigModalOpen(): boolean {
   return modalIsOpen;
@@ -30,7 +108,7 @@ export async function updateConfigModalForCell(execCell: codebook.ExecutableCell
   }
 
   // Update the webview content with the new cell's configuration
-  currentPanel.webview.html = getWebviewContent(execCell, notebookCell, existingCellConfig);
+  currentPanel.webview.html = getWebviewContent(execCell, notebookCell, existingCellConfig, false, undefined);
 
   // Update the panel title to indicate which cell is being configured
   const cellIndex = notebookCell?.index ?? 'Unknown';
@@ -38,7 +116,29 @@ export async function updateConfigModalForCell(execCell: codebook.ExecutableCell
   currentPanel.title = `Code Block Config - Cell ${cellIndex} (${languageId})`;
 }
 
+export async function updateConfigModalForNotebook(notebook: NotebookDocument): Promise<void> {
+  if (!currentPanel || !isConfigModalOpen()) {
+    return;
+  }
+
+  // Switch to notebook-only mode - no execCell needed
+  currentPanel.webview.html = getWebviewContent(null, undefined, undefined, true, notebook);
+
+  // Update the panel title to indicate notebook configuration
+  currentPanel.title = 'Notebook Configuration';
+}
+
 export async function openConfigModal(execCell: codebook.ExecutableCell, notebookCell?: NotebookCell, context?: ExtensionContext): Promise<void> {
+  return openConfigModalInternal(execCell, notebookCell, context, false);
+}
+
+export async function openNotebookConfigModal(execCell: codebook.ExecutableCell | null, notebook: NotebookDocument, context?: ExtensionContext): Promise<void> {
+  // For notebook-only mode, we pass a dummy cell but mark it as notebook-only
+  // We'll pass the notebook document through a temporary global variable for front matter extraction
+  return openConfigModalInternal(execCell, undefined, context, true, notebook);
+}
+
+async function openConfigModalInternal(execCell: codebook.ExecutableCell | null, notebookCell?: NotebookCell, context?: ExtensionContext, notebookOnlyMode: boolean = false, notebookDocument?: NotebookDocument): Promise<void> {
   // Get active editor's column to position our modal adjacent to it
   const activeColumn = window.activeTextEditor?.viewColumn || ViewColumn.One;
   // Use the next column (or wrap around to One if at Three)
@@ -63,18 +163,40 @@ export async function openConfigModal(execCell: codebook.ExecutableCell, noteboo
     // If panel exists, reveal it and update its content for the new cell
     currentPanel.reveal(modalColumn, true); // Second parameter makes it preserve focus on the editor
 
-    // Update the content for the new cell
-    currentPanel.webview.html = getWebviewContent(execCell, notebookCell, existingCellConfig);
+    // Determine the correct mode based on the new cell's language
+    let effectiveNotebookOnlyMode = notebookOnlyMode;
+    if (notebookCell && notebookCell.document.languageId === 'markdown') {
+      effectiveNotebookOnlyMode = true;
+    } else if (notebookCell) {
+      // If we have a non-markdown cell, show full config even if originally in notebook-only mode
+      effectiveNotebookOnlyMode = false;
+    }    // Update the content for the new cell
+    currentPanel.webview.html = getWebviewContent(execCell, notebookCell, existingCellConfig, effectiveNotebookOnlyMode, notebookDocument);
 
     // Update the panel title to indicate which cell is being configured
-    const cellIndex = notebookCell?.index ?? 'Unknown';
-    const languageId = notebookCell?.document.languageId ?? 'unknown';
-    currentPanel.title = `Code Block Config - Cell ${cellIndex} (${languageId})`;
+    if (effectiveNotebookOnlyMode) {
+      currentPanel.title = 'Notebook Configuration';
+    } else {
+      const cellIndex = notebookCell?.index ?? 0;
+      const languageId = notebookCell?.document.languageId ?? 'unknown';
+      currentPanel.title = `Code Block Config - Cell ${cellIndex + 1} (${languageId})`;
+    }
   } else {
+    // Determine the correct mode based on the cell's language when creating the panel
+    let effectiveNotebookOnlyMode = notebookOnlyMode;
+    if (notebookCell && notebookCell.document.languageId === 'markdown') {
+      effectiveNotebookOnlyMode = true;
+    } else if (notebookCell) {
+      // If we have a non-markdown cell, show full config even if originally in notebook-only mode
+      effectiveNotebookOnlyMode = false;
+    }
+
     // Create a compact modal-like panel
-    const cellIndex = notebookCell?.index ?? 'Unknown';
-    const languageId = notebookCell?.document.languageId ?? 'unknown';
-    const panelTitle = `Code Block Config - Cell ${cellIndex} (${languageId})`;
+    const panelTitle = effectiveNotebookOnlyMode ? 'Notebook Configuration' : (() => {
+      const cellIndex = notebookCell?.index ?? 0;
+      const languageId = notebookCell?.document.languageId ?? 'unknown';
+      return `Code Block Config - Cell ${cellIndex + 1} (${languageId})`;
+    })();
 
     currentPanel = window.createWebviewPanel(
       'codeBlockConfig',
@@ -111,6 +233,37 @@ export async function openConfigModal(execCell: codebook.ExecutableCell, noteboo
     currentPanel.webview.onDidReceiveMessage(
       async message => {
         switch (message.command) {
+          case 'saveFrontMatter': {
+            // Handle saving front matter to the notebook file
+            try {
+              const notebookUri = message.notebookUri;
+              const frontMatterContent = message.frontMatter;
+
+              if (!notebookUri) {
+                window.showErrorMessage('No notebook URI provided for front matter save');
+                return;
+              }
+
+              const uri = Uri.parse(notebookUri);
+              const filePath = uri.fsPath;
+
+              // Read the current file content
+              const currentContent = fs.readFileSync(filePath, 'utf8');
+
+              // Update the front matter
+              const updatedContent = updateFrontMatterInMarkdown(currentContent, frontMatterContent);
+
+              // Write the updated content back to the file
+              fs.writeFileSync(filePath, updatedContent, 'utf8');
+
+              window.showInformationMessage('Front matter updated successfully');
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              window.showErrorMessage(`Error updating front matter: ${errorMessage}`);
+              console.error('Error updating front matter:', error);
+            }
+            return;
+          }
           case 'openSpecificSetting': {
             // Open VS Code settings filtered to a specific setting
             commands.executeCommand('workbench.action.openSettings', message.settingId);
@@ -252,7 +405,7 @@ export async function openConfigModal(execCell: codebook.ExecutableCell, noteboo
       }
     );
 
-    currentPanel.webview.html = getWebviewContent(execCell, notebookCell, existingCellConfig);
+    currentPanel.webview.html = getWebviewContent(execCell, notebookCell, existingCellConfig, effectiveNotebookOnlyMode, notebookDocument);
   }
 }
 
@@ -270,9 +423,17 @@ export async function openConfigModal(execCell: codebook.ExecutableCell, noteboo
  * @param existingCellConfig The existing cell configuration from metadata (optional)
  * @returns HTML content for the webview
  */
-function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: NotebookCell, existingCellConfig?: Record<string, unknown>): string {
-  const codeBlockConfig = execCell.codeBlockConfig();
-  let commentPrefix = execCell.defaultCommentPrefix();
+function getWebviewContent(execCell: codebook.ExecutableCell | null, notebookCell?: NotebookCell, existingCellConfig?: Record<string, unknown>, notebookOnlyMode: boolean = false, notebookDocument?: NotebookDocument): string {
+  // Handle null execCell for notebook-only mode
+  const codeBlockConfig = execCell ? execCell.codeBlockConfig() : {
+    availableCommands: () => [],
+    commands: [],
+    languageId: 'markdown',
+    cellConfig: {},
+    outputConfig: {},
+    notebookCell: null
+  };
+  let commentPrefix = execCell ? execCell.defaultCommentPrefix() : '#';
   if (commentPrefix === '') {
     commentPrefix = '//';
   }
@@ -311,6 +472,33 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
 
   // Get existing output configuration from the cell's outputConfig
   const existingOutputConfig = codeBlockConfig.outputConfig;
+
+  // Extract current front matter if we have a notebook cell or notebook document
+  let currentFrontMatter = '';
+  if (notebookCell) {
+    try {
+      const notebookDoc = notebookCell.notebook;
+      if (notebookDoc) {
+        // Read the file content to extract front matter
+        const filePath = notebookDoc.uri.fsPath;
+        const fileContent = fs.readFileSync(filePath, 'utf8');
+        currentFrontMatter = extractFrontMatterFromMarkdown(fileContent);
+      }
+    } catch (error) {
+      console.error('Error reading front matter:', error);
+      currentFrontMatter = '';
+    }
+  } else if (notebookDocument) {
+    try {
+      // Read the file content to extract front matter
+      const filePath = notebookDocument.uri.fsPath;
+      const fileContent = fs.readFileSync(filePath, 'utf8');
+      currentFrontMatter = extractFrontMatterFromMarkdown(fileContent);
+    } catch (error) {
+      console.error('Error reading front matter:', error);
+      currentFrontMatter = '';
+    }
+  }
 
   // Function to get language icon text and class
   const getLanguageIcon = (langId: string): { text: string; class: string; } => {
@@ -898,71 +1086,205 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
         .content {
           padding: 16px;
         }
+        
+        /* Global Header with Close Button */
+        .global-header {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          z-index: 1000;
+        }
+        
+        /* Notebook Configuration Section - Top Level */
+        .notebook-config-section-wrapper {
+          background: var(--vscode-sideBar-background);
+          border-bottom: 2px solid var(--vscode-panel-border);
+          margin-bottom: 0;
+        }
+        .notebook-header {
+          background: var(--vscode-titleBar-activeBackground);
+          border-bottom: 1px solid var(--vscode-panel-border);
+          padding: 8px 16px;
+          margin: 0;
+        }
+        .notebook-header h1 {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 600;
+          color: var(--vscode-titleBar-activeForeground);
+        }
+        .notebook-content {
+          padding: 16px;
+          margin: 0;
+        }
+        
+        .notebook-config-section {
+          margin-bottom: 0;
+        }
+        .notebook-config-section summary {
+          padding: 12px;
+          background: var(--vscode-button-secondaryBackground);
+          color: var(--vscode-button-secondaryForeground);
+          border-radius: 3px;
+          cursor: pointer;
+          font-weight: bold;
+          margin-bottom: 5px;
+          display: flex;
+          align-items: center;
+        }
+        .notebook-config-section summary:hover {
+          background: var(--vscode-button-secondaryHoverBackground);
+        }
+        .notebook-config-section summary::marker {
+          color: var(--vscode-button-secondaryForeground);
+        }
+        .notebook-config-section summary .codicon {
+          margin-right: 8px;
+        }
+        .notebook-config-content {
+          padding: 15px;
+          border: 1px solid var(--vscode-panel-border);
+          border-top: none;
+          border-radius: 0 0 3px 3px;
+          background: var(--vscode-editor-background);
+        }
+        textarea {
+          width: 100%;
+          padding: 8px;
+          border-radius: 3px;
+          border: 1px solid var(--vscode-input-border);
+          background: var(--vscode-input-background);
+          color: var(--vscode-input-foreground);
+          font-family: var(--vscode-editor-font-family);
+          font-size: var(--vscode-editor-font-size);
+          resize: vertical;
+          min-height: 120px;
+        }
+        .notebook-save-button {
+          background: var(--vscode-button-background);
+          color: var(--vscode-button-foreground);
+          border: none;
+          padding: 8px 16px;
+          border-radius: 3px;
+          cursor: pointer;
+          font-weight: bold;
+        }
+        .notebook-save-button:hover {
+          background: var(--vscode-button-hoverBackground);
+        }
       </style>
     </head>
     <body>
+      <!-- Global Close Button -->
+      <div class="global-header">
+        <button type="button" class="close-button" onclick="closeModal()" title="Close">×</button>
+      </div>
+      
+      <!-- Notebook Configuration Section -->
+      <div class="notebook-config-section-wrapper">
+        <div class="header notebook-header">
+          <div class="header-left">
+            <span class="codicon codicon-notebook"></span>
+            <h1>Notebook Config</h1>
+          </div>
+        </div>
+        <div class="content notebook-content">
+          <details class="form-section notebook-config-section">
+            <summary>
+              <span class="codicon codicon-edit"></span>
+              <span>Front Matter Settings</span>
+            </summary>
+            <div class="notebook-config-content">
+              <div class="form-group">
+                <label for="frontMatter" class="label-text">YAML Front Matter</label>
+                <textarea name="frontMatter" id="frontMatter" rows="6" placeholder="Enter YAML front matter content (without --- delimiters)&#10;Example:&#10;mode: agent&#10;model: Claude Sonnet 4&#10;description: My notebook description">${currentFrontMatter}</textarea>
+                <small>Configure notebook metadata using YAML format. Do not include the --- delimiters.</small>
+              </div>
+              <div class="form-group">
+                <button type="button" class="notebook-save-button" onclick="saveFrontMatter()">Save Front Matter</button>
+              </div>
+              <div class="help-link" onclick="openDocumentation('front-matter')">
+                <span class="codicon codicon-question"></span>
+                <span>Learn more about Front Matter configuration</span>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+      
+      ${!notebookOnlyMode ? `
       <div class="header">
         <div class="header-left">
           <span class="language-icon ${languageIcon.class}">${languageIcon.text}</span>
           <span class="codicon codicon-gear"></span>
           <h1>Code Block Config - Language: ${languageId}</h1>
         </div>
-        <button type="button" class="close-button" onclick="closeModal()" title="Close">×</button>
       </div>
       
-      <div class="content">
+      <div class="content">`
+      : ''}
+      
+      ${!notebookOnlyMode ? `
       <div class="help-link" onclick="openDocumentation('executable-code')">
         <span class="codicon codicon-question"></span>
         <span>Learn more about executable code blocks</span>
-      </div>
+      </div>` : ''}
       
+      ${!notebookOnlyMode ? `
       <div class="help-link" onclick="openVSCodeSettings()">
         <span class="codicon codicon-settings-gear"></span>
         <span>Open VS Code settings for CodebookMD</span>
-      </div>
+      </div>` : ''}
       
+      ${!notebookOnlyMode ? `
       ${languageId === 'go' ? `
       <div class="help-link language-specific" onclick="openDocumentation('codeblock-config-go')">
         <span class="codicon codicon-symbol-property"></span>
         <span>Go-specific configuration options</span>
       </div>
-      ` : ''}
+      ` : ''}` : ''}
       
+      ${!notebookOnlyMode ? `
       ${languageId === 'sql' ? `
       <div class="help-link language-specific" onclick="openDocumentation('codeblock-config-sql')">
         <span class="codicon codicon-symbol-property"></span>
         <span>SQL-specific configuration options</span>
       </div>
-      ` : ''}
+      ` : ''}` : ''}
       
+      ${!notebookOnlyMode ? `
       ${languageId === 'javascript' || languageId === 'typescript' ? `
       <div class="help-link language-specific" onclick="openDocumentation('codeblock-config-javascript')">
         <span class="codicon codicon-symbol-property"></span>
         <span>${languageId === 'javascript' ? 'JavaScript' : 'TypeScript'}-specific configuration options</span>
       </div>
-      ` : ''}
+      ` : ''}` : ''}
       
+      ${!notebookOnlyMode ? `
       ${languageId === 'python' ? `
       <div class="help-link language-specific" onclick="openDocumentation('codeblock-config-python')">
         <span class="codicon codicon-symbol-property"></span>
         <span>Python-specific configuration options</span>
       </div>
-      ` : ''}
+      ` : ''}` : ''}
       
+      ${!notebookOnlyMode ? `
       ${languageId === 'http' ? `
       <div class="help-link language-specific" onclick="openDocumentation('codeblock-config-http')">
         <span class="codicon codicon-symbol-property"></span>
         <span>HTTP-specific configuration options</span>
       </div>
-      ` : ''}
+      ` : ''}` : ''}
       
+      ${!notebookOnlyMode ? `
       ${languageId === 'bash' || languageId === 'shellscript' || languageId === 'shell' ? `
       <div class="help-link language-specific" onclick="openDocumentation('codeblock-config-bash')">
         <span class="codicon codicon-symbol-property"></span>
         <span>Shell/Bash-specific configuration options</span>
       </div>
-      ` : ''}
+      ` : ''}` : ''}
       
+      ${!notebookOnlyMode ? `
       <form id="configForm">
           <div class="form-group">
             <label for="languageId">Language ID</label>
@@ -1030,19 +1352,20 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
           </div>
         </div>
       </form>
+      </div>` : ''}
       
       <div class="modal-actions">
-        <button type="button" onclick="saveConfig()">Save Configuration</button>
+        ${!notebookOnlyMode ? `<button type="button" onclick="saveConfig()">Save Configuration</button>` : ''}
         <button type="button" onclick="closeModal()">Close</button>
       </div>
       </div>
        <script>
         const vscode = acquireVsCodeApi();
         const notebookCellData = ${notebookCell ? JSON.stringify({
-    index: notebookCell.index,
-    languageId: notebookCell.document.languageId,
-    notebookUri: notebookCell.notebook?.uri.toString()
-  }, null, 2) : 'null'};
+        index: notebookCell.index,
+        languageId: notebookCell.document.languageId,
+        notebookUri: notebookCell.notebook?.uri.toString()
+      }, null, 2) : 'null'};
         
         // Make language and output options available to the client script
         const languageOptions = ${JSON.stringify(languageOptions)};
@@ -1051,10 +1374,10 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
         // Pass the existing configuration to the client as a JSON string
         const existingCellConfigData = ${JSON.stringify(currentCellConfig)};
         const existingOutputConfigData = {
-          showExecutableCodeInOutput: ${existingOutputConfig ? existingOutputConfig.showExecutableCodeInOutput : false},
-          replaceOutputCell: ${existingOutputConfig ? existingOutputConfig.replaceOutputCell : true},
-          showTimestamp: ${existingOutputConfig ? existingOutputConfig.showTimestamp : false},
-          timestampTimezone: "${existingOutputConfig ? existingOutputConfig.timestampTimezone : 'UTC'}"
+          showExecutableCodeInOutput: ${existingOutputConfig && typeof existingOutputConfig === 'object' && 'showExecutableCodeInOutput' in existingOutputConfig ? existingOutputConfig.showExecutableCodeInOutput : false},
+          replaceOutputCell: ${existingOutputConfig && typeof existingOutputConfig === 'object' && 'replaceOutputCell' in existingOutputConfig ? existingOutputConfig.replaceOutputCell : true},
+          showTimestamp: ${existingOutputConfig && typeof existingOutputConfig === 'object' && 'showTimestamp' in existingOutputConfig ? existingOutputConfig.showTimestamp : false},
+          timestampTimezone: "${existingOutputConfig && typeof existingOutputConfig === 'object' && 'timestampTimezone' in existingOutputConfig ? existingOutputConfig.timestampTimezone : 'UTC'}"
         };
         
         // Track commands in both lists
@@ -1430,6 +1753,29 @@ function getWebviewContent(execCell: codebook.ExecutableCell, notebookCell?: Not
             settingId: settingId
           });
         }
+        
+        function saveFrontMatter() {
+          // Get the front matter content from the textarea
+          const frontMatterTextarea = document.getElementById('frontMatter');
+          const frontMatterContent = frontMatterTextarea ? frontMatterTextarea.value : '';
+          
+          // Get the notebook URI from the notebook cell data
+          if (!notebookCellData || !notebookCellData.notebookUri) {
+            // Show error message
+            vscode.postMessage({
+              command: 'saveFrontMatter',
+              error: 'No notebook URI available'
+            });
+            return;
+          }
+          
+          // Send the front matter save request to the extension
+          vscode.postMessage({
+            command: 'saveFrontMatter',
+            notebookUri: notebookCellData.notebookUri,
+            frontMatter: frontMatterContent
+          });
+        }
       </script>
     </body>
     </html>`;
@@ -1475,5 +1821,11 @@ function getConfigValue(
   console.log(`No value found for ${key}`);
   return undefined;
 }
+
+// Export functions for testing
+export const __test__ = {
+  updateFrontMatterInMarkdown,
+  extractFrontMatterFromMarkdown
+};
 
 // Initialize form values with values from the configuration hierarchy
