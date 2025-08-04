@@ -4,6 +4,47 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.8] - 2025-08-04
+
+### Added
+
+- **Notebook Toolbar Configuration Wheel:**
+
+  - Added gear icon to notebook toolbar for quick access to configuration options
+  - Intelligent dual-mode operation: switches between cell config and notebook config based on selection
+  - Dynamic section hiding: automatically hides cell-specific sections when editing notebook-level settings
+  - Seamless integration with existing configuration modal system
+
+- **Enhanced Front Matter Documentation:**
+  - Comprehensive documentation section for Front Matter configuration feature
+  - Detailed examples of YAML metadata fields and their usage
+  - Access methods documentation covering VS Code settings vs. visual editor
+  - Configuration examples and best practices for notebook metadata management
+  - Help link integration for easy access to Front Matter documentation from configuration modal
+
+### Fixed
+
+- **Cell Type Detection Improvements:**
+  - Fixed critical bug in notebook selection change listener for proper markdown cell handling
+  - Enhanced cell type detection to correctly distinguish between markdown (kind=1) and code (kind=2) cells
+  - Improved dynamic modal switching logic based on active cell type
+  - Better error handling and debugging for cell selection edge cases
+
+### Changed
+
+- **Configuration Modal User Experience:**
+  - Modal now intelligently adapts to show relevant sections based on current selection context
+  - Improved visual feedback with contextual help links in configuration sections
+  - Enhanced notebook-level configuration access through toolbar integration
+  - Streamlined workflow for accessing both cell-specific and notebook-wide settings
+
+### Technical Implementation
+
+- Enhanced notebook editor selection change detection with comprehensive cell type handling
+- Implemented `updateConfigModalForNotebook()` function for dynamic modal mode switching
+- Added comprehensive Front Matter documentation with examples and integration guidance
+- Integrated help link system with existing documentation architecture for better user experience
+
 ## [0.19.7] - 2025-08-01
 
 ### Added

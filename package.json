@@ -596,11 +596,25 @@
         "command": "codebook-md.toggleFrontMatter",
         "title": "Toggle Front Matter Visibility",
         "category": "CodebookMD"
+      },
+      {
+        "command": "codebook-md.openNotebookConfig",
+        "title": "Open Notebook Configuration",
+        "shortTitle": "Config",
+        "category": "CodebookMD",
+        "icon": "$(gear)"
       }
     ],
     "menus": {
       "view/title": [],
       "view/item/context": [],
+      "notebook/toolbar": [
+        {
+          "command": "codebook-md.openNotebookConfig",
+          "when": "notebookType == codebook-md",
+          "group": "navigation"
+        }
+      ],
       "editor/context": [
         {
           "command": "codebook-md.addCurrentFileToFavorites",
