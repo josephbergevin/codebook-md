@@ -4,6 +4,31 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.9] - 2025-08-05
+
+### Added
+
+- **Text Editor Reopen Button:**
+  - Added "Text" button to notebook toolbar next to the existing "Config" button
+  - Provides quick access to reopen the current notebook file in VS Code's text editor
+  - Uses VS Code's native `workbench.action.reopenTextEditor` command for seamless editor switching
+  - Intuitive file-text icon (📄) for easy identification
+  - Enhanced user workflow allowing quick switching between interactive notebook view and raw markdown editing
+
+### Changed
+
+- **Notebook Toolbar Enhancement:**
+  - Expanded notebook toolbar with dual-button layout for improved accessibility
+  - Consistent styling and positioning with existing toolbar elements
+  - Maintains same conditional visibility (only appears when `notebookType == codebook-md`)
+
+### Technical Implementation
+
+- Added `codebook-md.reopenWithTextEditor` command with proper registration and error handling
+- Integrated new button into `notebook/toolbar` menu configuration in package.json
+- Enhanced extension activation with command registration following CodebookMD patterns
+- All quality checks passing: compilation, linting, and comprehensive test suite (122 tests)
+
 ## [0.19.8] - 2025-08-04
 
 ### Added
