@@ -1367,6 +1367,9 @@ function getWebviewContent(execCell: codebook.ExecutableCell | null, notebookCel
         notebookUri: notebookCell.notebook?.uri.toString()
       }, null, 2) : 'null'};
         
+        // For notebook-only mode, provide the notebook URI separately
+        const notebookUri = ${notebookDocument ? `"${notebookDocument.uri.toString()}"` : (notebookCell ? `"${notebookCell.notebook?.uri.toString()}"` : 'null')};
+        
         // Make language and output options available to the client script
         const languageOptions = ${JSON.stringify(languageOptions)};
         const outputOptions = ${JSON.stringify(outputOptions)};
@@ -1759,8 +1762,13 @@ function getWebviewContent(execCell: codebook.ExecutableCell | null, notebookCel
           const frontMatterTextarea = document.getElementById('frontMatter');
           const frontMatterContent = frontMatterTextarea ? frontMatterTextarea.value : '';
           
-          // Get the notebook URI from the notebook cell data
-          if (!notebookCellData || !notebookCellData.notebookUri) {
+          // Get the notebook URI - prioritize from notebookCellData, fallback to notebookUri
+          let targetNotebookUri;
+          if (notebookCellData && notebookCellData.notebookUri) {
+            targetNotebookUri = notebookCellData.notebookUri;
+          } else if (notebookUri) {
+            targetNotebookUri = notebookUri;
+          } else {
             // Show error message
             vscode.postMessage({
               command: 'saveFrontMatter',
@@ -1772,7 +1780,7 @@ function getWebviewContent(execCell: codebook.ExecutableCell | null, notebookCel
           // Send the front matter save request to the extension
           vscode.postMessage({
             command: 'saveFrontMatter',
-            notebookUri: notebookCellData.notebookUri,
+            notebookUri: targetNotebookUri,
             frontMatter: frontMatterContent
           });
         }
