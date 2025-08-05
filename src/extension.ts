@@ -604,6 +604,23 @@ export async function activate(context: ExtensionContext) {
 
   context.subscriptions.push(disposable);
 
+  // Register command to reopen notebook with text editor
+  disposable = commands.registerCommand('codebook-md.reopenWithTextEditor', async () => {
+    console.log('Reopening notebook with text editor');
+
+    // Get the active notebook
+    const activeNotebook = window.activeNotebookEditor?.notebook;
+    if (!activeNotebook) {
+      window.showWarningMessage('No active notebook found.');
+      return;
+    }
+
+    // Use VS Code's built-in command to reopen with text editor
+    await commands.executeCommand('workbench.action.reopenTextEditor');
+  });
+
+  context.subscriptions.push(disposable);
+
   // hoverProvider will fire-off for any language, but will automatically return if the document.fileName 
   // is not a markdown file
   context.subscriptions.push(languages.registerHoverProvider({ scheme: 'vscode-notebook-cell' }, new codebook.CellHover()));
