@@ -603,6 +603,13 @@
         "shortTitle": "Config",
         "category": "CodebookMD",
         "icon": "$(gear)"
+      },
+      {
+        "command": "codebook-md.reopenWithTextEditor",
+        "title": "Reopen Editor with Text Editor",
+        "shortTitle": "Text",
+        "category": "CodebookMD",
+        "icon": "$(file-text)"
       }
     ],
     "menus": {
@@ -611,6 +618,11 @@
       "notebook/toolbar": [
         {
           "command": "codebook-md.openNotebookConfig",
+          "when": "notebookType == codebook-md",
+          "group": "navigation"
+        },
+        {
+          "command": "codebook-md.reopenWithTextEditor",
           "when": "notebookType == codebook-md",
           "group": "navigation"
         }
