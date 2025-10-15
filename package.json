@@ -38,7 +38,7 @@
     "preview",
     "rendering"
   ],
-  "version": "0.19.9",
+  "version": "0.20.0",
   "categories": [
     "Notebooks",
     "Education",
@@ -472,6 +472,18 @@
           "type": "string",
           "default": "",
           "description": "Timezone to use for the timestamp (e.g., 'America/New_York', leave empty for local timezone)",
+          "scope": "window"
+        },
+        "codebook-md.executionHistory.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable execution history tracking for code blocks",
+          "scope": "window"
+        },
+        "codebook-md.executionHistory.historyLimit": {
+          "type": "number",
+          "default": 10,
+          "description": "Maximum number of execution history entries to retain per cell (0 for unlimited)",
           "scope": "window"
         },
         "codebook-md.dynamicFolderGroup": {

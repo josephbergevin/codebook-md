@@ -2,9 +2,11 @@ import { NotebookCell, workspace, Uri } from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { writeDirAndFileSyncSafe } from './io';
+import { ExecutionHistoryEntry, ExecutionHistory, ExecutionStatus } from './types/executionHistory';
 
 interface CellConfig {
   output?: Record<string, boolean | string>;
+  executionHistory?: ExecutionHistoryEntry[];
   [key: string]: unknown;
 }
 
@@ -60,7 +62,7 @@ export async function saveCellConfig(notebookCell: NotebookCell, config: CellCon
 
 interface ConfigOption {
   type: string;
-  default: string | boolean | Record<string, unknown>;
+  default: string | boolean | number | Record<string, unknown>;
   options?: string[];
   description: string;
   internal?: boolean; // Optional flag to mark options for internal use only (not displayed in UI)
@@ -182,6 +184,25 @@ export function getOutputConfigOptions(): ConfigOptions {
       type: 'string',
       default: 'UTC',
       description: 'Timezone to use for the timestamp.'
+    }
+  };
+}
+
+/**
+ * Get execution history configuration options
+ * @returns Execution history configuration options
+ */
+export function getExecutionHistoryConfigOptions(): ConfigOptions {
+  return {
+    enabled: {
+      type: 'boolean',
+      default: true,
+      description: 'Enable execution history tracking for code blocks.'
+    },
+    historyLimit: {
+      type: 'number',
+      default: 10,
+      description: 'Maximum number of execution history entries to retain per cell (0 for unlimited).'
     }
   };
 }
@@ -327,6 +348,202 @@ export function updateNotebookConfigIndices(
     return saveNotebookConfig(notebookUri, newConfig);
   } catch (error) {
     console.error('Error updating notebook configuration indices:', error);
+    return false;
+  }
+}
+
+// ========================================================================
+// Execution History Functions
+// ========================================================================
+
+/**
+ * Get execution history configuration from workspace settings
+ * @returns Execution history configuration
+ */
+export function getExecutionHistoryConfig(): { enabled: boolean; historyLimit: number; } {
+  const config = workspace.getConfiguration('codebook-md.executionHistory');
+  return {
+    enabled: config.get<boolean>('enabled', true),
+    historyLimit: config.get<number>('historyLimit', 10)
+  };
+}
+
+/**
+ * Add an execution history entry for a specific cell
+ * 
+ * @param notebookUri The URI of the notebook
+ * @param entry The execution history entry to add
+ * @returns True if successful, false otherwise
+ */
+export function addHistoryEntry(notebookUri: Uri, entry: ExecutionHistoryEntry): boolean {
+  try {
+    // Check if history is enabled
+    const historyConfig = getExecutionHistoryConfig();
+    if (!historyConfig.enabled) {
+      console.log('Execution history is disabled');
+      return false;
+    }
+
+    // Load existing configuration
+    const config = loadNotebookConfig(notebookUri);
+
+    // Get the cell's configuration or create a new one
+    const cellKey = entry.cellIndex.toString();
+    if (!config[cellKey]) {
+      config[cellKey] = { config: {} };
+    }
+
+    // Initialize history array if it doesn't exist or if it's not an array
+    if (!config[cellKey].config.executionHistory || !Array.isArray(config[cellKey].config.executionHistory)) {
+      config[cellKey].config.executionHistory = [];
+    }
+
+    const history = config[cellKey].config.executionHistory as ExecutionHistoryEntry[];
+
+    // Add the new entry at the beginning (newest first)
+    history.unshift(entry);
+
+    // Respect the history limit if set (0 means unlimited)
+    if (historyConfig.historyLimit > 0 && history.length > historyConfig.historyLimit) {
+      history.splice(historyConfig.historyLimit);
+    }
+
+    // Save the updated configuration
+    return saveNotebookConfig(notebookUri, config);
+  } catch (error) {
+    console.error('Error adding history entry:', error);
+    return false;
+  }
+}
+
+/**
+ * Get execution history for a specific cell
+ * 
+ * @param notebookUri The URI of the notebook
+ * @param cellIndex The index of the cell
+ * @returns Array of execution history entries (newest first), or empty array if none exists
+ */
+export function getHistoryForCell(notebookUri: Uri, cellIndex: number): ExecutionHistoryEntry[] {
+  try {
+    const config = loadNotebookConfig(notebookUri);
+    const cellKey = cellIndex.toString();
+
+    if (!config[cellKey] || !config[cellKey].config.executionHistory) {
+      return [];
+    }
+
+    const history = config[cellKey].config.executionHistory;
+
+    // Ensure it's an array before returning
+    if (!Array.isArray(history)) {
+      return [];
+    }
+
+    return history as ExecutionHistoryEntry[];
+  } catch (error) {
+    console.error('Error getting history for cell:', error);
+    return [];
+  }
+}
+
+/**
+ * Get execution history for all cells in a notebook
+ * 
+ * @param notebookUri The URI of the notebook
+ * @returns ExecutionHistory object mapping cell indices to their history entries
+ */
+export function getAllHistory(notebookUri: Uri): ExecutionHistory {
+  try {
+    const config = loadNotebookConfig(notebookUri);
+    const history: ExecutionHistory = {};
+
+    Object.entries(config).forEach(([cellKey, value]) => {
+      if (value.config.executionHistory) {
+        history[cellKey] = value.config.executionHistory as ExecutionHistoryEntry[];
+      }
+    });
+
+    return history;
+  } catch (error) {
+    console.error('Error getting all history:', error);
+    return {};
+  }
+}
+
+/**
+ * Clear execution history for a specific cell
+ * 
+ * @param notebookUri The URI of the notebook
+ * @param cellIndex The index of the cell
+ * @returns True if successful, false otherwise
+ */
+export function clearHistoryForCell(notebookUri: Uri, cellIndex: number): boolean {
+  try {
+    const config = loadNotebookConfig(notebookUri);
+    const cellKey = cellIndex.toString();
+
+    if (config[cellKey] && config[cellKey].config.executionHistory) {
+      delete config[cellKey].config.executionHistory;
+      return saveNotebookConfig(notebookUri, config);
+    }
+
+    return true; // Nothing to clear
+  } catch (error) {
+    console.error('Error clearing history for cell:', error);
+    return false;
+  }
+}
+
+/**
+ * Delete a specific execution history entry for a cell
+ * 
+ * @param notebookUri The URI of the notebook
+ * @param cellIndex The index of the cell
+ * @param entryId The ID of the history entry to delete
+ * @returns True if successful, false otherwise
+ */
+export function deleteHistoryEntry(notebookUri: Uri, cellIndex: number, entryId: string): boolean {
+  try {
+    const config = loadNotebookConfig(notebookUri);
+    const cellKey = cellIndex.toString();
+
+    if (config[cellKey] && config[cellKey].config.executionHistory) {
+      const history = config[cellKey].config.executionHistory;
+
+      // Filter out the entry with the specified ID
+      if (Array.isArray(history)) {
+        config[cellKey].config.executionHistory = history.filter((entry: ExecutionHistoryEntry) => entry.id !== entryId);
+        return saveNotebookConfig(notebookUri, config);
+      }
+    }
+
+    return false; // Entry not found
+  } catch (error) {
+    console.error('Error deleting history entry:', error);
+    return false;
+  }
+}
+
+/**
+ * Clear execution history for all cells in a notebook
+ * 
+ * @param notebookUri The URI of the notebook
+ * @returns True if successful, false otherwise
+ */
+export function clearAllHistory(notebookUri: Uri): boolean {
+  try {
+    const config = loadNotebookConfig(notebookUri);
+
+    // Remove executionHistory from all cells
+    Object.keys(config).forEach(cellKey => {
+      if (config[cellKey].config.executionHistory) {
+        delete config[cellKey].config.executionHistory;
+      }
+    });
+
+    return saveNotebookConfig(notebookUri, config);
+  } catch (error) {
+    console.error('Error clearing all history:', error);
     return false;
   }
 }

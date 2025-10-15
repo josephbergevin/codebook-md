@@ -2,6 +2,14 @@
 import { NotebookDocument, NotebookCell, NotebookController, NotebookCellOutput, NotebookCellOutputItem, NotebookCellExecution, CancellationToken } from 'vscode';
 import * as codebook from "./codebook";
 import { PromptHandler } from './prompt';
+import { addHistoryEntry } from './cellConfig';
+import { ExecutionHistoryEntry, ExecutionStatus } from './types/executionHistory';
+import { notifyHistoryUpdated } from './webview/configModal';
+
+// Simple ID generator for execution history entries
+function generateId(): string {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
 
 // Kernel in this case matches Jupyter definition i.e. this is responsible for taking the frontend notebook
 // and running it through different languages, then returning results in the same format.
@@ -24,7 +32,15 @@ export class Kernel {
     });
 
     // start the cell timer counter
-    cellExec.start((new Date).getTime());
+    const startTime = (new Date).getTime();
+    cellExec.start(startTime);
+
+    // Track execution results for history
+    let executionSuccess = false;
+    let executionOutput = '';
+    let executionError: string | undefined;
+    let exitCode: number | undefined;
+    const originalCellContent = notebookCell.document.getText();
 
     try {
       // Process cell content and handle prompts if present
@@ -113,23 +129,66 @@ export class Kernel {
 
       for (const executable of codebookCell.executables()) {
         try {
-          displayOutput = await runExecutable(token, executable, displayOutput, outputConfig.showExecutableCodeInOutput, cellExec, outputConfig.replaceOutputCell);
+          const result = await runExecutable(token, executable, displayOutput, outputConfig.showExecutableCodeInOutput, cellExec, outputConfig.replaceOutputCell);
+          displayOutput = result.output;
           displayOutput += "\n";
+          if (result.exitCode !== undefined && result.exitCode !== 0) {
+            exitCode = result.exitCode;
+            executionError = `Process exited with code ${result.exitCode}`;
+          }
         } catch (error) {
           console.error(`error running executable: ${error}`);
+          executionError = String(error);
           await displayOutputAsync(cellExec, displayOutput + error, outputConfig.replaceOutputCell);
           break;
         }
       }
 
+      // Capture final output for history
+      executionOutput = displayOutput;
+      executionSuccess = !executionError;
+
       // end the cell timer counter
       cellExec.end(true, (new Date).getTime());
     } catch (error) {
       console.error(`Unexpected error in cell execution: ${error}`);
+      executionError = String(error);
+      executionSuccess = false;
       cellExec.appendOutput(new NotebookCellOutput([
         NotebookCellOutputItem.text(`Execution failed: ${error}`)
       ]));
       cellExec.end(false, (new Date).getTime());
+    } finally {
+      // Save execution history entry
+      try {
+        const endTime = (new Date).getTime();
+        const duration = endTime - startTime;
+
+        const historyEntry: ExecutionHistoryEntry = {
+          id: generateId(),
+          cellIndex: notebookCell.index,
+          languageId: notebookCell.document.languageId,
+          code: originalCellContent,
+          output: executionOutput,
+          status: executionSuccess ? ExecutionStatus.Success : ExecutionStatus.Failure,
+          timestamp: new Date().toISOString(),
+          errorMessage: executionError,
+          exitCode: exitCode,
+          duration: duration
+        };
+
+        const saved = addHistoryEntry(notebookCell.notebook.uri, historyEntry);
+        if (saved) {
+          console.log(`Execution history saved for cell ${notebookCell.index}`);
+          // Notify the config modal to refresh the history view
+          notifyHistoryUpdated();
+        } else {
+          console.log(`Execution history not saved (may be disabled or failed)`);
+        }
+      } catch (historyError) {
+        console.error('Error saving execution history:', historyError);
+        // Don't fail the execution if history save fails
+      }
     }
   }
 }
@@ -152,7 +211,7 @@ async function runExecutable(
   showExecutableCodeInOutput: boolean,
   cellExec: NotebookCellExecution,
   replaceOutputCell: boolean = true
-): Promise<string> {
+): Promise<{ output: string; exitCode?: number; }> {
   return new Promise((resolve, reject) => {
     if (showExecutableCodeInOutput) {
       displayOutput += executable.toString() + "\n";
@@ -160,6 +219,7 @@ async function runExecutable(
     }
 
     const output = executable.execute();
+    let capturedExitCode: number | undefined;
 
     token.onCancellationRequested(() => {
       output.kill();
@@ -205,12 +265,13 @@ async function runExecutable(
     });
 
     output.on("close", (code) => {
+      capturedExitCode = code ?? undefined;
       // Add any final error text if there was a non-zero exit code
       if (code !== 0 && errorText) {
         fullOutput += errorText;
         displayOutputAsync(cellExec, fullOutput, replaceOutputCell);
       }
-      resolve(fullOutput);
+      resolve({ output: fullOutput, exitCode: capturedExitCode });
     });
 
     output.on("error", (err) => {

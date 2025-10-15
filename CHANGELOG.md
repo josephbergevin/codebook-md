@@ -4,6 +4,41 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0] - 2025-10-15
+
+### Added
+
+- **Execution History:**
+  - Automatic tracking of code block execution history with timestamp, code, output, and status
+  - Persistent storage in notebook configuration file (`.md.config.json`)
+  - Search and filter capabilities for finding past executions by content and status (Success/Failure)
+  - Detailed execution results including exit codes, error messages, duration, and full output
+  - Configurable history limits per cell (default: 10 entries, set to 0 for unlimited)
+  - Easy management: clear history for individual cells or entire notebook
+  - Auto-refresh when new executions are added
+  - Copy to clipboard functionality for code and output
+  - Interactive UI with expand/collapse for detailed views
+  - Delete individual history entries
+  - Visual status indicators (green for success, red for failure)
+
+### Changed
+
+- **Configuration Modal Enhancement:**
+  - Added "Execution History" section to code block configuration modal
+  - Integrated execution history controls with settings wheel icons for quick access to VS Code settings
+  - Enhanced history display with search, filter, and refresh capabilities
+  - Improved modal messaging system for real-time history updates
+
+### Technical Implementation
+
+- Added `ExecutionHistoryEntry` interface and `ExecutionStatus` enum in `src/types/executionHistory.ts`
+- Implemented history management functions in `src/cellConfig.ts`: `addHistoryEntry`, `getHistoryForCell`, `clearHistoryForCell`, etc.
+- Enhanced kernel execution to capture and store history data automatically in `src/kernel.ts`
+- Integrated history display and management in configuration modal webview (`src/webview/configModal.ts`)
+- Added comprehensive test suite in `src/test/executionHistory.test.ts`
+- Added two new workspace settings: `codebook-md.executionHistory.enabled` and `codebook-md.executionHistory.historyLimit`
+- All quality checks passing: compilation, linting, and comprehensive test suite
+
 ## [0.19.9] - 2025-08-05
 
 ### Added

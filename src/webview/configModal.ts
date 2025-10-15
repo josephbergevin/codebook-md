@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as codebook from '../codebook';
 import { getCellConfig } from '../codebook';
-import { saveCellConfig, getLanguageConfigOptions, getOutputConfigOptions } from '../cellConfig';
+import { saveCellConfig, getLanguageConfigOptions, getOutputConfigOptions, getHistoryForCell, clearHistoryForCell, clearAllHistory, deleteHistoryEntry } from '../cellConfig';
 
 let currentPanel: WebviewPanel | undefined = undefined;
 let modalIsOpen: boolean = false;
@@ -87,6 +87,18 @@ function extractFrontMatterFromMarkdown(content: string): string {
 
 export function isConfigModalOpen(): boolean {
   return modalIsOpen;
+}
+
+/**
+ * Notifies the config modal webview that execution history has been updated
+ * This triggers an auto-refresh of the history display
+ */
+export function notifyHistoryUpdated(): void {
+  if (currentPanel && modalIsOpen) {
+    currentPanel.webview.postMessage({
+      command: 'historyUpdated'
+    });
+  }
 }
 
 export async function updateConfigModalForCell(execCell: codebook.ExecutableCell, notebookCell?: NotebookCell): Promise<void> {
@@ -401,6 +413,180 @@ async function openConfigModalInternal(execCell: codebook.ExecutableCell | null,
             commands.executeCommand('workbench.action.openSettings', 'codebook-md');
             return;
           }
+          case 'loadHistory': {
+            // Load execution history for a specific cell
+            try {
+              const notebookUri = message.notebookUri;
+              const cellIndex = message.cellIndex;
+
+              if (!notebookUri || cellIndex === undefined) {
+                window.showErrorMessage('Invalid history load request');
+                return;
+              }
+
+              const uri = Uri.parse(notebookUri);
+              const history = getHistoryForCell(uri, cellIndex);
+
+              // Send history back to webview
+              if (currentPanel) {
+                currentPanel.webview.postMessage({
+                  command: 'historyLoaded',
+                  history: history
+                });
+              }
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              window.showErrorMessage(`Error loading history: ${errorMessage}`);
+              console.error('Error loading history:', error);
+            }
+            return;
+          }
+          case 'loadHistoryCount': {
+            // Load just the count of history entries for a specific cell
+            try {
+              const notebookUri = message.notebookUri;
+              const cellIndex = message.cellIndex;
+
+              if (!notebookUri || cellIndex === undefined) {
+                window.showErrorMessage('Invalid history count load request');
+                return;
+              }
+
+              const uri = Uri.parse(notebookUri);
+              const history = getHistoryForCell(uri, cellIndex);
+
+              // Send just the count back to webview
+              if (currentPanel) {
+                currentPanel.webview.postMessage({
+                  command: 'historyCountLoaded',
+                  count: history.length
+                });
+              }
+            } catch (error) {
+              console.error('Error loading history count:', error);
+              // Don't show error message for count loading, just log it
+            }
+            return;
+          }
+          case 'clearHistory': {
+            // Clear execution history for a specific cell
+            try {
+              const notebookUri = message.notebookUri;
+              const cellIndex = message.cellIndex;
+
+              if (!notebookUri || cellIndex === undefined) {
+                window.showErrorMessage('Invalid history clear request');
+                return;
+              }
+
+              const uri = Uri.parse(notebookUri);
+              const success = clearHistoryForCell(uri, cellIndex);
+
+              if (success) {
+                window.showInformationMessage('Execution history cleared');
+                // Notify webview that history was cleared
+                if (currentPanel) {
+                  currentPanel.webview.postMessage({
+                    command: 'historyCleared'
+                  });
+                }
+              } else {
+                window.showErrorMessage('Failed to clear execution history');
+              }
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              window.showErrorMessage(`Error clearing history: ${errorMessage}`);
+              console.error('Error clearing history:', error);
+            }
+            return;
+          }
+          case 'deleteHistoryEntry': {
+            // Delete a specific execution history entry
+            try {
+              const notebookUri = message.notebookUri;
+              const cellIndex = message.cellIndex;
+              const entryId = message.entryId;
+
+              if (!notebookUri || cellIndex === undefined || !entryId) {
+                window.showErrorMessage('Invalid delete history entry request');
+                return;
+              }
+
+              const uri = Uri.parse(notebookUri);
+              const success = deleteHistoryEntry(uri, cellIndex, entryId);
+
+              if (success) {
+                // Don't show a message for individual deletes, just update the count
+                if (currentPanel) {
+                  // Send updated count back to webview
+                  const history = getHistoryForCell(uri, cellIndex);
+                  currentPanel.webview.postMessage({
+                    command: 'historyCountLoaded',
+                    count: history.length
+                  });
+                }
+              } else {
+                window.showErrorMessage('Failed to delete history entry');
+              }
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              window.showErrorMessage(`Error deleting history entry: ${errorMessage}`);
+              console.error('Error deleting history entry:', error);
+            }
+            return;
+          }
+          case 'clearAllHistory': {
+            // Clear execution history for all cells
+            try {
+              const notebookUri = message.notebookUri;
+
+              if (!notebookUri) {
+                window.showErrorMessage('Invalid clear all history request');
+                return;
+              }
+
+              const uri = Uri.parse(notebookUri);
+              const success = clearAllHistory(uri);
+
+              if (success) {
+                window.showInformationMessage('All execution history cleared');
+                // Notify webview that all history was cleared
+                if (currentPanel) {
+                  currentPanel.webview.postMessage({
+                    command: 'allHistoryCleared'
+                  });
+                }
+              } else {
+                window.showErrorMessage('Failed to clear all execution history');
+              }
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              window.showErrorMessage(`Error clearing all history: ${errorMessage}`);
+              console.error('Error clearing all history:', error);
+            }
+            return;
+          }
+
+          case 'updateWorkspaceSetting': {
+            // Handle updating workspace settings (like execution history config)
+            const { key, value } = message;
+
+            if (!key) {
+              window.showErrorMessage('No setting key provided');
+              return;
+            }
+
+            try {
+              const config = workspace.getConfiguration('codebook-md');
+              await config.update(key, value, true); // true = update in workspace settings
+              console.log(`Updated workspace setting: ${key} = ${value}`);
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              window.showErrorMessage(`Failed to update setting: ${errorMessage}`);
+              console.error('Error updating workspace setting:', error);
+            }
+            return;
+          }
         }
       }
     );
@@ -646,7 +832,7 @@ function getWebviewContent(execCell: codebook.ExecutableCell | null, notebookCel
       <div class="form-section">
         <h3>Language-specific Configuration</h3>
         ${languageId === 'go' ? goExecutionTypeHTML : ''}
-        ${Object.entries(languageOptions).map(([key, option]: [string, { type: string; description: string; default: string | boolean | Record<string, unknown>; options?: string[]; internal?: boolean; }]) => {
+        ${Object.entries(languageOptions).map(([key, option]: [string, { type: string; description: string; default: string | boolean | number | Record<string, unknown>; options?: string[]; internal?: boolean; }]) => {
       // Skip execType as it's now in its own section
       if (key === 'execType') return '';
 
@@ -714,7 +900,7 @@ function getWebviewContent(execCell: codebook.ExecutableCell | null, notebookCel
   const outputOptionsHTML = `
     <div class="form-section">
       <h3>Output Configuration</h3>
-      ${Object.entries(outputOptions).map(([key, option]: [string, { type: string; description: string; default: string | boolean | Record<string, unknown>; }]) => {
+      ${Object.entries(outputOptions).map(([key, option]: [string, { type: string; description: string; default: string | boolean | number | Record<string, unknown>; }]) => {
     // Create a dedicated output config object if it exists
     const outputConfig = currentCellConfig && currentCellConfig.output ? currentCellConfig.output as Record<string, unknown> : {};
 
@@ -1172,6 +1358,267 @@ function getWebviewContent(execCell: codebook.ExecutableCell | null, notebookCel
         .notebook-save-button:hover {
           background: var(--vscode-button-hoverBackground);
         }
+        
+        /* Execution History Styles */
+        .execution-history-section {
+          margin-top: 20px;
+        }
+
+        .history-config-controls {
+          padding: 12px;
+          background: var(--vscode-editor-background);
+          border: 1px solid var(--vscode-panel-border);
+          border-radius: 4px;
+          margin-bottom: 12px;
+        }
+
+        .history-config-controls .form-group {
+          margin-bottom: 12px;
+        }
+
+        .history-config-controls .form-group:last-child {
+          margin-bottom: 0;
+        }
+
+        .history-config-controls input[type="number"] {
+          width: 100%;
+          padding: 6px;
+        }
+
+        .history-details summary {
+          padding: 12px;
+          background: var(--vscode-button-secondaryBackground);
+          color: var(--vscode-button-secondaryForeground);
+          border-radius: 3px;
+          cursor: pointer;
+          font-weight: bold;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .history-details summary:hover {
+          background: var(--vscode-button-secondaryHoverBackground);
+        }
+        .clear-history-button {
+          padding: 4px 8px;
+          margin-left: auto;
+          margin-right: 8px;
+          background: var(--vscode-button-secondaryBackground);
+          color: var(--vscode-button-secondaryForeground);
+          border: 1px solid var(--vscode-button-border);
+          border-radius: 3px;
+          cursor: pointer;
+          font-size: 0.85em;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .clear-history-button:hover {
+          background: var(--vscode-button-hoverBackground);
+        }
+        .history-content {
+          padding: 15px;
+          border: 1px solid var(--vscode-panel-border);
+          border-top: none;
+          border-radius: 0 0 3px 3px;
+          background: var(--vscode-editor-background);
+        }
+        .history-controls {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        .history-search-input {
+          flex-grow: 1;
+          padding: 6px;
+          border-radius: 3px;
+          border: 1px solid var(--vscode-input-border);
+          background: var(--vscode-input-background);
+          color: var(--vscode-input-foreground);
+        }
+        .history-filter-select {
+          padding: 6px;
+          border-radius: 3px;
+          border: 1px solid var(--vscode-input-border);
+          background: var(--vscode-input-background);
+          color: var(--vscode-input-foreground);
+        }
+        .refresh-history-button {
+          padding: 6px 12px;
+          background: var(--vscode-button-secondaryBackground);
+          color: var(--vscode-button-secondaryForeground);
+          border: 1px solid var(--vscode-button-border);
+          border-radius: 3px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+        }
+        .refresh-history-button:hover {
+          background: var(--vscode-button-secondaryHoverBackground);
+        }
+        .history-list {
+          max-height: 400px;
+          overflow-y: auto;
+          border: 1px solid var(--vscode-panel-border);
+          border-radius: 3px;
+          background: var(--vscode-editor-background);
+        }
+        .history-entry {
+          border-bottom: 1px solid var(--vscode-panel-border);
+        }
+        .history-entry:last-child {
+          border-bottom: none;
+        }
+        .history-entry.success {
+          border-left: 3px solid #4caf50;
+        }
+        .history-entry.failure {
+          border-left: 3px solid #f44336;
+        }
+        .history-entry-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px;
+          cursor: pointer;
+          transition: background 0.2s;
+          position: relative;
+        }
+        .history-entry-header:hover {
+          background: var(--vscode-list-hoverBackground);
+        }
+        .history-entry-status {
+          font-weight: bold;
+          font-size: 0.85em;
+          flex: 0 0 auto;
+        }
+        .history-entry-status.success {
+          color: #4caf50;
+        }
+        .history-entry-status.failure {
+          color: #f44336;
+        }
+        .history-entry-timestamp {
+          font-size: 0.85em;
+          color: var(--vscode-descriptionForeground);
+          flex: 1 1 auto;
+          text-align: center;
+        }
+        .history-entry-duration {
+          font-size: 0.85em;
+          color: var(--vscode-descriptionForeground);
+          flex: 0 0 auto;
+          margin-right: 8px;
+          transition: opacity 0.2s;
+        }
+        .history-entry-header:hover .history-entry-duration {
+          opacity: 0;
+        }
+        .history-entry-delete-button {
+          position: absolute;
+          right: 12px;
+          opacity: 0;
+          padding: 4px 8px;
+          background: var(--vscode-button-secondaryBackground);
+          color: var(--vscode-button-secondaryForeground);
+          border: 1px solid var(--vscode-button-border);
+          border-radius: 3px;
+          cursor: pointer;
+          font-size: 0.85em;
+          transition: opacity 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .history-entry-header:hover .history-entry-delete-button {
+          opacity: 1;
+        }
+        .history-entry-delete-button:hover {
+          background: var(--vscode-button-secondaryHoverBackground);
+        }
+        .history-entry-details {
+          padding: 0 12px 12px 12px;
+          background: var(--vscode-editor-background);
+        }
+        .history-entry-section {
+          margin-bottom: 12px;
+          position: relative;
+        }
+        .history-section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 4px;
+        }
+        .history-section-header strong {
+          display: inline;
+          margin-bottom: 0;
+          font-size: 0.9em;
+        }
+        .history-copy-button {
+          opacity: 0;
+          padding: 2px 6px;
+          background: var(--vscode-button-secondaryBackground);
+          color: var(--vscode-button-secondaryForeground);
+          border: 1px solid var(--vscode-button-border);
+          border-radius: 3px;
+          cursor: pointer;
+          font-size: 0.8em;
+          transition: opacity 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 2px;
+        }
+        .history-entry-section:hover .history-copy-button {
+          opacity: 1;
+        }
+        .history-copy-button:hover {
+          background: var(--vscode-button-secondaryHoverBackground);
+        }
+        .history-entry-section strong {
+          display: block;
+          margin-bottom: 4px;
+          font-size: 0.9em;
+        }
+        .history-entry-code {
+          font-family: var(--vscode-editor-font-family);
+          font-size: 0.9em;
+          background: var(--vscode-textCodeBlock-background);
+          padding: 8px;
+          border-radius: 3px;
+          margin: 0;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          max-height: 200px;
+          overflow-y: auto;
+          overflow-x: auto;
+        }
+        .history-entry-output {
+          font-family: var(--vscode-editor-font-family);
+          font-size: 0.85em;
+          color: var(--vscode-descriptionForeground);
+          background: var(--vscode-textCodeBlock-background);
+          padding: 8px;
+          border-radius: 3px;
+          margin: 0;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          max-height: 200px;
+          overflow-y: auto;
+          overflow-x: auto;
+        }
+        .history-empty-message {
+          padding: 20px;
+          text-align: center;
+          color: var(--vscode-descriptionForeground);
+        }
+        .history-entry-exit-code {
+          margin-top: 8px;
+          padding: 4px 8px;
+          background: var(--vscode-inputValidation-errorBackground);
+          border-left: 3px solid var(--vscode-inputValidation-errorBorder);
+          font-size: 0.85em;
+        }
       </style>
     </head>
     <body>
@@ -1323,6 +1770,60 @@ function getWebviewContent(execCell: codebook.ExecutableCell | null, notebookCel
             <!-- Then output configuration -->
             ${outputOptionsHTML}
           </div>
+
+        <!-- Execution History Section -->
+        <div class="form-section execution-history-section">
+          <details class="history-details">
+            <summary>
+              <span class="codicon codicon-history"></span>
+              <span id="historyTitle">Execution History</span>
+              <button type="button" class="clear-history-button" onclick="clearCellHistory(event)" title="Clear all history for this cell">
+                <span class="codicon codicon-trash"></span> Clear
+              </button>
+            </summary>
+            <div class="history-content">
+              <div class="history-config-controls">
+                <div class="form-group">
+                  <div class="checkbox-label">
+                    <div class="checkbox-label-container">
+                      <input type="checkbox" name="executionHistory.enabled" id="executionHistory.enabled" ${workspace.getConfiguration('codebook-md').get('executionHistory.enabled', true) ? 'checked' : ''}>
+                      <span class="label-text">Enable execution history tracking</span>
+                      <span class="codicon codicon-settings-gear settings-wheel" 
+                            onclick="openSpecificSetting('codebook-md.executionHistory.enabled')" 
+                            title="Open setting in VS Code settings"></span>
+                    </div>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div class="label-container">
+                    <label for="executionHistory.historyLimit">Maximum history entries per cell</label>
+                    <span class="codicon codicon-settings-gear settings-wheel" 
+                          onclick="openSpecificSetting('codebook-md.executionHistory.historyLimit')" 
+                          title="Open setting in VS Code settings"></span>
+                  </div>
+                  <input type="number" name="executionHistory.historyLimit" id="executionHistory.historyLimit" 
+                         value="${workspace.getConfiguration('codebook-md').get('executionHistory.historyLimit', 10)}" 
+                         min="0" step="1" placeholder="0 for unlimited">
+                  <small style="color: var(--vscode-descriptionForeground); margin-top: 4px; display: block;">Set to 0 for unlimited history entries</small>
+                </div>
+              </div>
+              <div class="history-controls">
+                <input type="text" id="historySearch" placeholder="Search history..." class="history-search-input">
+                <select id="historyFilter" class="history-filter-select">
+                  <option value="all">All</option>
+                  <option value="success">Success</option>
+                  <option value="failure">Failure</option>
+                </select>
+                <button type="button" onclick="loadHistory()" class="refresh-history-button" title="Refresh history">
+                  <span class="codicon codicon-refresh"></span>
+                </button>
+              </div>
+              <div id="historyList" class="history-list">
+                <p class="history-empty-message">Click the refresh button to load execution history.</p>
+              </div>
+            </div>
+          </details>
+        </div>
 
         <div class="form-group">
           <div class="list-container">
@@ -1784,6 +2285,347 @@ function getWebviewContent(execCell: codebook.ExecutableCell | null, notebookCel
             frontMatter: frontMatterContent
           });
         }
+        
+        // ========================================================================
+        // Execution History Functions
+        // ========================================================================
+        
+        // Store loaded history data
+        let currentHistory = [];
+        
+        function updateHistoryCount(count) {
+          const historyTitle = document.getElementById('historyTitle');
+          if (historyTitle) {
+            historyTitle.textContent = \`Execution History (\${count})\`;
+          }
+        }
+        
+        function loadHistory() {
+          // Request history from the extension
+          if (!notebookCellData || notebookCellData.index === undefined) {
+            console.error('Cannot load history: no cell data available');
+            return;
+          }
+          
+          vscode.postMessage({
+            command: 'loadHistory',
+            notebookUri: notebookCellData.notebookUri,
+            cellIndex: notebookCellData.index
+          });
+        }
+        
+        function renderHistory(history) {
+          currentHistory = history || [];
+          const historyList = document.getElementById('historyList');
+          
+          // Update the title with count
+          updateHistoryCount(currentHistory.length);
+          
+          if (!historyList) return;
+          
+          if (currentHistory.length === 0) {
+            historyList.innerHTML = '<p class="history-empty-message">No execution history found.</p>';
+            return;
+          }
+          
+          // Apply filters
+          const searchTerm = document.getElementById('historySearch').value.toLowerCase();
+          const statusFilter = document.getElementById('historyFilter').value;
+          
+          let filteredHistory = currentHistory.filter(entry => {
+            // Apply status filter (case-insensitive comparison)
+            if (statusFilter !== 'all' && entry.status.toLowerCase() !== statusFilter.toLowerCase()) {
+              return false;
+            }
+            
+            // Apply search filter
+            if (searchTerm && !entry.code.toLowerCase().includes(searchTerm) && 
+                !entry.output.toLowerCase().includes(searchTerm)) {
+              return false;
+            }
+            
+            return true;
+          });
+          
+          if (filteredHistory.length === 0) {
+            historyList.innerHTML = '<p class="history-empty-message">No matching history entries found.</p>';
+            return;
+          }
+          
+          historyList.innerHTML = filteredHistory.map(entry => {
+            const timestamp = new Date(entry.timestamp).toLocaleString();
+            const statusClass = entry.status === 'success' ? 'success' : 'failure';
+            const statusText = entry.status === 'success' ? 'Success' : 'Failure';
+            
+            // Calculate duration if available
+            const duration = entry.duration ? \`\${entry.duration}ms\` : 'N/A';
+            
+            return \`
+              <div class="history-entry \${statusClass}" data-entry-id="\${entry.id}">
+                <div class="history-entry-header" data-entry-id="\${entry.id}">
+                  <span class="history-entry-status \${statusClass}">\${statusText}</span>
+                  <span class="history-entry-timestamp">\${timestamp}</span>
+                  <span class="history-entry-duration">\${duration}</span>
+                  <button class="history-entry-delete-button" data-entry-id="\${entry.id}" title="Delete this history entry">
+                    <span class="codicon codicon-trash"></span>
+                  </button>
+                </div>
+                <div class="history-entry-details" id="details-\${entry.id}" style="display: none;">
+                  <div class="history-entry-section">
+                    <div class="history-section-header">
+                      <strong>Code:</strong>
+                      <button class="history-copy-button" data-entry-id="\${entry.id}" data-type="code" title="Copy code">
+                        <span class="codicon codicon-copy"></span>
+                      </button>
+                    </div>
+                    <pre class="history-entry-code">\${escapeHtml(entry.code)}</pre>
+                  </div>
+                  <div class="history-entry-section">
+                    <div class="history-section-header">
+                      <strong>Output:</strong>
+                      <button class="history-copy-button" data-entry-id="\${entry.id}" data-type="output" title="Copy output">
+                        <span class="codicon codicon-copy"></span>
+                      </button>
+                    </div>
+                    <pre class="history-entry-output">\${escapeHtml(entry.output)}</pre>
+                  </div>
+                  \${entry.exitCode !== undefined ? \`<div class="history-entry-exit-code">Exit Code: \${entry.exitCode}</div>\` : ''}
+                </div>
+              </div>
+            \`;
+          }).join('');
+          
+          // Set up event delegation for expand/collapse buttons
+          setupHistoryEventListeners();
+        }
+        
+        function setupHistoryEventListeners() {
+          const historyList = document.getElementById('historyList');
+          if (!historyList) return;
+          
+          // Remove old listener if exists
+          historyList.removeEventListener('click', handleHistoryClick);
+          // Add new listener
+          historyList.addEventListener('click', handleHistoryClick);
+        }
+        
+        function handleHistoryClick(event) {
+          // Handle delete button click
+          const deleteButton = event.target.closest('.history-entry-delete-button');
+          if (deleteButton) {
+            event.stopPropagation();
+            const entryId = deleteButton.getAttribute('data-entry-id');
+            if (entryId) {
+              deleteHistoryEntry(entryId);
+            }
+            return;
+          }
+          
+          // Handle copy button click
+          const copyButton = event.target.closest('.history-copy-button');
+          if (copyButton) {
+            event.stopPropagation();
+            const entryId = copyButton.getAttribute('data-entry-id');
+            const type = copyButton.getAttribute('data-type');
+            if (entryId && type) {
+              copyHistoryContent(entryId, type);
+            }
+            return;
+          }
+          
+          // Handle header click for expand/collapse
+          const header = event.target.closest('.history-entry-header');
+          if (!header) return;
+          
+          const entryId = header.getAttribute('data-entry-id');
+          if (!entryId) return;
+          
+          toggleEntryDetails(entryId);
+        }
+        
+        function escapeHtml(text) {
+          const div = document.createElement('div');
+          div.textContent = text;
+          return div.innerHTML;
+        }
+        
+        function toggleEntryDetails(entryId) {
+          try {
+            const detailsElement = document.getElementById(\`details-\${entryId}\`);
+            if (!detailsElement) {
+              console.error('Details element not found for ID:', entryId);
+              return;
+            }
+            
+            const isVisible = detailsElement.style.display !== 'none';
+            detailsElement.style.display = isVisible ? 'none' : 'block';
+          } catch (error) {
+            console.error('Error in toggleEntryDetails:', error);
+          }
+        }
+        
+        function deleteHistoryEntry(entryId) {
+          if (!confirm('Are you sure you want to delete this history entry?')) {
+            return;
+          }
+          
+          // Remove from currentHistory array
+          currentHistory = currentHistory.filter(entry => entry.id !== entryId);
+          
+          // Send delete request to extension
+          vscode.postMessage({
+            command: 'deleteHistoryEntry',
+            notebookUri: notebookCellData.notebookUri,
+            cellIndex: notebookCellData.index,
+            entryId: entryId
+          });
+          
+          // Re-render the history
+          renderHistory(currentHistory);
+        }
+        
+        function copyHistoryContent(entryId, type) {
+          const entry = currentHistory.find(e => e.id === entryId);
+          if (!entry) {
+            console.error('Entry not found for ID:', entryId);
+            return;
+          }
+          
+          const content = type === 'code' ? entry.code : entry.output;
+          
+          // Send copy request to extension
+          vscode.postMessage({
+            command: 'copyToClipboard',
+            text: content
+          });
+        }
+        
+        function clearCellHistory(event) {
+          // Prevent the details from toggling
+          event.stopPropagation();
+          
+          if (!notebookCellData || notebookCellData.index === undefined) {
+            console.error('Cannot clear history: no cell data available');
+            return;
+          }
+          
+          if (!confirm('Are you sure you want to clear all execution history for this cell?')) {
+            return;
+          }
+          
+          vscode.postMessage({
+            command: 'clearHistory',
+            notebookUri: notebookCellData.notebookUri,
+            cellIndex: notebookCellData.index
+          });
+        }
+        
+        // Listen for messages from the extension
+        window.addEventListener('message', event => {
+          const message = event.data;
+          switch (message.command) {
+            case 'historyLoaded':
+              renderHistory(message.history);
+              break;
+            case 'historyCountLoaded':
+              // Update just the count without loading full history
+              updateHistoryCount(message.count);
+              break;
+            case 'historyUpdated':
+              // Auto-refresh when a new execution is added
+              // Check if details is open before loading full history
+              const historyDetails = document.querySelector('.history-details');
+              if (historyDetails && historyDetails.open) {
+                loadHistory();
+              } else {
+                // Just update the count if section is closed
+                vscode.postMessage({
+                  command: 'loadHistoryCount',
+                  notebookUri: notebookCellData.notebookUri,
+                  cellIndex: notebookCellData.index
+                });
+              }
+              break;
+            case 'historyCleared':
+              currentHistory = [];
+              renderHistory([]);
+              break;
+            case 'allHistoryCleared':
+              currentHistory = [];
+              renderHistory([]);
+              break;
+          }
+        });
+        
+        // Add event listeners for history filters
+        document.addEventListener('DOMContentLoaded', function() {
+          // Load initial history count on page load
+          if (notebookCellData && notebookCellData.index !== undefined) {
+            vscode.postMessage({
+              command: 'loadHistoryCount',
+              notebookUri: notebookCellData.notebookUri,
+              cellIndex: notebookCellData.index
+            });
+          }
+          
+          const historySearch = document.getElementById('historySearch');
+          const historyFilter = document.getElementById('historyFilter');
+          const historyDetails = document.querySelector('.history-details');
+          
+          if (historySearch) {
+            historySearch.addEventListener('input', function() {
+              renderHistory(currentHistory);
+            });
+          }
+          
+          if (historyFilter) {
+            historyFilter.addEventListener('change', function() {
+              renderHistory(currentHistory);
+            });
+          }
+
+          // Auto-load history when the details element is opened
+          if (historyDetails) {
+            historyDetails.addEventListener('toggle', function() {
+              if (historyDetails.open && currentHistory.length === 0) {
+                // Only load if not already loaded
+                loadHistory();
+              }
+            });
+            
+            // Also load history immediately if details is already open
+            if (historyDetails.open) {
+              loadHistory();
+            }
+          }
+
+          // Add event listeners for execution history configuration
+          const historyEnabledCheckbox = document.getElementById('executionHistory.enabled');
+          const historyLimitInput = document.getElementById('executionHistory.historyLimit');
+          
+          if (historyEnabledCheckbox) {
+            historyEnabledCheckbox.addEventListener('change', function() {
+              vscode.postMessage({
+                command: 'updateWorkspaceSetting',
+                key: 'executionHistory.enabled',
+                value: historyEnabledCheckbox.checked
+              });
+            });
+          }
+          
+          if (historyLimitInput) {
+            historyLimitInput.addEventListener('change', function() {
+              const value = parseInt(historyLimitInput.value, 10);
+              if (!isNaN(value) && value >= 0) {
+                vscode.postMessage({
+                  command: 'updateWorkspaceSetting',
+                  key: 'executionHistory.historyLimit',
+                  value: value
+                });
+              }
+            });
+          }
+        });
       </script>
     </body>
     </html>`;
