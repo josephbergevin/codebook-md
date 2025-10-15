@@ -88,6 +88,7 @@
         <li><a href="#executable-code">Executable Code Blocks</a></li>
         <li><a href="#codeblock-config">CodeBlock Configuration</a></li>
         <li><a href="#custom-cellconfig">Custom CellConfig JSON Files</a></li>
+        <li><a href="#execution-history">Execution History</a></li>
         <li><a href="#front-matter">Front Matter Configuration</a></li>
         <li><a href="#output-config">Output Configuration</a></li>
         <li><a href="#file-links">File Links &amp; Hover Preview</a></li>
@@ -994,6 +995,170 @@ Authorization: Bearer {{YOUR_TOKEN}}
           <li><strong>Consistent Naming:</strong> Use descriptive notebook names as configuration files inherit the notebook name</li>
           <li><strong>Regular Cleanup:</strong> Remove configuration files for deleted notebooks to keep directories clean</li>
           <li><strong>Documentation:</strong> Comment complex configurations in team documentation</li>
+        </ul>
+      </section>
+
+      <section id="execution-history">
+        <h2>Execution History</h2>
+        <p>CodebookMD automatically tracks the execution history of your code blocks, providing a comprehensive record of each execution's results. This feature helps you track changes over time, debug issues, and maintain a complete history of your code experiments and testing.</p>
+        
+        <h3>Key Features</h3>
+        <ul>
+          <li><span class="feature-highlight">Automatic Tracking:</span> Every code block execution is automatically recorded with timestamp, code, output, and status</li>
+          <li><span class="feature-highlight">Persistent Storage:</span> Execution history is stored in your notebook's configuration file (<code>.md.config.json</code>)</li>
+          <li><span class="feature-highlight">Search and Filter:</span> Quickly find past executions using content search and status filters (Success/Failure)</li>
+          <li><span class="feature-highlight">Detailed Results:</span> View complete execution details including exit codes, error messages, and full output</li>
+          <li><span class="feature-highlight">Configurable Limits:</span> Control how many history entries to keep per cell (default: 10 entries)</li>
+          <li><span class="feature-highlight">Easy Management:</span> Clear history for individual cells or the entire notebook</li>
+        </ul>
+        
+        <h3>How It Works</h3>
+        <p>When you execute a code block, CodebookMD automatically captures the following information:</p>
+        <ul>
+          <li><strong>Timestamp:</strong> Exact date and time of execution</li>
+          <li><strong>Code:</strong> The complete code that was executed</li>
+          <li><strong>Output:</strong> The full output (stdout and stderr) from the execution</li>
+          <li><strong>Status:</strong> Success or Failure status</li>
+          <li><strong>Exit Code:</strong> The exit code returned by the process (for failures)</li>
+          <li><strong>Error Messages:</strong> Any error messages encountered during execution</li>
+        </ul>
+        
+        <h3>Accessing Execution History</h3>
+        <p>To view and manage execution history for your code blocks:</p>
+        <ol>
+          <li>Open the configuration modal for any code block by clicking the gear icon</li>
+          <li>Navigate to the <strong>"Execution History"</strong> section</li>
+          <li>The history will automatically load, displaying all past executions for that cell</li>
+        </ol>
+        
+        <h3>Using the History Interface</h3>
+        
+        <h4>Viewing History Entries</h4>
+        <p>Each history entry displays:</p>
+        <ul>
+          <li><strong>Status Indicator:</strong> Visual indicator showing success (green) or failure (red)</li>
+          <li><strong>Timestamp:</strong> When the execution occurred</li>
+          <li><strong>Code Preview:</strong> First few lines of the executed code (click to expand)</li>
+          <li><strong>Output Preview:</strong> First few lines of the output (click to expand)</li>
+          <li><strong>Exit Code:</strong> For failed executions, the exit code is displayed</li>
+        </ul>
+        
+        <h4>Search and Filter</h4>
+        <p>The execution history interface provides powerful search and filter capabilities:</p>
+        <pre><code>┌─ Execution History ─────────────────────┐
+│ Search: [_________________]  [Refresh]   │
+│ Filter by status: [All ▼]                │
+│                                           │
+│ ✓ Success - 2024-01-15 14:32:15         │
+│   Code: console.log('Hello')... [Expand] │
+│   Output: Hello... [Expand]              │
+│                                           │
+│ ✗ Failure - 2024-01-15 14:30:02         │
+│   Code: throw new Error()... [Expand]    │
+│   Output: Error: ... [Expand]            │
+│   Exit Code: 1                           │
+└──────────────────────────────────────────┘</code></pre>
+        
+        <ul>
+          <li><strong>Search Box:</strong> Type any text to filter history entries by code or output content</li>
+          <li><strong>Status Filter:</strong> Select "All", "Success", or "Failure" to filter by execution status</li>
+          <li><strong>Refresh Button:</strong> Reload the history to see the most recent executions</li>
+          <li><strong>Expand/Collapse:</strong> Click on code or output previews to view full content</li>
+        </ul>
+        
+        <h3>Managing History</h3>
+        
+        <h4>Clear Cell History</h4>
+        <p>To remove all history entries for the current cell:</p>
+        <ol>
+          <li>Open the execution history section in the configuration modal</li>
+          <li>Click the <strong>"Clear History"</strong> button</li>
+          <li>Confirm the action when prompted</li>
+        </ol>
+        
+        <h4>Clear All Notebook History</h4>
+        <p>To remove all history entries for every cell in the notebook:</p>
+        <ol>
+          <li>Open the execution history section in the configuration modal</li>
+          <li>Click the <strong>"Clear All History"</strong> button</li>
+          <li>Confirm the action when prompted</li>
+        </ol>
+        
+        <p><strong>Note:</strong> Clearing history is permanent and cannot be undone. The history is stored in your <code>.md.config.json</code> file, so if you have version control, you can recover cleared history from previous commits.</p>
+        
+        <h3>Configuration Options</h3>
+        <p>Execution history can be configured through VS Code settings:</p>
+        
+        <h4>Enable/Disable History Tracking</h4>
+        <pre><code>{
+  "codebook-md.executionHistory.enabled": true
+}</code></pre>
+        <p>Set to <code>false</code> to disable execution history tracking entirely. No new history entries will be created when this is disabled.</p>
+        
+        <h4>Configure History Limit</h4>
+        <pre><code>{
+  "codebook-md.executionHistory.historyLimit": 10
+}</code></pre>
+        <p>This setting controls how many history entries to keep per cell:</p>
+        <ul>
+          <li><strong>Default:</strong> 10 entries per cell</li>
+          <li><strong>Set to 0:</strong> Keep unlimited history entries (use with caution as this can grow large)</li>
+          <li><strong>Custom Value:</strong> Set any positive number to limit entries per cell</li>
+        </ul>
+        <p><strong>Note:</strong> When the limit is reached, the oldest entries are automatically removed to make room for new ones.</p>
+        
+        <h3>Storage and File Structure</h3>
+        <p>Execution history is stored in the same <code>.md.config.json</code> file as your other cell configurations. The structure looks like this:</p>
+        <pre><code>{
+  "0": {
+    "config": {
+      "output": {
+        "showTimestamp": true
+      }
+    },
+    "executionHistory": [
+      {
+        "id": "1705330335123-abc",
+        "cellIndex": 0,
+        "languageId": "javascript",
+        "code": "console.log('Hello, world!');",
+        "output": "Hello, world!\n",
+        "status": "Success",
+        "timestamp": "2024-01-15T14:32:15.123Z"
+      },
+      {
+        "id": "1705330202456-def",
+        "cellIndex": 0,
+        "languageId": "javascript",
+        "code": "throw new Error('Test error');",
+        "output": "Error: Test error\n    at ...",
+        "status": "Failure",
+        "timestamp": "2024-01-15T14:30:02.456Z",
+        "errorMessage": "Test error",
+        "exitCode": 1
+      }
+    ]
+  }
+}</code></pre>
+        
+        <h3>Best Practices</h3>
+        <ul>
+          <li><strong>Regular Review:</strong> Periodically review execution history to identify patterns or recurring issues</li>
+          <li><strong>History Limits:</strong> Set appropriate limits based on your workflow (higher for debugging, lower for production)</li>
+          <li><strong>Version Control:</strong> Include <code>.md.config.json</code> files in version control to track history over time</li>
+          <li><strong>Search Usage:</strong> Use the search feature to quickly find specific executions or error messages</li>
+          <li><strong>Clear Old History:</strong> Periodically clear history for cells that are stable and no longer need tracking</li>
+          <li><strong>Debugging Aid:</strong> Use execution history to compare successful vs. failed executions when debugging</li>
+        </ul>
+        
+        <h3>Use Cases</h3>
+        <ul>
+          <li><strong>Debugging:</strong> Compare successful and failed executions to identify what changed</li>
+          <li><strong>Learning:</strong> Review past attempts when learning new code or APIs</li>
+          <li><strong>Testing:</strong> Track test results over time to ensure consistency</li>
+          <li><strong>Documentation:</strong> Maintain a record of experiments and their outcomes</li>
+          <li><strong>Collaboration:</strong> Share execution history with team members via version control</li>
+          <li><strong>Auditing:</strong> Keep a record of code executions for compliance or review purposes</li>
         </ul>
       </section>
 

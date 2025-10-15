@@ -241,9 +241,60 @@ CodebookMD features an enhanced configuration UI with direct settings integratio
 
 When working with code blocks, you can access the configuration UI through the code block menu. The configuration modal provides all available options with settings wheel icons that open the corresponding VS Code settings when clicked.
 
+### Execution History
+
+CodebookMD automatically tracks the execution history of your code blocks, providing a detailed record of each execution's results:
+
+- **Automatic Tracking**: Every code block execution is automatically recorded with timestamp, code, output, and status
+- **Persistent Storage**: Execution history is stored in your notebook's configuration file (`.md.config.json`)
+- **Search and Filter**: Quickly find past executions using content search and status filters (Success/Failure)
+- **Detailed Results**: View complete execution details including exit codes, error messages, and full output
+- **Configurable Limits**: Control how many history entries to keep per cell (default: 10 entries)
+- **Easy Management**: Clear history for individual cells or the entire notebook
+
+#### Configuration Options
+
+- `codebook-md.executionHistory.enabled`: Enable or disable execution history tracking (default: `true`)
+- `codebook-md.executionHistory.historyLimit`: Maximum number of execution history entries to retain per cell (default: `10`, set to `0` for unlimited)
+
+#### Accessing Execution History
+
+1. Open the configuration modal for any code block (click the gear icon)
+2. Navigate to the "Execution History" section
+3. Use the search box to filter by code or output content
+4. Use the status dropdown to filter by Success or Failure
+5. Click on any entry to expand and view full details
+6. Use "Clear History" to remove history for the current cell
+
+Execution history helps you track changes over time, debug issues, and maintain a record of your code experiments and testing.
+
 ### File Link Hover
 
-#### Examples of HTTP requests:- **Full Request Support**: Headers, authentication, request bodies and more- **Configuration Options**: Configure default settings for HTTP requests- **Comment Support**: Use `#` for comments- **Syntax Highlighting**: Proper highlighting for HTTP requests- **Native Support**: No additional extensions requiredExecute HTTP requests directly from markdown files:### HTTP Requests Support- In a file location specified in the settings (coming soon)- In a new tab (coming soon)- In the output panel at the bottom of the editor (coming soon)- Below the code blockOutput from executed code blocks can be configured in the following ways:### Output Configuration- Line Range: If a line range is specified, the file will be previewed from the start line to the end line.- Line Numbers: If a line number is specified, the file will be previewed at that line.File links detected in markdown code blocks can be hovered over to view the contents of the file.
+File links detected in markdown code blocks can be hovered over to view the contents of the file.
+
+- **Line Numbers:** If a line number is specified, the file will be previewed at that line.
+- **Line Range:** If a line range is specified, the file will be previewed from the start line to the end line.
+
+### HTTP Requests Support
+
+Execute HTTP requests directly from markdown files:
+
+- **Native Support:** No additional extensions required
+- **Full Request Support:** Headers, authentication, request bodies and more
+- **Comment Support:** Use `#` for comments
+- **Syntax Highlighting:** Proper highlighting for HTTP requests
+- **Configuration Options:** Configure default settings for HTTP requests
+
+### Output Configuration
+
+Output from executed code blocks can be configured in the following ways:
+
+- Below the code block
+- In the output panel at the bottom of the editor (coming soon)
+- In a new tab (coming soon)
+- In a file location specified in the settings (coming soon)
+
+#### Examples of HTTP requests:
 
 ```http
 # Simple GET request example
