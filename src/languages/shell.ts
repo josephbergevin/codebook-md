@@ -19,6 +19,11 @@ export class Cell implements codebook.ExecutableCell {
     this.config = new Config(workspace.getConfiguration('codebook-md.shell'), notebookCell);
     this.innerScope = this.config.contentConfig.innerScope;
 
+    // Check if cell has a specific execPath configured
+    if (this.config.contentConfig.execPath) {
+      this.config.execPath = this.config.contentConfig.execPath;
+    }
+
     this.executableCode = "";
 
     // Create a shell script that will run all commands sequentially
@@ -99,11 +104,12 @@ export class Config {
   constructor(shellConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell | undefined) {
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.shell.output'), "#");
 
-    // Use the config.getWorkspaceFolder() function which properly handles ${workspaceFolder} variable expansion
+    // Use config.getExecPath() which properly handles execution path resolution
+    // This respects the codebook-md.execPath setting and rootPath configuration
     try {
-      this.execPath = config.getWorkspaceFolder();
+      this.execPath = config.getExecPath();
     } catch (error) {
-      // Fallback path if getWorkspaceFolder() throws an error
+      // Fallback to workspace folder if getExecPath() throws an error
       const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath;
       this.execPath = workspaceFolder || codebook.newCodeDocumentCurrentFile().fileDir;
     }
