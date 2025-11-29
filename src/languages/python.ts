@@ -17,6 +17,13 @@ export class Cell implements codebook.ExecutableCell {
     // get the configuration for the bash language
     this.config = new Config(workspace.getConfiguration('codebook-md.python'), notebookCell);
 
+    // Check if cell has a specific execPath configured
+    if (this.config.contentConfig.execPath) {
+      this.config.execPath = this.config.contentConfig.execPath;
+      // Update execFile with the new execPath
+      this.config.execFile = path.join(this.config.execPath, path.basename(this.config.execFile));
+    }
+
     // form the innerScope, skipping lines that start with the python comment character #
     this.innerScope = codebook.ProcessNotebookCell(notebookCell, "#");
 

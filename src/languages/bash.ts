@@ -23,6 +23,13 @@ export class Cell implements codebook.ExecutableCell {
       this.config = new Config(workspace.getConfiguration('codebook-md.bash'), notebookCell);
       // this.innerScope = codebook.ProcessNotebookCell(notebookCell, "#", "set -e");
       this.innerScope = this.config.contentConfig.innerScope;
+
+      // Check if cell has a specific execPath configured
+      if (this.config.contentConfig.execPath) {
+        this.config.execPath = this.config.contentConfig.execPath;
+        // Update execFile with the new execPath
+        this.config.execFile = path.join(this.config.execPath, path.basename(this.config.execFile));
+      }
     } else {
       // another language is using this class to execute the call through bash
       this.config = new Config(undefined, undefined);
@@ -95,14 +102,17 @@ export class Config {
 
   constructor(bashConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell | undefined) {
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.bash.output'), "#");
-    // First try to get the configured root path, then fall back to workspace folder
-    const rootPath = workspace.getConfiguration('codebook-md').get<string>('rootPath');
-    const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath;
 
-    // If rootPath is '${workspaceFolder}', use the actual workspace folder path
-    this.execPath = (rootPath === '${workspaceFolder}' ? workspaceFolder : rootPath) ||
-      workspaceFolder ||
-      config.getExecPath();
+    // Use config.getExecPath() which properly handles execution path resolution
+    // This respects the codebook-md.execPath setting and rootPath configuration
+    try {
+      this.execPath = config.getExecPath();
+    } catch (error) {
+      // Fallback to workspace folder if getExecPath() throws an error
+      const workspaceFolder = workspace.workspaceFolders?.[0]?.uri.fsPath;
+      this.execPath = workspaceFolder || codebook.newCodeDocumentCurrentFile().fileDir;
+    }
+
     this.execFile = path.join(this.execPath, bashConfig?.get('execFilename') || 'codebook_md_exec.sh');
     this.execSingleLineAsCommand = bashConfig?.get('execSingleLineAsCommand') || false;
   }
