@@ -36,6 +36,22 @@ This project (or this workspace) is CodebookMD. CodebookMD is a VS Code extensio
 
 ## Code Conventions
 
+### Source Control
+
+- Use git for version control
+
+#### Commit Messages:
+
+- Max char limit message line: 72
+  - Max char limit message body: 68 per line, no limit on number of lines
+- Use the following format: <type>(<scope>): <subject>
+- Type: feat, fix, docs, style, refactor, test, chore
+- Scope: the scope of the change 
+  - src, languages, bash, go, python, etc.
+  - test, types
+  - webview (specificaly configModal, documentationView, etc.)
+  - config
+
 ### TypeScript/JavaScript
 
 - Use interfaces for type definitions instead of type aliases
