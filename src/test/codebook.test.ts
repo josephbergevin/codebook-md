@@ -262,6 +262,20 @@ describe('parseCommands', () => {
     expect(commands[1].args).toEqual(['-la']);
     expect(commands[1].cwd).toBe(cwd);
   });
+
+  it('should handle shell script line continuations correctly', () => {
+    const fullCmd = 'curl --request GET  \\\n--url "https://example.com"';
+    const cwd = '/Users/tijoe';
+    const commands = codebook.parseCommands(fullCmd, cwd);
+
+    expect(commands.length).toBe(1);
+    expect(commands[0].command).toBe('curl');
+    // args should contain everything else merged
+    // "curl --request GET  --url "https://example.com""
+    // parseCommandAndArgs splits by space/quotes.
+    // args: ['--request', 'GET', '--url', 'https://example.com']
+    expect(commands[0].args).toEqual(['--request', 'GET', '--url', 'https://example.com']);
+  });
 });
 
 describe('CellContentConfig', () => {

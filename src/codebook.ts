@@ -178,8 +178,43 @@ export class Command implements Executable {
 export const parseCommands = (fullCmd: string, cwd: string): Command[] => {
   // split the fullCmd into separate commands:
   // 1. split on newline
-  // 2. filter out empty strings, whitespace, and comments
-  const commands = fullCmd.split('\n').filter((cmd: string) => {
+  const lines = fullCmd.split('\n');
+
+  // 2. Handle line continuations
+  const mergedLines: string[] = [];
+  let currentBuffer = "";
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const combined = currentBuffer + line;
+
+    // Check for continuation (odd number of backslashes at the end)
+    const trailingBackslashMatch = combined.match(/(\\+)\s*$/);
+    let isContinuation = false;
+    if (trailingBackslashMatch) {
+      const backslashes = trailingBackslashMatch[1];
+      if (backslashes.length % 2 === 1) {
+        isContinuation = true;
+      }
+    }
+
+    if (isContinuation) {
+      // Remove the last backslash and any trailing whitespace after it
+      // We keep the spaces before the backslash
+      currentBuffer = combined.replace(/\\(\s*)$/, "");
+    } else {
+      mergedLines.push(combined);
+      currentBuffer = "";
+    }
+  }
+
+  // If we have leftover buffer, push it
+  if (currentBuffer !== "") {
+    mergedLines.push(currentBuffer);
+  }
+
+  // 3. filter out empty strings, whitespace, and comments
+  const commands = mergedLines.filter((cmd: string) => {
     return cmd.trim() !== '' && !cmd.startsWith('#');
   });
   return commands.map((cmd: string) => parseCommandAndArgs(cmd, cwd));
