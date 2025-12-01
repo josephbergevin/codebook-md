@@ -4,6 +4,28 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.1] - 2025-12-01
+
+### Fixed
+
+- **Shell Execution Path:**
+  - Shell-script code blocks now execute from the specified Execution Path (per-cell `.execPath`) instead of the workspace folder
+  - Correctly resolves paths via workspace settings and cell overrides
+  - Falls back safely if the target directory does not exist
+
+### Changed
+
+- **Consistent execPath Handling Across Languages:**
+  - Bash, JavaScript, TypeScript, Python, and SQL cells now respect the per-cell `.execPath` when provided
+  - Unified path resolution using `config.getExecPath()` for reliability
+
+### Technical Implementation
+
+- shell.ts: use `config.getExecPath()`; apply `contentConfig.execPath` when set; ensure cwd exists; execute combined script from resolved cwd
+- bash.ts: switch to `config.getExecPath()` and honor cell-level `.execPath`; update generated script path accordingly
+- javascript.ts / typescript.ts / python.ts / sql.ts: detect `contentConfig.execPath` and rebuild `execFile` under that directory
+- Build checks: compile, lint, and tests all passing
+
 ## [0.21.0] - 2025-10-15
 
 ### Added
