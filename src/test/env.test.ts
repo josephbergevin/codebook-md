@@ -1,5 +1,5 @@
 // filepath: /Users/tijoe/go/src/github.com/josephbergevin/codebook-md/src/test/env.test.ts
-import { getMergedEnvironmentVariables } from '../env';
+import { getMergedEnvironmentVariables } from '../io';
 import { workspace } from 'vscode';
 
 // Mock vscode API
@@ -171,5 +171,97 @@ describe('Environment Variable Functions', () => {
 
     // Verify workspace.getConfiguration was called
     expect(workspace.getConfiguration).toHaveBeenCalledWith('terminal.integrated.env');
+  });
+
+  it('should substitute ${workspaceFolder} in environment variables', () => {
+    // Mock process.platform as 'darwin' (macOS)
+    if (Object.defineProperty) {
+      Object.defineProperty(process, 'platform', {
+        value: 'darwin'
+      });
+    }
+
+    // Mock workspace folders
+    (workspace as any).workspaceFolders = [{
+      uri: { fsPath: '/mock/workspace/root' },
+      name: 'root',
+      index: 0
+    }];
+
+    // Mock the VS Code settings with variable
+    const mockVSCodeEnvVars = {
+      NOZZLE_PATH: '${workspaceFolder}'
+    };
+
+    const mockGet = jest.fn().mockReturnValue(mockVSCodeEnvVars);
+    const mockGetConfiguration = jest.fn().mockReturnValue({
+      get: mockGet
+    });
+    (workspace.getConfiguration as jest.Mock).mockImplementation(mockGetConfiguration);
+
+    // Call the function
+    const result = getMergedEnvironmentVariables();
+
+    // Verify the result substitutes ${workspaceFolder}
+    expect(result).toHaveProperty('NOZZLE_PATH', '/mock/workspace/root');
+  });
+
+  it('should substitute ${workspaceFolderBasename} in environment variables', () => {
+    // Mock process.platform as 'darwin' (macOS)
+    if (Object.defineProperty) {
+      Object.defineProperty(process, 'platform', {
+        value: 'darwin'
+      });
+    }
+
+    // Mock workspace folders
+    (workspace as any).workspaceFolders = [{
+      uri: { fsPath: '/mock/workspace/root' },
+      name: 'root',
+      index: 0
+    }];
+
+    // Mock the VS Code settings with variable
+    const mockVSCodeEnvVars = {
+      PROJECT_NAME: '${workspaceFolderBasename}'
+    };
+
+    const mockGet = jest.fn().mockReturnValue(mockVSCodeEnvVars);
+    const mockGetConfiguration = jest.fn().mockReturnValue({
+      get: mockGet
+    });
+    (workspace.getConfiguration as jest.Mock).mockImplementation(mockGetConfiguration);
+
+    // Call the function
+    const result = getMergedEnvironmentVariables();
+
+    // Verify the result substitutes ${workspaceFolderBasename}
+    expect(result).toHaveProperty('PROJECT_NAME', 'root');
+  });
+
+  it('should substitute ${pathSeparator} in environment variables', () => {
+    // Mock process.platform as 'darwin' (macOS)
+    if (Object.defineProperty) {
+      Object.defineProperty(process, 'platform', {
+        value: 'darwin'
+      });
+    }
+
+    // Mock the VS Code settings with variable
+    const mockVSCodeEnvVars = {
+      SEPARATOR: '${pathSeparator}'
+    };
+
+    const mockGet = jest.fn().mockReturnValue(mockVSCodeEnvVars);
+    const mockGetConfiguration = jest.fn().mockReturnValue({
+      get: mockGet
+    });
+    (workspace.getConfiguration as jest.Mock).mockImplementation(mockGetConfiguration);
+
+    // Call the function
+    const result = getMergedEnvironmentVariables();
+
+    // Verify the result substitutes ${pathSeparator}
+    expect(result).toHaveProperty('SEPARATOR', '/');
   });
 });

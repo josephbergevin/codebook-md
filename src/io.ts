@@ -41,8 +41,32 @@ export function getMergedEnvironmentVariables(): { [key: string]: string | undef
     // Merge platform-specific environment variables if they exist
     if (platformEnv) {
       console.log(`Found terminal.integrated.env.${platformKey} settings`);
+
+      // Get the current workspace folder
+      let workspaceFolder = '';
+      let workspaceFolderBasename = '';
+      if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
+        workspaceFolder = workspace.workspaceFolders[0].uri.fsPath;
+        workspaceFolderBasename = workspaceFolder.split(/[/\\]/).pop() || '';
+      }
+
+      const pathSeparator = process.platform === 'win32' ? '\\' : '/';
+
       Object.keys(platformEnv).forEach(key => {
-        mergedEnv[key] = platformEnv[key];
+        let value = platformEnv[key];
+        // Substitute variables
+        if (value) {
+          if (value.includes('${workspaceFolder}')) {
+            value = value.replace(/\$\{workspaceFolder\}/g, workspaceFolder);
+          }
+          if (value.includes('${workspaceFolderBasename}')) {
+            value = value.replace(/\$\{workspaceFolderBasename\}/g, workspaceFolderBasename);
+          }
+          if (value.includes('${pathSeparator}')) {
+            value = value.replace(/\$\{pathSeparator\}/g, pathSeparator);
+          }
+        }
+        mergedEnv[key] = value;
       });
     }
   }
