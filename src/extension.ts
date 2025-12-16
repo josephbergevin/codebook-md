@@ -1,7 +1,7 @@
 import {
-  languages, commands, window, notebooks, workspace,
+  languages, commands, window, notebooks, workspace, env,
   ExtensionContext, StatusBarAlignment, NotebookCell,
-  NotebookSerializer, NotebookData, NotebookCellData,
+  NotebookSerializer, NotebookData, NotebookCellData, NotebookDocument,
   CancellationToken, Uri, chat, ChatRequestHandler,
 } from 'vscode';
 import * as folders from './folders';
@@ -20,6 +20,117 @@ import { createNewNotebook, createNotebookFromSelection } from './createNotebook
 import { getMarkdownRenderingService } from './markdownRenderer';
 
 const kernel = new Kernel();
+
+// Helper function to format cells for chat
+function formatCellsForChat(cells: NotebookCell[]): string {
+  return cells.map(cell => {
+    const content = cell.document.getText();
+    if (cell.kind === 1) { // Markup
+      return content;
+    } else { // Code
+      return '```' + cell.document.languageId + '\n' + content + '\n```';
+    }
+  }).join('\n\n');
+}
+
+// Helper function to open chat with content, using IDE-specific commands
+async function openChatWithContent(content: string): Promise<void> {
+  // Check if Antigravity chat command is available
+  const hasAntigravityCommand = (await commands.getCommands()).includes('antigravity.prioritized.chat.open');
+
+  if (hasAntigravityCommand) {
+    // Use Antigravity chat
+    console.log('[CodebookMD Debug] Opening chat with Antigravity');
+    try {
+      await commands.executeCommand('antigravity.prioritized.chat.open', content);
+    } catch (err) {
+      console.error('Failed to open Antigravity chat:', err);
+      window.showErrorMessage('Failed to open Antigravity Chat. Ensure Antigravity extension is installed.');
+    }
+  } else {
+    // Use VSCode native chat
+    console.log('[CodebookMD Debug] Opening chat with VSCode');
+    try {
+      // Copy content to clipboard
+      await env.clipboard.writeText(content);
+
+      // Try to open GitHub Copilot chat first
+      try {
+        await commands.executeCommand('workbench.panel.chat.view.copilot.focus');
+      } catch {
+        // Fallback to generic chat open
+        try {
+          await commands.executeCommand('workbench.action.chat.open');
+        } catch {
+          // If no chat available, show message with content
+          window.showInformationMessage('Chat content copied to clipboard. Please paste it into your preferred chat interface.');
+          return;
+        }
+      }
+
+      window.showInformationMessage('Chat content copied to clipboard. Paste it into the chat to continue.');
+    } catch (err) {
+      console.error('Failed to open VSCode chat:', err);
+      window.showErrorMessage('Failed to open chat. Content copied to clipboard.');
+    }
+  }
+}
+
+// Helper function to get cells in the current section
+function getSectionCells(cell: NotebookCell, notebook: NotebookDocument): NotebookCell[] {
+  const currentCellIndex = cell.index;
+  let start = currentCellIndex;
+
+  // 1. Find the header of the section (backwards)
+  // If the current cell is a header, well, that's the start.
+  // We look for a markdown cell starting with #
+
+  let currentHeaderLevel = 100; // Arbitrary high number
+  let headerIndex = -1;
+
+  // Search backwards to find the header strictly *before* or *at* the current cell
+  for (let i = currentCellIndex; i >= 0; i--) {
+    const c = notebook.cellAt(i);
+    if (c.kind === 1) { // Markup
+      const text = c.document.getText().trim();
+      const match = text.match(/^(#+)\s/);
+      if (match) {
+        headerIndex = i;
+        currentHeaderLevel = match[1].length;
+        break;
+      }
+    }
+  }
+
+  // If no header found, we might be in a "preamble" section or just a loose cell. 
+  // Let's assume we take everything from start 0 ?? 
+  // OR: If the user says "Section", and there is no section header above, maybe just take everything from 0 to the first header?
+  // Let's stick to: from `headerIndex` (or 0 if none) to next header of same or higher level.
+
+  start = headerIndex === -1 ? 0 : headerIndex;
+  const cells: NotebookCell[] = [];
+
+  // 2. Iterate forward to find end of section
+  for (let i = start; i < notebook.cellCount; i++) {
+    const c = notebook.cellAt(i);
+    // If we hit a new header...
+    if (c.index !== start && c.kind === 1) {
+      const text = c.document.getText().trim();
+      const match = text.match(/^(#+)\s/);
+      if (match) {
+        const level = match[1].length;
+        // If we found a header of same or higher importance (lower level number), stop.
+        // e.g. if we are in ## (level 2), and find # (level 1) or ## (level 2), we stop.
+        // If we find ### (level 3), we continue (it's a subsection).
+        if (level <= currentHeaderLevel) {
+          break;
+        }
+      }
+    }
+    cells.push(c);
+  }
+  return cells;
+}
 
 // Helper functions moved to the top
 async function addFileToFolderGroupFolder(folderGroup: folders.FolderGroup, filePath: string, folderName: string): Promise<void> {
@@ -1144,6 +1255,99 @@ export async function activate(context: ExtensionContext) {
 
   // Register the command to create a new CodebookMD notebook from selection
   disposable = commands.registerCommand('codebook-md.createNotebookFromSelection', createNotebookFromSelection);
+  context.subscriptions.push(disposable);
+
+  // --- Chat Commands (Antigravity or VSCode) ---
+
+  // 1. Chat with Cell
+  disposable = commands.registerCommand('codebook-md.chatWithCell', async (cell: NotebookCell) => {
+    if (!cell) {
+      // Try to get active cell from active editor
+      if (window.activeNotebookEditor && window.activeNotebookEditor.selection) {
+        const idx = window.activeNotebookEditor.selection.start;
+        cell = window.activeNotebookEditor.notebook.cellAt(idx);
+      }
+    }
+    if (!cell) {
+      window.showWarningMessage('No cell selected for chat.');
+      return;
+    }
+
+    // Get file info and generate content with reference
+    const notebookUri = cell.notebook.uri;
+    const filename = path.basename(notebookUri.fsPath);
+    const content = formatCellsForChat([cell]) + `\n\nReference: [${filename}](${notebookUri.toString()})`;
+
+    // Open chat with IDE-appropriate command
+    await openChatWithContent(content);
+  });
+  context.subscriptions.push(disposable);
+
+  // 2. Chat with Section
+  disposable = commands.registerCommand('codebook-md.chatWithSection', async (cell: NotebookCell) => {
+    if (!cell) {
+      if (window.activeNotebookEditor && window.activeNotebookEditor.selection) {
+        const idx = window.activeNotebookEditor.selection.start;
+        cell = window.activeNotebookEditor.notebook.cellAt(idx);
+      }
+    }
+    if (!cell) {
+      window.showWarningMessage('No cell selected to identify section.');
+      return;
+    }
+
+    const sectionCells = getSectionCells(cell, cell.notebook);
+    if (sectionCells.length === 0) {
+      window.showInformationMessage('No cells found in this section.');
+      return;
+    }
+
+    const notebookUri = cell.notebook.uri;
+    const filename = path.basename(notebookUri.fsPath);
+    const content = formatCellsForChat(sectionCells) + `\n\nReference: [${filename}](${notebookUri.toString()})`;
+
+    // Open chat with IDE-appropriate command
+    await openChatWithContent(content);
+  });
+  context.subscriptions.push(disposable);
+
+  // 3. Chat with Notebook
+  disposable = commands.registerCommand('codebook-md.chatWithNotebook', async () => {
+    // Use the active notebook editor
+    let notebook;
+    if (window.activeNotebookEditor && window.activeNotebookEditor.notebook.notebookType === 'codebook-md') {
+      notebook = window.activeNotebookEditor.notebook;
+    }
+
+    if (!notebook) {
+      window.showWarningMessage('No active CodebookMD notebook found.');
+      return;
+    }
+
+    // Collect all cells
+    const allCells = [];
+    for (let i = 0; i < notebook.cellCount; i++) {
+      allCells.push(notebook.cellAt(i));
+    }
+
+    const notebookUri = notebook.uri;
+    const filename = path.basename(notebookUri.fsPath);
+    const content = formatCellsForChat(allCells) + `\n\nReference: [${filename}](${notebookUri.toString()})`;
+
+    // Open chat with IDE-appropriate command
+    await openChatWithContent(content);
+  });
+  context.subscriptions.push(disposable);
+
+  // DEBUG Command: List all Antigravity commands
+  disposable = commands.registerCommand('codebook-md.debugAntigravityCommands', async () => {
+    const allCommands = await commands.getCommands(true);
+    const antigravityCommands = allCommands.filter(cmd => cmd.toLowerCase().includes('antigravity') || cmd.toLowerCase().includes('chat'));
+    console.log('=== DEBUG: Found Antigravity/Chat Commands ===');
+    antigravityCommands.forEach(cmd => console.log(cmd));
+    console.log('==============================================');
+    window.showInformationMessage(`Found ${antigravityCommands.length} commands. Check Extension Host Output.`);
+  });
   context.subscriptions.push(disposable);
 
   // Register the chat participant

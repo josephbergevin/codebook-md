@@ -622,11 +622,49 @@
         "shortTitle": "Text",
         "category": "CodebookMD",
         "icon": "$(file-text)"
+      },
+      {
+        "command": "codebook-md.chatWithCell",
+        "title": "Start Chat with Cell",
+        "shortTitle": "Chat Cell",
+        "category": "CodebookMD",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "codebook-md.chatWithSection",
+        "title": "Start Chat with Section",
+        "shortTitle": "Chat Section",
+        "category": "CodebookMD",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "codebook-md.chatWithNotebook",
+        "title": "Start Chat with Notebook",
+        "shortTitle": "Chat Notebook",
+        "category": "CodebookMD",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "codebook-md.debugAntigravityCommands",
+        "title": "Debug Antigravity Commands",
+        "category": "CodebookMD"
       }
     ],
     "menus": {
       "view/title": [],
       "view/item/context": [],
+      "notebook/cell/title": [
+        {
+          "command": "codebook-md.chatWithCell",
+          "group": "chat@1",
+          "when": "notebookType == codebook-md"
+        },
+        {
+          "command": "codebook-md.chatWithSection",
+          "group": "chat@2",
+          "when": "notebookType == codebook-md"
+        }
+      ],
       "notebook/toolbar": [
         {
           "command": "codebook-md.openNotebookConfig",
@@ -635,6 +673,11 @@
         },
         {
           "command": "codebook-md.reopenWithTextEditor",
+          "when": "notebookType == codebook-md",
+          "group": "navigation"
+        },
+        {
+          "command": "codebook-md.chatWithNotebook",
           "when": "notebookType == codebook-md",
           "group": "navigation"
         }
