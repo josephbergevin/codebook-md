@@ -1488,23 +1488,33 @@ graph TD;
 
       <section id="env-variables">
         <h2>Environment Variables</h2>
-        <p>CodebookMD now supports environment variables from VS Code settings in shell scripts.</p>
+        <p>CodebookMD now applies VS Code integrated terminal environment variables to every executable code block so runs match your terminal setup.</p>
 
         <h4>Key Features</h4>
         <ul>
-          <li><span class="feature-highlight">VS Code Settings Integration:</span> Shell scripts executed in CodebookMD automatically have access to environment variables set in VS Code settings</li>
-          <li><span class="feature-highlight">Platform-Specific Support:</span> Variables defined in <code>terminal.integrated.env.osx</code>, <code>terminal.integrated.env.windows</code>, or <code>terminal.integrated.env.linux</code> are available to shell commands</li>
-          <li><span class="feature-highlight">Seamless Experience:</span> Scripts run with the same environment as the integrated terminal without additional configuration</li>
+          <li><span class="feature-highlight">All executable languages:</span> Shell, Go, JavaScript/TypeScript, Python, SQL, and HTTP cells inherit the VS Code terminal environment</li>
+          <li><span class="feature-highlight">VS Code Settings Integration:</span> Automatically reads values from <code>terminal.integrated.env.*</code> for the current platform</li>
+          <li><span class="feature-highlight">Workspace tokens:</span> Expands <code>${workspaceFolder}</code>, <code>${workspaceFolderBasename}</code>, and <code>${pathSeparator}</code> inside environment values</li>
+          <li><span class="feature-highlight">Predictable precedence:</span> VS Code settings override existing process variables when the same key is present</li>
         </ul>
 
         <h4>How It Works</h4>
-        <p>When you execute a shell code block in a markdown file, CodebookMD automatically:</p>
+        <p>When you execute a code block, CodebookMD automatically:</p>
         <ol>
           <li>Detects your current operating system (macOS, Windows, or Linux)</li>
           <li>Reads environment variables from the corresponding VS Code setting (<code>terminal.integrated.env.*</code>)</li>
-          <li>Merges these variables with the system environment variables</li>
-          <li>Makes all variables available to your executed shell commands</li>
+          <li>Expands workspace-aware tokens before merging</li>
+          <li>Merges these variables with the system environment variables (settings win on conflicts)</li>
+          <li>Makes all variables available to your executed command regardless of language</li>
         </ol>
+
+        <h4>Workspace-Aware Substitutions</h4>
+        <p>Use VS Code tokens to avoid hardcoding paths:</p>
+        <ul>
+          <li><code>${workspaceFolder}</code>: Full path to the first workspace folder</li>
+          <li><code>${workspaceFolderBasename}</code>: Name of the workspace folder</li>
+          <li><code>${pathSeparator}</code>: Platform-specific path separator (<code>/</code> on macOS/Linux, <code>\\</code> on Windows)</li>
+        </ul>
 
         <h4>Setting Up Environment Variables</h4>
         <p>Configure environment variables in your VS Code settings.json file:</p>
@@ -1512,24 +1522,33 @@ graph TD;
   "terminal.integrated.env.osx": {
     "API_KEY": "your-api-key",
     "DATABASE_URL": "postgres://user:password@localhost:5432/mydb",
-    "PATH": "${env:PATH}:/custom/path"
+    "PATH": "${env:PATH}${pathSeparator}custom${pathSeparator}bin",
+    "PROJECT_ROOT": "${workspaceFolder}",
+    "PROJECT_NAME": "${workspaceFolderBasename}"
   }
 }</code></pre>
 
-        <p>These environment variables will be automatically available in your shell code blocks:</p>
+        <p>These environment variables are available in every executable code block:</p>
         <pre><code>```bash
-# This will have access to API_KEY, DATABASE_URL, and the extended PATH
-echo $API_KEY
-echo $DATABASE_URL
-echo $PATH
-```</code></pre>
+      # Shell / Bash
+      echo $API_KEY
+      echo $PROJECT_ROOT
+      ```
+
+      ```python
+      # Python
+      import os
+      print(os.getenv("PROJECT_NAME"))
+      print(os.getenv("PATH"))
+      ```
+      </code></pre>
 
         <h4>Benefits</h4>
         <ul>
-          <li><span class="feature-highlight">Consistent Environment:</span> The same environment variables available in your terminal are now available in code blocks</li>
+          <li><span class="feature-highlight">Consistent Environment:</span> The same environment variables available in your terminal are now available in all executable code blocks</li>
           <li><span class="feature-highlight">Secure Credential Management:</span> Store sensitive credentials in VS Code settings instead of hardcoding them in markdown files</li>
           <li><span class="feature-highlight">Simplified Configuration:</span> Configure once in VS Code settings, use everywhere</li>
-          <li><span class="feature-highlight">Platform Adaptability:</span> Scripts automatically use the correct environment variables for the current operating system</li>
+          <li><span class="feature-highlight">Platform Adaptability:</span> Commands automatically use the correct environment variables for the current operating system</li>
         </ul>
         <p>Note: Environment variables are merged at execution time, with VS Code settings taking precedence over system environment variables when there are conflicts.</p>
       </section>
