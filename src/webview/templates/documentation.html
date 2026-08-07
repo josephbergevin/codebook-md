@@ -693,7 +693,6 @@ echo "Hello from Bash!"
         <p>Configure Bash/Shell behavior in VS Code settings:</p>
         <pre><code>{
   "codebook-md.bash": {
-    "execSingleLineAsCommand": false,
     "output": {
       "showExecutableCodeInOutput": true,
       "showTimestamp": true
@@ -711,9 +710,10 @@ echo "Hello from Bash!"
             
         <h5>Bash/Shell-specific Options</h5>
         <ul>
-          <li><strong>Execution Mode:</strong> Control how code blocks are executed
+          <li><strong>Execution Mode:</strong> Cell contents are run verbatim as a Bash script
             <ul>
-              <li>Option: <strong>execSingleLineAsCommand</strong> - Run single-line code blocks as commands instead of scripts</li>
+              <li>Full shell syntax is supported - pipes, redirects, globs, quoting, command substitution, and multi-line constructs such as <code>if</code>, <code>for</code>, and <code>while</code></li>
+              <li>Scripts run with <code>set -e</code>, so the cell stops at the first failing command</li>
             </ul>
           </li>
           <li><strong>Environment Variables:</strong> Automatic integration with VS Code environment variables
@@ -915,8 +915,7 @@ Authorization: Bearer {{YOUR_TOKEN}}
     "config": {
       "output": {
         "showTimestamp": false
-      },
-      "execSingleLineAsCommand": true
+      }
     }
   }
 }</code></pre>
@@ -973,7 +972,6 @@ Authorization: Bearer {{YOUR_TOKEN}}
         
         <h4>Bash/Shell Configuration</h4>
         <pre><code>"config": {
-  "execSingleLineAsCommand": true,
   "output": {
     "replaceOutputCell": true
   }

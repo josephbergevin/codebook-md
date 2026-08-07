@@ -27,8 +27,7 @@ export interface ExecutableCell {
 | File | Runtime | Notes |
 | --- | --- | --- |
 | `go.ts` | `go run` / `go test` | Largest; `execType` selects `execTypeRunConfig` or `execTypeTestConfig` (build tag `playground`) |
-| `shell.ts` | `bash -c` | Collapses parsed commands into one `set -e` script; no output markers |
-| `bash.ts` | `bash` | `execSingleLineAsCommand` runs one-line cells as a bare command |
+| `shell.ts` | `bash -c` | Handles all shell/bash/zsh/sh cells; runs the cell body verbatim under `set -e`; no output markers |
 | `javascript.ts` | `node` | Smallest complete implementation — start here |
 | `typescript.ts` | `ts-node` | Mirrors `javascript.ts` |
 | `python.ts` | `pythonCmd` (default `python3`) | |
@@ -83,13 +82,21 @@ that is the section declared in `package.json` and documented to users, so
 
 `src/test/languages/shell.test.ts` pins this down.
 
-## Known issues
+## Never re-tokenize a shell cell
 
-- **`bash.ts` is dead code.** `NewExecutableCell()` has no case that constructs
-  it — every shell/bash cell goes to `shell.ts`. It is the only implementation
-  of `execSingleLineAsCommand`.
-- **`execSingleLineAsCommand` has no effect.** It is declared in
-  `package.json`, documented, and offered in the cell config modal via
-  `getLanguageConfigOptions()`, but `shell.ts` never reads it. Making it work
-  means porting the single-line branch from `bash.ts` into `shell.ts`, which
-  changes how one-line cells execute.
+`shell.ts` passes the cell body to `bash -c` **verbatim**. Do not parse it into
+commands and arguments and rebuild the string — that is what
+`codebook.parseCommands()` plus per-argument quoting used to do, and it turned
+every shell operator into a literal argument:
+
+```
+user writes:  echo $PATH | tr ':' '\n'
+was executed: echo "$PATH" "|" "tr" "':'" "'\n'"     # prints the pipeline
+```
+
+It broke pipes, redirects, `&&`, `;`, globs, command substitution, single
+quotes, subshells, and every multi-line construct. bash already parses shell
+syntax correctly; let it. `parseCommands()` is still called, but only to count
+commands for `allowKeepOutput()`.
+
+`src/test/languages/shell.test.ts` covers each of these forms.
