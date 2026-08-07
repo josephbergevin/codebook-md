@@ -4,6 +4,22 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Shell/Bash cells now run full shell syntax:**
+  - Cell contents are passed to `bash -c` verbatim instead of being tokenized and re-quoted
+  - Fixes pipes (`echo $PATH | tr ':' '\n'`), redirects, `&&`, `||`, `;`, globs, command substitution, single quotes, subshells, and multi-line constructs such as `if`/`for`/`while`, all of which were previously executed as literal quoted arguments
+- **Shell/Bash output settings are now honored:**
+  - `shell.ts` read the undeclared `codebook-md.shell.output` section, so every documented `codebook-md.bash.output.*` setting was silently ignored; it now reads `codebook-md.bash.output`
+
+### Removed
+
+- **`codebook-md.bash.execSingleLineAsCommand` setting:**
+  - The option had no effect - its only implementation lived in `src/languages/bash.ts`, which was unreachable dead code and has been removed
+  - Bypassing bash for single-line cells would reintroduce the quoting bug fixed above, so the option will not return. No action is needed; the setting can be deleted from `settings.json`
+
 ## [0.21.2] - 2025-12-16
 
 ### Changed

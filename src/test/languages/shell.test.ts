@@ -42,14 +42,7 @@ jest.mock('../../codebook', () => {
 jest.mock('vscode', () => {
   const mockConfig = (configName: string) => {
     if (configName === 'codebook-md.bash') {
-      return {
-        get: (key: string) => {
-          switch (key) {
-            case 'execSingleLineAsCommand': return false;
-            default: return undefined;
-          }
-        }
-      };
+      return { get: jest.fn() };
     } else if (configName === 'codebook-md.bash.output') {
       return {
         get: (key: string) => {
@@ -133,6 +126,65 @@ describe('Shell Language Support', () => {
 
       expect(sections).not.toContain('codebook-md.shell');
       expect(sections).not.toContain('codebook-md.shell.output');
+    });
+  });
+
+  describe('generated script', () => {
+    // Regression: shell.ts used to tokenize each line via parseCommands and
+    // rebuild it as `cmd "arg1" "arg2" ...`. That turned shell operators into
+    // literal quoted arguments, so `echo $PATH | tr ':' '\n'` ran as
+    // `echo "$PATH" "|" "tr" "':'" "'\n'"` and printed the pipeline instead of
+    // executing it. The cell body is now passed to `bash -c` verbatim.
+    it('preserves a pipeline verbatim', () => {
+      const script = "echo $PATH | tr ':' '\\n'";
+      const cell = new Cell(createMockNotebookCell(script));
+
+      expect(cell.executableCode).toContain(script);
+      expect(cell.executableCode).not.toContain('"|"');
+    });
+
+    it('does not wrap arguments in quotes', () => {
+      const cell = new Cell(createMockNotebookCell('echo $PATH'));
+
+      expect(cell.executableCode).toContain('echo $PATH');
+      expect(cell.executableCode).not.toContain('"$PATH"');
+    });
+
+    it.each([
+      ['redirect', 'ls > out.txt'],
+      ['append redirect', 'echo hi >> log.txt'],
+      ['logical and', 'mkdir -p dir && cd dir'],
+      ['semicolon', 'cd /tmp; pwd'],
+      ['glob', 'ls *.md'],
+      ['command substitution', 'echo $(date +%s)'],
+      ['single quotes', "grep -o 'a:b' file"],
+      ['subshell', '(cd /tmp && pwd)'],
+    ])('preserves %s syntax', (_label: string, script: string) => {
+      const cell = new Cell(createMockNotebookCell(script));
+
+      expect(cell.executableCode).toContain(script);
+    });
+
+    it('preserves multi-line constructs', () => {
+      const script = 'for f in *.md; do\n  echo "$f"\ndone';
+      const cell = new Cell(createMockNotebookCell(script));
+
+      expect(cell.executableCode).toContain(script);
+    });
+
+    it('keeps the shebang and set -e prologue', () => {
+      const cell = new Cell(createMockNotebookCell('echo hello'));
+
+      expect(cell.executableCode.startsWith('#!/bin/bash\nset -e\n')).toBe(true);
+    });
+
+    it('passes the script to bash -c', () => {
+      const cell = new Cell(createMockNotebookCell('echo hello'));
+      const executable = cell.executables()[0] as unknown as { command: string; args: string[]; };
+
+      expect(executable.command).toBe('bash');
+      expect(executable.args[0]).toBe('-c');
+      expect(executable.args[1]).toBe(cell.executableCode);
     });
   });
 

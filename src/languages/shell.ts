@@ -25,17 +25,12 @@ export class Cell implements codebook.ExecutableCell {
       this.config.execPath = this.config.contentConfig.execPath;
     }
 
-    this.executableCode = "";
+    // commandCount is only used to decide whether prior output may be kept
+    this.commandCount = codebook.parseCommands(this.innerScope, this.config.execPath).length;
 
-    // Create a shell script that will run all commands sequentially
-    this.executableCode = "#!/bin/bash\nset -e\n\n";
-
-    // Get all commands from the inner scope
-    const cmds = codebook.parseCommands(this.innerScope, this.config.execPath);
-
-    this.commandCount = cmds.length;
     // no commands found: notify a warning and return
     if (this.commandCount === 0) {
+      this.executableCode = "";
       this.mainExecutable = new codebook.Command("echo", ["No commands found in cell"], ".");
       return;
     }
@@ -43,13 +38,12 @@ export class Cell implements codebook.ExecutableCell {
     // Ensure the execution directory exists
     io.mkdirIfNotExistsSafe(this.config.execPath);
 
-    // Create the full script content with all commands
-    // Modify to ensure each command's output is captured and displayed
-    cmds.forEach(cmd => {
-      // Execute each command and echo its output directly
-      // This ensures the output is captured in stdout
-      this.executableCode += `${cmd.command} ${cmd.args.map(arg => `"${arg}"`).join(' ')}\n`;
-    });
+    // Build the script from the cell contents verbatim. The script is handed to
+    // `bash -c`, so bash does its own parsing - pipes, redirects, globs, quoting,
+    // command substitution and multi-line constructs all behave as written.
+    // Tokenizing the cell and re-quoting each argument here would turn shell
+    // operators such as `|` into literal arguments.
+    this.executableCode = `#!/bin/bash\nset -e\n\n${this.innerScope.trim()}\n`;
 
     // Set the main executable to run our script
     this.mainExecutable = new codebook.Command("bash", ["-c", this.executableCode], this.config.execPath);

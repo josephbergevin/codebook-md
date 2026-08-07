@@ -113,13 +113,9 @@ export function getLanguageConfigOptions(languageId: string): ConfigOptions {
     case 'bash':
     case 'shellscript':
     case 'shell':
-      return {
-        execSingleLineAsCommand: {
-          type: 'boolean',
-          default: false,
-          description: 'Execute single-line bash code-blocks as commands.'
-        }
-      };
+      // Shell cells are executed verbatim via `bash -c`; there are no
+      // language-specific options beyond the shared output config.
+      return {};
     case 'python':
       return {
         pythonCmd: {

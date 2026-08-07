@@ -204,11 +204,6 @@
         "codebook-md.bash": {
           "type": "object",
           "properties": {
-            "execSingleLineAsCommand": {
-              "type": "boolean",
-              "default": false,
-              "description": "If true, bash code-blocks that are a single line will be executed as a command - instead of a script."
-            },
             "output": {
               "type": "object",
               "properties": {

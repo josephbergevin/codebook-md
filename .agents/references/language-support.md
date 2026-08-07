@@ -166,17 +166,33 @@ meant every documented `codebook-md.bash.output.*` setting was silently ignored
 for shell cells; `src/test/languages/shell.test.ts` guards against a
 regression.
 
-## Known issues
+## Shell cells run verbatim — never re-tokenize them
 
-`src/languages/bash.ts` is **dead code** — `NewExecutableCell()` contains no
-case that constructs it, so every shell/bash cell is handled by `shell.ts`.
+`shell.ts` builds its script by embedding the cell body **unchanged** and
+handing it to `bash -c`:
 
-As a consequence, `execSingleLineAsCommand` does nothing. It is declared in
-`package.json`, documented, and exposed in the cell config modal through
-`getLanguageConfigOptions()` in `src/cellConfig.ts`, but the only code that
-reads it lives in the unreachable `bash.ts`. Making it work means porting that
-single-line branch into `shell.ts` — a behavior change for one-line cells, so
-it should be a deliberate decision rather than a drive-by fix.
+```ts
+this.executableCode = `#!/bin/bash\nset -e\n\n${this.innerScope.trim()}\n`;
+```
+
+It previously tokenized each line with `codebook.parseCommands()` and rebuilt
+it as `cmd "arg1" "arg2" …`, which turned shell operators into literal
+arguments:
+
+```
+user writes:  echo $PATH | tr ':' '\n'
+was executed: echo "$PATH" "|" "tr" "':'" "'\n'"
+```
+
+That printed the pipeline instead of running it, and broke redirects, `&&`,
+`;`, globs, command substitution, single quotes, subshells, and multi-line
+constructs such as `if` / `for` / `while`. bash is the correct parser for shell
+syntax — do not put another one in front of it. `parseCommands()` is still
+called, but only to count commands for `allowKeepOutput()`.
+
+This is why there is no `execSingleLineAsCommand` option: bypassing bash for
+single-line cells would reintroduce exactly this class of bug. The setting and
+the unreachable `bash.ts` module that implemented it were removed.
 
 ## Related documents
 
