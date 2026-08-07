@@ -182,7 +182,7 @@ describe('Environment Variable Functions', () => {
     }
 
     // Mock workspace folders
-    (workspace as any).workspaceFolders = [{
+    (workspace as unknown as { workspaceFolders: unknown[]; }).workspaceFolders = [{
       uri: { fsPath: '/mock/workspace/root' },
       name: 'root',
       index: 0
@@ -215,7 +215,7 @@ describe('Environment Variable Functions', () => {
     }
 
     // Mock workspace folders
-    (workspace as any).workspaceFolders = [{
+    (workspace as unknown as { workspaceFolders: unknown[]; }).workspaceFolders = [{
       uri: { fsPath: '/mock/workspace/root' },
       name: 'root',
       index: 0

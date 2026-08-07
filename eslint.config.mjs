@@ -3,6 +3,14 @@ import pluginJs from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default [
+  {
+    // Generated cell-execution scratch files - written at runtime into the
+    // configured execPath, not source. Matches the .gitignore entry.
+    ignores: [
+      "**/codebook_md_exec*",
+      "**/apiplayground/**"
+    ]
+  },
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
   {

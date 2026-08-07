@@ -13,7 +13,8 @@
 - JSDoc on public functions and classes, including parameter descriptions and
   return types.
 
-Lint with `npm run lint` (`eslint src/**/*.ts`); `npm run lint-fix` applies
+Lint with `npm run lint` (`eslint src` — pass the directory, not a `**` glob,
+which `sh` does not expand recursively); `npm run lint-fix` applies
 autofixes. Config lives in `eslint.config.mjs` (flat config) with
 `typescript-eslint`.
 
