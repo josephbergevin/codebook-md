@@ -3,6 +3,11 @@
 out/**
 node_modules/**
 src/**
+.agents/**
+.claude/**
+.github/**
+AGENTS.md
+CLAUDE.md
 .gitignore
 .yarnrc
 webpack.config.js
