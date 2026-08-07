@@ -2,7 +2,7 @@ import { NotebookCell, workspace, Uri } from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { writeDirAndFileSyncSafe } from './io';
-import { ExecutionHistoryEntry, ExecutionHistory, ExecutionStatus } from './types/executionHistory';
+import { ExecutionHistoryEntry, ExecutionHistory } from './types/executionHistory';
 
 interface CellConfig {
   output?: Record<string, boolean | string>;

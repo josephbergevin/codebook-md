@@ -45,7 +45,7 @@ every push and PR to `main`.
 
 ```bash
 npm run compile   # webpack build
-npm run lint      # eslint src/**/*.ts
+npm run lint      # eslint src (all of src/)
 npm test          # jest (all tests must pass)
 npm run watch     # webpack --watch, for development
 ```

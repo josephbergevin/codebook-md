@@ -9,7 +9,7 @@ where the `get_errors` tool can read it.
 | Task | Script | Purpose |
 | --- | --- | --- |
 | `npm run compile` | `webpack` | Build the extension bundle |
-| `npm run lint` | `eslint src/**/*.ts` | Lint |
+| `npm run lint` | `eslint src` | Lint |
 | `npm test` | `jest` | Unit tests — all must pass |
 | `npm install` | | Install dependencies |
 | `npm: watch` | `webpack --watch` | Development watch build |
