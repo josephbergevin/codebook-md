@@ -154,14 +154,29 @@ case languagePython.nameId: {
 Python constructs first because the command to check is configurable; the
 others check before constructing.
 
-## Known inconsistency
+## Shell and bash share the `codebook-md.bash` section
 
-`src/languages/shell.ts` reads `workspace.getConfiguration('codebook-md.shell')`
-and `'codebook-md.shell.output'`, but `package.json` only declares
-`codebook-md.bash`. Shell cells therefore fall back to defaults rather than
-honoring the declared settings. Worth reconciling if you are already working in
-this area — either add a `codebook-md.shell` block to `package.json` or point
-`shell.ts` at `codebook-md.bash`.
+Shell, bash, zsh, and sh fences all normalize to `languageShellScript` and are
+executed by `shell.ts`. Their settings are declared under **`codebook-md.bash`**
+in `package.json` and documented under that name, so `shell.ts` reads
+`codebook-md.bash` and `codebook-md.bash.output`.
+
+There is no `codebook-md.shell` section. `shell.ts` used to read one, which
+meant every documented `codebook-md.bash.output.*` setting was silently ignored
+for shell cells; `src/test/languages/shell.test.ts` guards against a
+regression.
+
+## Known issues
+
+`src/languages/bash.ts` is **dead code** — `NewExecutableCell()` contains no
+case that constructs it, so every shell/bash cell is handled by `shell.ts`.
+
+As a consequence, `execSingleLineAsCommand` does nothing. It is declared in
+`package.json`, documented, and exposed in the cell config modal through
+`getLanguageConfigOptions()` in `src/cellConfig.ts`, but the only code that
+reads it lives in the unreachable `bash.ts`. Making it work means porting that
+single-line branch into `shell.ts` — a behavior change for one-line cells, so
+it should be a deliberate decision rather than a drive-by fix.
 
 ## Related documents
 

@@ -15,8 +15,9 @@ export class Cell implements codebook.ExecutableCell {
   config: Config;
 
   constructor(notebookCell: NotebookCell | undefined) {
-    // get the configuration for the shell language
-    this.config = new Config(workspace.getConfiguration('codebook-md.shell'), notebookCell);
+    // get the configuration for the shell language - shell/bash cells are both
+    // handled here, and their settings are declared under 'codebook-md.bash'
+    this.config = new Config(workspace.getConfiguration('codebook-md.bash'), notebookCell);
     this.innerScope = this.config.contentConfig.innerScope;
 
     // Check if cell has a specific execPath configured
@@ -101,8 +102,8 @@ export class Config {
   contentConfig: codebook.CodeBlockConfig;
   execPath: string;
 
-  constructor(shellConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell | undefined) {
-    this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.shell.output'), "#");
+  constructor(bashConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell | undefined) {
+    this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.bash.output'), "#");
 
     // Use config.getExecPath() which properly handles execution path resolution
     // This respects the codebook-md.execPath setting and rootPath configuration
