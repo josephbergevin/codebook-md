@@ -73,8 +73,23 @@ A new language is not done until all six are true:
 6. Test in `src/test/languages/<lang>.test.ts`; `README.md` and
    `documentation.html` updated
 
-## Known inconsistency
+## Shell and bash share one config section
 
-`shell.ts` reads `codebook-md.shell` / `codebook-md.shell.output`, but
-`package.json` declares only `codebook-md.bash`. Shell cells therefore fall back
-to defaults. Worth reconciling if you are working here anyway.
+Shell, bash, zsh, and sh fences all resolve to `languageShellScript` and are
+handled by `shell.ts`. Their settings live under **`codebook-md.bash`** —
+that is the section declared in `package.json` and documented to users, so
+`shell.ts` reads `codebook-md.bash` and `codebook-md.bash.output`. There is no
+`codebook-md.shell` section; do not introduce one without also declaring it.
+
+`src/test/languages/shell.test.ts` pins this down.
+
+## Known issues
+
+- **`bash.ts` is dead code.** `NewExecutableCell()` has no case that constructs
+  it — every shell/bash cell goes to `shell.ts`. It is the only implementation
+  of `execSingleLineAsCommand`.
+- **`execSingleLineAsCommand` has no effect.** It is declared in
+  `package.json`, documented, and offered in the cell config modal via
+  `getLanguageConfigOptions()`, but `shell.ts` never reads it. Making it work
+  means porting the single-line branch from `bash.ts` into `shell.ts`, which
+  changes how one-line cells execute.
