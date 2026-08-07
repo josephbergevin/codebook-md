@@ -7,3 +7,4 @@ apiplayground/
 tooling/
 codebook_md_exec*
 .DS_Store
+.claude/settings.local.json
