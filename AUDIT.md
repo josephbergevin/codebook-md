@@ -1,5 +1,15 @@
 # CodebookMD — Execution & Configuration Audit
 
+> **Status: all 22 findings resolved in 0.21.5.**
+> Fixed across four commits on `fix/execution-config-audit`; see
+> [`CHANGELOG.md`](CHANGELOG.md). This document is kept as the record of what
+> was found and why each fix was made the way it was.
+>
+> One finding was added during implementation: the new
+> "language modules only read declared settings" test caught
+> `codebook-md.go.excludeOutputPrefixes` being read but never declared - the
+> same class as [C-6](#c-6). It is now declared.
+
 **Date:** 2026-08-08
 **Version audited:** 0.21.4 (`b45b124`)
 **Scope:** Cell execution for all supported languages, the settings surface
@@ -7,7 +17,10 @@
 (`[>]`) configuration commands.
 
 **Baseline at time of audit:** `npm test` → 158 passed / 13 suites.
-`npm run lint` → clean. No source changes were made.
+`npm run lint` → clean.
+
+**After the fixes:** `npm test` → 217 passed / 17 suites. `npm run lint` and
+`npm run compile` → clean.
 
 Each finding below is written to be picked up independently: symptom,
 evidence, recommended fix, and how to verify it.
@@ -16,40 +29,40 @@ evidence, recommended fix, and how to verify it.
 
 ## Summary
 
-| # | Issue | Severity | Verified |
-| --- | --- | --- | --- |
-| **A. In-cell configuration** | | | |
-| [A-1](#a-1) | Modal suggests output commands the parser silently discards | Critical | ✅ |
-| [A-2](#a-2) | `.execPath("…")` parses to a literal string and creates a junk directory | Critical | ✅ |
-| [A-3](#a-3) | `.output.timestampTimezone(…)` is not implemented | High | ✅ |
-| **B. Execution correctness** | | | |
-| [B-1](#b-1) | SQL cells cannot run — `execCmd` is empty and undeclared | Critical | ✅ |
-| [B-2](#b-2) | SQL re-runs statement 1 alongside every later statement | High | ✅ |
-| [B-3](#b-3) | HTTP request bodies are never sent | High | ✅ |
-| [B-4](#b-4) | HTTP body path throws `TypeError` once B-3 is fixed | High | 📖 |
-| **C. Settings that are read but ignored** | | | |
-| [C-1](#c-1) | `output.replaceOutputCell: false` is impossible to set | High | ✅ |
-| [C-2](#c-2) | Per-language `output.*` cannot override a global `true` with `false` | High | ✅ |
-| [C-3](#c-3) | `http.verbose: false` is ignored — curl always gets `-v` | Medium | ✅ |
-| [C-4](#c-4) | `python.pythonCmd` is a dead setting (code reads `execCmd`) | Medium | 📖 |
-| [C-5](#c-5) | JavaScript output config reads a typo'd section | Medium | 📖 |
-| [C-6](#c-6) | `execFilename` is read but never declared (python/js/ts) | Low | 📖 |
-| [C-7](#c-7) | Modal's language-specific cell config is write-only | High | 📖 |
-| **D. Settings schema & UI** | | | |
-| [D-1](#d-1) | Language settings are nested objects — invisible in the Settings UI | High | 📖 |
-| [D-2](#d-2) | `timestampTimezone` declared `type: string` with `default: true` | Low | ✅ |
-| **E. Documentation** | | | |
-| [E-1](#e-1) | Go docs list setting names that don't exist | Medium | ✅ |
-| [E-2](#e-2) | Docs say "gear icon in the toolbar" — it's a cell status bar item | Low | ✅ |
-| [E-3](#e-3) | `execPath` default differs between code and `package.json` | Low | ✅ |
-| **F. Command registration** | | | |
-| [F-1](#f-1) | 16 commands registered but not declared | Medium | ✅ |
-| [F-2](#f-2) | 6 commands declared but never registered | Medium | ✅ |
+| # | Issue | Severity | Verified | Fixed |
+| --- | --- | --- | --- | --- |
+| **A. In-cell configuration** | | | | |
+| [A-1](#a-1) | Modal suggests output commands the parser silently discards | Critical | ✅ | ✔ |
+| [A-2](#a-2) | `.execPath("…")` parses to a literal string and creates a junk directory | Critical | ✅ | ✔ |
+| [A-3](#a-3) | `.output.timestampTimezone(…)` is not implemented | High | ✅ | ✔ |
+| **B. Execution correctness** | | | | |
+| [B-1](#b-1) | SQL cells cannot run — `execCmd` is empty and undeclared | Critical | ✅ | ✔ |
+| [B-2](#b-2) | SQL re-runs statement 1 alongside every later statement | High | ✅ | ✔ |
+| [B-3](#b-3) | HTTP request bodies are never sent | High | ✅ | ✔ |
+| [B-4](#b-4) | HTTP body path throws `TypeError` once B-3 is fixed | High | 📖 | ✔ |
+| **C. Settings that are read but ignored** | | | | |
+| [C-1](#c-1) | `output.replaceOutputCell: false` is impossible to set | High | ✅ | ✔ |
+| [C-2](#c-2) | Per-language `output.*` cannot override a global `true` with `false` | High | ✅ | ✔ |
+| [C-3](#c-3) | `http.verbose: false` is ignored — curl always gets `-v` | Medium | ✅ | ✔ |
+| [C-4](#c-4) | `python.pythonCmd` is a dead setting (code reads `execCmd`) | Medium | 📖 | ✔ |
+| [C-5](#c-5) | JavaScript output config reads a typo'd section | Medium | 📖 | ✔ |
+| [C-6](#c-6) | `execFilename` is read but never declared (python/js/ts) | Low | 📖 | ✔ |
+| [C-7](#c-7) | Modal's language-specific cell config is write-only | High | 📖 | ✔ |
+| **D. Settings schema & UI** | | | | |
+| [D-1](#d-1) | Language settings are nested objects — invisible in the Settings UI | High | 📖 | ✔ |
+| [D-2](#d-2) | `timestampTimezone` declared `type: string` with `default: true` | Low | ✅ | ✔ |
+| **E. Documentation** | | | | |
+| [E-1](#e-1) | Go docs list setting names that don't exist | Medium | ✅ | ✔ |
+| [E-2](#e-2) | Docs say "gear icon in the toolbar" — it's a cell status bar item | Low | ✅ | ✔ |
+| [E-3](#e-3) | `execPath` default differs between code and `package.json` | Low | ✅ | ✔ |
+| **F. Command registration** | | | | |
+| [F-1](#f-1) | 16 commands registered but not declared | Medium | ✅ | ✔ |
+| [F-2](#f-2) | 6 commands declared but never registered | Medium | ✅ | ✔ |
 
 ✅ = reproduced by running the code · 📖 = established by reading the code
 
-**What works today:** Go (run + test modes, including the inline
-`// [>].execPath:` form), shell/bash (the verbatim `bash -c` path is solid),
+**What was working before the fixes:** Go (run + test modes, including the
+inline `// [>].execPath:` form), shell/bash (the verbatim `bash -c` path),
 JavaScript, Python, HTTP GET requests, output markers, timestamps, execution
 history, and the `.output.*` inline command form.
 
@@ -57,8 +70,8 @@ history, and the `.output.*` inline command form.
 
 ## A. In-cell configuration
 
-This is the affordance meant to spare users the Settings UI. It is currently
-broken end to end: the UI emits one syntax, the parser accepts another.
+This is the affordance meant to spare users the Settings UI. It was broken end
+to end: the UI emitted one syntax, the parser accepted another.
 
 <a id="a-1"></a>
 ### A-1 · Modal suggests output commands the parser silently discards

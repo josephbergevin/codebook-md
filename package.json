@@ -38,7 +38,7 @@
     "preview",
     "rendering"
   ],
-  "version": "0.21.4",
+  "version": "0.21.5",
   "categories": [
     "Notebooks",
     "Education",
@@ -77,368 +77,253 @@
           "description": "Prefix for identifying permalinks. When matched in a markdown, the permalink will be converted to a link to the same file/lines in VS Code.",
           "type": "string"
         },
-        "codebook-md.output": {
-          "type": "object",
-          "properties": {
-            "showExecutableCodeInOutput": {
-              "type": "boolean",
-              "default": true,
-              "description": "Show the executable code at the top of the output (default: false)."
-            },
-            "replaceOutputCell": {
-              "type": "boolean",
-              "default": true,
-              "description": "Prepend the executable code to the output (default: true)."
-            },
-            "showTimestamp": {
-              "type": "boolean",
-              "default": true,
-              "description": "Show the timestamp at the top of the output (default: true)."
-            },
-            "timestampTimezone": {
-              "type": "string",
-              "default": true,
-              "description": "Timezone to use for the timestamp."
-            }
-          }
-        },
         "codebook-md.frontMatter.showInNotebook": {
           "type": "boolean",
           "description": "Show YAML Front Matter as the first cell in notebooks",
           "scope": "window"
         },
-        "codebook-md.go": {
+        "codebook-md.go.execType": {
+          "type": "string",
+          "enum": [
+            "run",
+            "test"
+          ],
+          "default": "run",
+          "description": "Execution type for Go code: 'run' uses execTypeRunConfig, 'test' uses execTypeTestConfig."
+        },
+        "codebook-md.go.execTypeRunConfig": {
           "type": "object",
+          "default": {
+            "execPath": ".",
+            "filename": "main.go"
+          },
           "properties": {
-            "execType": {
+            "execPath": {
               "type": "string",
-              "enum": [
-                "run",
-                "test"
-              ],
-              "default": "run",
-              "description": "Execution type for Go code: 'run' uses execTypeRunConfig, 'test' uses execTypeTestConfig."
+              "default": ".",
+              "description": "Execution path for 'run' execution type."
             },
-            "execTypeRunConfig": {
-              "type": "object",
-              "default": {
-                "execPath": ".",
-                "filename": "main.go"
-              },
-              "properties": {
-                "execPath": {
-                  "type": "string",
-                  "default": ".",
-                  "description": "Execution path for 'run' execution type."
-                },
-                "filename": {
-                  "type": "string",
-                  "default": "main.go",
-                  "description": "Filename to use for 'run' execution type."
-                }
-              },
-              "description": "Configuration for 'run' execution type."
-            },
-            "execTypeTestConfig": {
-              "type": "object",
-              "default": {
-                "execPath": ".",
-                "filename": "codebook_md_exec_test.go",
-                "buildTag": "playground"
-              },
-              "properties": {
-                "execPath": {
-                  "type": "string",
-                  "default": ".",
-                  "description": "Execution path for 'test' execution type."
-                },
-                "filename": {
-                  "type": "string",
-                  "default": "codebook_md_exec_test.go",
-                  "description": "Filename to use for 'test' execution type."
-                },
-                "buildTag": {
-                  "type": "string",
-                  "default": "playground",
-                  "description": "Build tag to use for 'test' execution type. This tag is added to the top of the test file to help ensure it doesn't run in normal test runs."
-                }
-              },
-              "description": "Configuration for 'test' execution type."
-            },
-            "goimportsCmd": {
+            "filename": {
               "type": "string",
-              "default": "gopls imports",
-              "enum": [
-                "gopls imports",
-                "goimports"
-              ],
-              "description": "'goimports' requires goimports to be installed. If null, 'gopls imports' will be used."
-            },
-            "output": {
-              "type": "object",
-              "properties": {
-                "showExecutableCodeInOutput": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the executable code at the top of the output (default: false)."
-                },
-                "replaceOutputCell": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Prepend the executable code to the output (default: true)."
-                },
-                "showTimestamp": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the timestamp at the top of the output (default: true)."
-                },
-                "timestampTimezone": {
-                  "type": "string",
-                  "default": true,
-                  "description": "Timezone to use for the timestamp."
-                }
-              }
+              "default": "main.go",
+              "description": "Filename to use for 'run' execution type."
             }
+          },
+          "description": "Configuration for 'run' execution type."
+        },
+        "codebook-md.go.execTypeTestConfig": {
+          "type": "object",
+          "default": {
+            "execPath": ".",
+            "filename": "codebook_md_exec_test.go",
+            "buildTag": "playground"
+          },
+          "properties": {
+            "execPath": {
+              "type": "string",
+              "default": ".",
+              "description": "Execution path for 'test' execution type."
+            },
+            "filename": {
+              "type": "string",
+              "default": "codebook_md_exec_test.go",
+              "description": "Filename to use for 'test' execution type."
+            },
+            "buildTag": {
+              "type": "string",
+              "default": "playground",
+              "description": "Build tag to use for 'test' execution type. This tag is added to the top of the test file to help ensure it doesn't run in normal test runs."
+            }
+          },
+          "description": "Configuration for 'test' execution type."
+        },
+        "codebook-md.go.goimportsCmd": {
+          "type": "string",
+          "default": "gopls imports",
+          "enum": [
+            "gopls imports",
+            "goimports"
+          ],
+          "description": "'goimports' requires goimports to be installed. If null, 'gopls imports' will be used."
+        },
+        "codebook-md.go.excludeOutputPrefixes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Output lines starting with any of these prefixes are hidden from Go cell output."
+        },
+        "codebook-md.go.output.showExecutableCodeInOutput": {
+          "type": "boolean",
+          "description": "go: Show the executable code at the top of the output. Overrides codebook-md.output.showExecutableCodeInOutput."
+        },
+        "codebook-md.go.output.replaceOutputCell": {
+          "type": "boolean",
+          "description": "go: Replace the output cell on each run. When false, output is appended. Overrides codebook-md.output.replaceOutputCell."
+        },
+        "codebook-md.go.output.showTimestamp": {
+          "type": "boolean",
+          "description": "go: Show the timestamp at the top of the output. Overrides codebook-md.output.showTimestamp."
+        },
+        "codebook-md.go.output.timestampTimezone": {
+          "type": "string",
+          "description": "go: Timezone to use for the timestamp (e.g. 'UTC', 'America/New_York'). Overrides codebook-md.output.timestampTimezone."
+        },
+        "codebook-md.bash.output.showExecutableCodeInOutput": {
+          "type": "boolean",
+          "description": "bash: Show the executable code at the top of the output. Overrides codebook-md.output.showExecutableCodeInOutput."
+        },
+        "codebook-md.bash.output.replaceOutputCell": {
+          "type": "boolean",
+          "description": "bash: Replace the output cell on each run. When false, output is appended. Overrides codebook-md.output.replaceOutputCell."
+        },
+        "codebook-md.bash.output.showTimestamp": {
+          "type": "boolean",
+          "description": "bash: Show the timestamp at the top of the output. Overrides codebook-md.output.showTimestamp."
+        },
+        "codebook-md.bash.output.timestampTimezone": {
+          "type": "string",
+          "description": "bash: Timezone to use for the timestamp (e.g. 'UTC', 'America/New_York'). Overrides codebook-md.output.timestampTimezone."
+        },
+        "codebook-md.javascript.output.showExecutableCodeInOutput": {
+          "type": "boolean",
+          "description": "javascript: Show the executable code at the top of the output. Overrides codebook-md.output.showExecutableCodeInOutput."
+        },
+        "codebook-md.javascript.output.replaceOutputCell": {
+          "type": "boolean",
+          "description": "javascript: Replace the output cell on each run. When false, output is appended. Overrides codebook-md.output.replaceOutputCell."
+        },
+        "codebook-md.javascript.output.showTimestamp": {
+          "type": "boolean",
+          "description": "javascript: Show the timestamp at the top of the output. Overrides codebook-md.output.showTimestamp."
+        },
+        "codebook-md.javascript.output.timestampTimezone": {
+          "type": "string",
+          "description": "javascript: Timezone to use for the timestamp (e.g. 'UTC', 'America/New_York'). Overrides codebook-md.output.timestampTimezone."
+        },
+        "codebook-md.javascript.execFilename": {
+          "type": "string",
+          "default": "codebook_md_exec.js",
+          "description": "Filename for the generated JavaScript execution script."
+        },
+        "codebook-md.typescript.output.showExecutableCodeInOutput": {
+          "type": "boolean",
+          "description": "typescript: Show the executable code at the top of the output. Overrides codebook-md.output.showExecutableCodeInOutput."
+        },
+        "codebook-md.typescript.output.replaceOutputCell": {
+          "type": "boolean",
+          "description": "typescript: Replace the output cell on each run. When false, output is appended. Overrides codebook-md.output.replaceOutputCell."
+        },
+        "codebook-md.typescript.output.showTimestamp": {
+          "type": "boolean",
+          "description": "typescript: Show the timestamp at the top of the output. Overrides codebook-md.output.showTimestamp."
+        },
+        "codebook-md.typescript.output.timestampTimezone": {
+          "type": "string",
+          "description": "typescript: Timezone to use for the timestamp (e.g. 'UTC', 'America/New_York'). Overrides codebook-md.output.timestampTimezone."
+        },
+        "codebook-md.typescript.execFilename": {
+          "type": "string",
+          "default": "codebook_md_exec.ts",
+          "description": "Filename for the generated TypeScript execution script."
+        },
+        "codebook-md.sql.execOptions": {
+          "type": "array",
+          "description": "Options to use for SQL connections.",
+          "default": [],
+          "items": {
+            "type": "string"
           }
         },
-        "codebook-md.bash": {
-          "type": "object",
-          "properties": {
-            "output": {
-              "type": "object",
-              "properties": {
-                "showExecutableCodeInOutput": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the executable code at the top of the output (default: false)."
-                },
-                "replaceOutputCell": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Prepend the executable code to the output (default: true)."
-                },
-                "showTimestamp": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the timestamp at the top of the output (default: true)."
-                },
-                "timestampTimezone": {
-                  "type": "string",
-                  "default": true,
-                  "description": "Timezone to use for the timestamp."
-                }
-              }
-            }
-          }
+        "codebook-md.sql.output.showExecutableCodeInOutput": {
+          "type": "boolean",
+          "description": "sql: Show the executable code at the top of the output. Overrides codebook-md.output.showExecutableCodeInOutput."
         },
-        "codebook-md.javascript": {
-          "type": "object",
-          "properties": {
-            "output": {
-              "type": "object",
-              "properties": {
-                "showExecutableCodeInOutput": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the executable code at the top of the output (default: false)."
-                },
-                "replaceOutputCell": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Prepend the executable code to the output (default: true)."
-                },
-                "showTimestamp": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the timestamp at the top of the output (default: true)."
-                },
-                "timestampTimezone": {
-                  "type": "string",
-                  "default": true,
-                  "description": "Timezone to use for the timestamp."
-                }
-              }
-            },
-            "execFilename": {
-              "type": "string",
-              "default": "codebook_md_exec.js",
-              "description": "Filename for the generated JavaScript execution script."
-            }
-          }
+        "codebook-md.sql.output.replaceOutputCell": {
+          "type": "boolean",
+          "description": "sql: Replace the output cell on each run. When false, output is appended. Overrides codebook-md.output.replaceOutputCell."
         },
-        "codebook-md.typescript": {
-          "type": "object",
-          "properties": {
-            "output": {
-              "type": "object",
-              "properties": {
-                "showExecutableCodeInOutput": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the executable code at the top of the output (default: false)."
-                },
-                "replaceOutputCell": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Prepend the executable code to the output (default: true)."
-                },
-                "showTimestamp": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the timestamp at the top of the output (default: true)."
-                },
-                "timestampTimezone": {
-                  "type": "string",
-                  "default": true,
-                  "description": "Timezone to use for the timestamp."
-                }
-              }
-            },
-            "execFilename": {
-              "type": "string",
-              "default": "codebook_md_exec.ts",
-              "description": "Filename for the generated TypeScript execution script."
-            }
-          }
+        "codebook-md.sql.output.showTimestamp": {
+          "type": "boolean",
+          "description": "sql: Show the timestamp at the top of the output. Overrides codebook-md.output.showTimestamp."
         },
-        "codebook-md.sql": {
-          "type": "object",
-          "properties": {
-            "execOptions": {
-              "type": "array",
-              "description": "Options to use for SQL connections.",
-              "default": [],
-              "items": {
-                "type": "string"
-              }
-            },
-            "output": {
-              "type": "object",
-              "properties": {
-                "showExecutableCodeInOutput": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the executable code at the top of the output (default: false)."
-                },
-                "replaceOutputCell": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Prepend the executable code to the output (default: true)."
-                },
-                "showTimestamp": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the timestamp at the top of the output (default: true)."
-                },
-                "timestampTimezone": {
-                  "type": "string",
-                  "default": true,
-                  "description": "Timezone to use for the timestamp."
-                }
-              }
-            },
-            "execCmd": {
-              "type": "string",
-              "default": "mysql",
-              "description": "CLI command used to execute SQL code blocks (e.g. 'mysql', 'psql')."
-            },
-            "execFilename": {
-              "type": "string",
-              "default": "codebook_md_exec.sql",
-              "description": "Filename for the generated SQL execution script."
-            }
-          }
+        "codebook-md.sql.output.timestampTimezone": {
+          "type": "string",
+          "description": "sql: Timezone to use for the timestamp (e.g. 'UTC', 'America/New_York'). Overrides codebook-md.output.timestampTimezone."
         },
-        "codebook-md.python": {
-          "type": "object",
-          "properties": {
-            "pythonCmd": {
-              "type": "string",
-              "default": "python3",
-              "description": "Deprecated: use 'codebook-md.python.execCmd' instead. Still honored as a fallback.",
-              "deprecationMessage": "Use codebook-md.python.execCmd instead."
-            },
-            "output": {
-              "type": "object",
-              "properties": {
-                "showExecutableCodeInOutput": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the executable code at the top of the output (default: false)."
-                },
-                "replaceOutputCell": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Prepend the executable code to the output (default: true)."
-                },
-                "showTimestamp": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the timestamp at the top of the output (default: true)."
-                },
-                "timestampTimezone": {
-                  "type": "string",
-                  "default": true,
-                  "description": "Timezone to use for the timestamp."
-                }
-              }
-            },
-            "execCmd": {
-              "type": "string",
-              "default": "python3",
-              "description": "Command to use for running Python code-blocks (e.g. 'python3', '/usr/local/bin/python')."
-            },
-            "execFilename": {
-              "type": "string",
-              "default": "codebook_md_exec.py",
-              "description": "Filename for the generated Python execution script."
-            }
-          }
+        "codebook-md.sql.execCmd": {
+          "type": "string",
+          "default": "mysql",
+          "description": "CLI command used to execute SQL code blocks (e.g. 'mysql', 'psql')."
         },
-        "codebook-md.http": {
-          "type": "object",
-          "properties": {
-            "execCmd": {
-              "type": "string",
-              "default": "curl",
-              "description": "Command to use for HTTP requests (default: curl)."
-            },
-            "execFilename": {
-              "type": "string",
-              "default": "codebook_md_exec_http.sh",
-              "description": "Filename for the executable HTTP script."
-            },
-            "verbose": {
-              "type": "boolean",
-              "default": true,
-              "description": "Whether to use verbose mode for HTTP requests (adds -v flag to curl)."
-            },
-            "output": {
-              "type": "object",
-              "properties": {
-                "showExecutableCodeInOutput": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the executable code at the top of the output (default: true)."
-                },
-                "replaceOutputCell": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Prepend the executable code to the output (default: true)."
-                },
-                "showTimestamp": {
-                  "type": "boolean",
-                  "default": true,
-                  "description": "Show the timestamp at the top of the output (default: true)."
-                },
-                "timestampTimezone": {
-                  "type": "string",
-                  "default": true,
-                  "description": "Timezone to use for the timestamp."
-                }
-              }
-            }
-          }
+        "codebook-md.sql.execFilename": {
+          "type": "string",
+          "default": "codebook_md_exec.sql",
+          "description": "Filename for the generated SQL execution script."
+        },
+        "codebook-md.python.pythonCmd": {
+          "type": "string",
+          "default": "python3",
+          "description": "Deprecated: use 'codebook-md.python.execCmd' instead. Still honored as a fallback.",
+          "deprecationMessage": "Use codebook-md.python.execCmd instead."
+        },
+        "codebook-md.python.output.showExecutableCodeInOutput": {
+          "type": "boolean",
+          "description": "python: Show the executable code at the top of the output. Overrides codebook-md.output.showExecutableCodeInOutput."
+        },
+        "codebook-md.python.output.replaceOutputCell": {
+          "type": "boolean",
+          "description": "python: Replace the output cell on each run. When false, output is appended. Overrides codebook-md.output.replaceOutputCell."
+        },
+        "codebook-md.python.output.showTimestamp": {
+          "type": "boolean",
+          "description": "python: Show the timestamp at the top of the output. Overrides codebook-md.output.showTimestamp."
+        },
+        "codebook-md.python.output.timestampTimezone": {
+          "type": "string",
+          "description": "python: Timezone to use for the timestamp (e.g. 'UTC', 'America/New_York'). Overrides codebook-md.output.timestampTimezone."
+        },
+        "codebook-md.python.execCmd": {
+          "type": "string",
+          "default": "python3",
+          "description": "Command to use for running Python code-blocks (e.g. 'python3', '/usr/local/bin/python')."
+        },
+        "codebook-md.python.execFilename": {
+          "type": "string",
+          "default": "codebook_md_exec.py",
+          "description": "Filename for the generated Python execution script."
+        },
+        "codebook-md.http.execCmd": {
+          "type": "string",
+          "default": "curl",
+          "description": "Command to use for HTTP requests (default: curl)."
+        },
+        "codebook-md.http.execFilename": {
+          "type": "string",
+          "default": "codebook_md_exec_http.sh",
+          "description": "Filename for the executable HTTP script."
+        },
+        "codebook-md.http.verbose": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to use verbose mode for HTTP requests (adds -v flag to curl)."
+        },
+        "codebook-md.http.output.showExecutableCodeInOutput": {
+          "type": "boolean",
+          "description": "http: Show the executable code at the top of the output. Overrides codebook-md.output.showExecutableCodeInOutput."
+        },
+        "codebook-md.http.output.replaceOutputCell": {
+          "type": "boolean",
+          "description": "http: Replace the output cell on each run. When false, output is appended. Overrides codebook-md.output.replaceOutputCell."
+        },
+        "codebook-md.http.output.showTimestamp": {
+          "type": "boolean",
+          "description": "http: Show the timestamp at the top of the output. Overrides codebook-md.output.showTimestamp."
+        },
+        "codebook-md.http.output.timestampTimezone": {
+          "type": "string",
+          "description": "http: Timezone to use for the timestamp (e.g. 'UTC', 'America/New_York'). Overrides codebook-md.output.timestampTimezone."
         },
         "codebook-md.dynamicFolderGroup.enabled": {
           "type": "boolean",
@@ -483,25 +368,25 @@
         "codebook-md.output.showExecutableCodeInOutput": {
           "type": "boolean",
           "default": true,
-          "description": "Show the executable code at the top of the output",
+          "description": "Show the executable code at the top of the output.",
           "scope": "window"
         },
         "codebook-md.output.replaceOutputCell": {
           "type": "boolean",
           "default": true,
-          "description": "Prepend the executable code to the output",
+          "description": "Replace the output cell on each run. When false, output is appended.",
           "scope": "window"
         },
         "codebook-md.output.showTimestamp": {
           "type": "boolean",
           "default": true,
-          "description": "Show the timestamp at the top of the output",
+          "description": "Show the timestamp at the top of the output.",
           "scope": "window"
         },
         "codebook-md.output.timestampTimezone": {
           "type": "string",
-          "default": "",
-          "description": "Timezone to use for the timestamp (e.g., 'America/New_York', leave empty for local timezone)",
+          "default": "UTC",
+          "description": "Timezone to use for the timestamp (e.g. 'UTC', 'America/New_York').",
           "scope": "window"
         },
         "codebook-md.executionHistory.enabled": {
@@ -515,52 +400,6 @@
           "default": 10,
           "description": "Maximum number of execution history entries to retain per cell (0 for unlimited)",
           "scope": "window"
-        },
-        "codebook-md.dynamicFolderGroup": {
-          "type": "object",
-          "description": "Configuration for the Dynamic Folder Group in the My Notebooks webview",
-          "default": {
-            "enabled": true,
-            "name": "Current Context",
-            "description": "Auto-generated based on the current file",
-            "subFolderInclusions": [],
-            "exclusions": [
-              "node_modules",
-              "out",
-              "dist"
-            ]
-          },
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "default": true,
-              "description": "Enable or disable the Dynamic Folder Group"
-            },
-            "name": {
-              "type": "string",
-              "default": "Current Context",
-              "description": "Name of the Dynamic Folder Group"
-            },
-            "description": {
-              "type": "string",
-              "default": "Auto-generated based on the current file",
-              "description": "Description of the Dynamic Folder Group"
-            },
-            "subFolderInclusions": {
-              "type": "array",
-              "default": [],
-              "description": "List of sub-folder names to include when searching for markdown files"
-            },
-            "exclusions": {
-              "type": "array",
-              "default": [
-                "node_modules",
-                "out",
-                "dist"
-              ],
-              "description": "List of folder or file patterns to exclude from the Dynamic Folder Group"
-            }
-          }
         }
       }
     },
@@ -594,20 +433,8 @@
         "title": "Codebook: Open Markdown Preview"
       },
       {
-        "command": "codebook-md.go.open",
-        "title": "Codebook: Execute Go"
-      },
-      {
         "command": "codebook-md.openMarkdownFile",
         "title": "Codebook: Open Markdown File"
-      },
-      {
-        "command": "codebook-md.go",
-        "title": "Codebook: Execute Go"
-      },
-      {
-        "command": "codebook-md.addCurrentFileToFavorites",
-        "title": "Codebook: Add Current File to Tree View"
       },
       {
         "command": "codebook-md.addFileToChosenFolder",
@@ -618,21 +445,6 @@
         "command": "codebook-md.addFolderToFolderGroup",
         "title": "Add Virtual Folder to Tree View",
         "icon": "$(new-folder)"
-      },
-      {
-        "command": "codebook-md.addFileToFolder",
-        "title": "Add md file to folder",
-        "icon": "$(add)"
-      },
-      {
-        "command": "codebook-md.addSubFolder",
-        "title": "Add Sub-folder",
-        "icon": "$(folder-add)"
-      },
-      {
-        "command": "codebook-md.removeFolderFromFolderGroup",
-        "title": "Remove Folder",
-        "icon": "$(trash)"
       },
       {
         "command": "codebook-md.toggleFrontMatter",
@@ -678,11 +490,89 @@
         "command": "codebook-md.debugAntigravityCommands",
         "title": "Debug Antigravity Commands",
         "category": "CodebookMD"
+      },
+      {
+        "command": "codebook-md.openDocumentation",
+        "title": "Open Documentation",
+        "category": "CodebookMD"
+      },
+      {
+        "command": "codebook-md.openNotebooks",
+        "title": "Open Notebooks",
+        "category": "CodebookMD"
+      },
+      {
+        "command": "codebook-md.openNotebooksView",
+        "title": "Focus Notebooks View",
+        "category": "CodebookMD"
+      },
+      {
+        "command": "codebook-md.refreshNotebooksView",
+        "title": "Refresh Notebooks View",
+        "category": "CodebookMD"
+      },
+      {
+        "command": "codebook-md.openCodeBlockConfig",
+        "title": "Configure Code Block",
+        "category": "CodebookMD"
+      },
+      {
+        "command": "codebook-md.openSettings",
+        "title": "Open Settings",
+        "category": "CodebookMD"
+      },
+      {
+        "command": "codebook-md.helloGo",
+        "title": "Hello Go",
+        "category": "CodebookMD"
+      },
+      {
+        "command": "codebook-md.renameFolderInMyNotebooks",
+        "title": "Rename Folder",
+        "category": "CodebookMD"
+      },
+      {
+        "command": "codebook-md.addSubFolderToMyNotebooksFolder",
+        "title": "Add Sub-folder",
+        "category": "CodebookMD"
+      },
+      {
+        "command": "codebook-md.addFileToMyNotebooksFolder",
+        "title": "Add File to Folder",
+        "category": "CodebookMD"
+      },
+      {
+        "command": "codebook-md.removeFolderFromMyNotebooksFolder",
+        "title": "Remove Folder",
+        "category": "CodebookMD"
+      },
+      {
+        "command": "codebook-md.removeFileFromMyNotebooksFolder",
+        "title": "Remove File",
+        "category": "CodebookMD"
+      },
+      {
+        "command": "codebook-md.renameFileInMyNotebooks",
+        "title": "Rename File",
+        "category": "CodebookMD"
+      },
+      {
+        "command": "codebook-md.removeObjectFromFolderGroup",
+        "title": "Remove From Folder Group",
+        "category": "CodebookMD"
+      },
+      {
+        "command": "codebook-md.moveFolderGroupEntityUp",
+        "title": "Move Up",
+        "category": "CodebookMD"
+      },
+      {
+        "command": "codebook-md.moveFolderGroupEntityDown",
+        "title": "Move Down",
+        "category": "CodebookMD"
       }
     ],
     "menus": {
-      "view/title": [],
-      "view/item/context": [],
       "notebook/cell/title": [
         {
           "command": "codebook-md.chatWithCell",
@@ -714,11 +604,6 @@
       ],
       "editor/context": [
         {
-          "command": "codebook-md.addCurrentFileToFavorites",
-          "when": "resourceExtname == .md",
-          "group": "codebook"
-        },
-        {
           "command": "codebook-md.createNotebookFromSelection",
           "when": "editorHasSelection",
           "group": "codebook"
@@ -735,6 +620,44 @@
           "command": "codebook-md.createNewNotebook",
           "title": "Create a new CodebookMD Notebook",
           "when": "workbenchState != empty"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "codebook-md.renameFolderInMyNotebooks",
+          "when": "false"
+        },
+        {
+          "command": "codebook-md.addSubFolderToMyNotebooksFolder",
+          "when": "false"
+        },
+        {
+          "command": "codebook-md.addFileToMyNotebooksFolder",
+          "when": "false"
+        },
+        {
+          "command": "codebook-md.removeFolderFromMyNotebooksFolder",
+          "when": "false"
+        },
+        {
+          "command": "codebook-md.removeFileFromMyNotebooksFolder",
+          "when": "false"
+        },
+        {
+          "command": "codebook-md.renameFileInMyNotebooks",
+          "when": "false"
+        },
+        {
+          "command": "codebook-md.removeObjectFromFolderGroup",
+          "when": "false"
+        },
+        {
+          "command": "codebook-md.moveFolderGroupEntityUp",
+          "when": "false"
+        },
+        {
+          "command": "codebook-md.moveFolderGroupEntityDown",
+          "when": "false"
         }
       ]
     },

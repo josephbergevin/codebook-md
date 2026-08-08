@@ -1205,12 +1205,14 @@ export class OutputConfig {
 
   constructor(languageOutputConfig: WorkspaceConfiguration | undefined = undefined, commands: string[], cellConfig: any = undefined) {
     const outputConfig = workspace.getConfiguration('codebook-md.output');
-    // Layer 1: the global defaults. `??` is used rather than `||` throughout so
+    // Layer 1: the global settings. `??` is used rather than `||` throughout so
     // that a user's explicit `false` is honored - `||` would silently discard it.
-    this.showExecutableCodeInOutput = outputConfig.get<boolean>('showExecutableCodeInOutput') ?? false;
+    // The fallbacks mirror the defaults declared in package.json; they only apply
+    // when the setting is absent entirely.
+    this.showExecutableCodeInOutput = outputConfig.get<boolean>('showExecutableCodeInOutput') ?? true;
     this.replaceOutputCell = outputConfig.get<boolean>('replaceOutputCell') ?? true;
-    this.showTimestamp = outputConfig.get<boolean>('showTimestamp') ?? false;
-    this.timestampTimezone = validTimezone(outputConfig.get<string>('timestampTimezone') ?? "");
+    this.showTimestamp = outputConfig.get<boolean>('showTimestamp') ?? true;
+    this.timestampTimezone = validTimezone(outputConfig.get<string>('timestampTimezone') ?? "UTC");
     this.prependToOutputStrings = [];
     this.appendToOutputStrings = [];
 
