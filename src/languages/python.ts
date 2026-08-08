@@ -81,6 +81,13 @@ export class Config {
     const cellConfig = this.contentConfig.cellConfig;
     const execFilename = codebook.resolveSetting(cellConfig, pythonConfig, 'execFilename', 'codebook_md_exec.py');
     this.execFile = path.join(this.execPath, execFilename);
-    this.execCmd = codebook.resolveSetting(cellConfig, pythonConfig, 'execCmd', 'python3');
+
+    // 'pythonCmd' was the documented name for this setting before 0.21.5, while
+    // the code has always read 'execCmd'. Honor the old name as a fallback so
+    // existing settings keep working; 'execCmd' matches sql/http and wins.
+    const legacyPythonCmd = codebook.resolveSetting<string | undefined>(
+      cellConfig, pythonConfig, 'pythonCmd', undefined);
+    this.execCmd = codebook.resolveSetting(
+      cellConfig, pythonConfig, 'execCmd', legacyPythonCmd ?? 'python3');
   }
 }

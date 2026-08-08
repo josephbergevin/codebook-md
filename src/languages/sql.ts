@@ -37,21 +37,23 @@ export class Cell implements codebook.ExecutableCell {
     console.log("sqlStatements: ", sqlStatements);
 
     // the first command is the main command
-    this.innerScope = sqlStatements[0];
-
-    // add the query to the execOptions along with the -e flag - commonly used as the execute flag in sql cli commands
-    this.config.execOptions.push("-e " + '"' + this.innerScope + '"');
-
-    // form the executable code as a bash script that will execute the sql code from a file
-    this.executableCode = "#!/bin/bash\n\n";
-    this.executableCode += "set -e\n\n";
-    this.executableCode += `echo "${codebook.StartOutput}"\n`;
-    this.executableCode += this.config.execCmd + " " + this.config.execOptions.join(" ");
-    this.executableCode += `\necho "${codebook.EndOutput}"`;
+    this.innerScope = sqlStatements[0] ?? "";
 
     // set the execCmd and execArgs to execute the bash script
     this.execCmd = 'bash';
     this.execArgs = [this.config.execFile];
+
+    // Without a CLI command there is nothing to run - fail with something the
+    // user can act on rather than emitting a script that starts with a bare flag
+    if (this.config.execCmd === "") {
+      this.executableCode = "";
+      this.mainExecutable = new codebook.Command("echo", [
+        "No SQL command configured. Set 'codebook-md.sql.execCmd' (for example 'mysql' or 'psql') in your settings, or in this cell's configuration."
+      ], this.config.execPath);
+      return;
+    }
+
+    this.executableCode = this.scriptForStatement(this.innerScope);
 
     // set the mainExecutable to the bash script
     this.mainExecutable = new codebook.Command(this.execCmd, this.execArgs, this.config.execPath);
@@ -70,8 +72,8 @@ export class Cell implements codebook.ExecutableCell {
         postExecutable.setCommandToDisplay(sqlStatement);
         postExecutable.addBeforeExecuteFunc(() => {
           try {
-            const sqlCliCommand = "#!/bin/bash\n\nset -e\n\n" + `echo "${codebook.StartOutput}"\n` + this.config.execCmd + " " + this.config.execOptions.join(" ") + " -e " + '"' + sqlStatement + '"' + `\necho "${codebook.EndOutput}"`;
-            io.writeDirAndFileSyncSafe(this.config.execPath, this.config.execFile, sqlCliCommand);
+            io.writeDirAndFileSyncSafe(
+              this.config.execPath, this.config.execFile, this.scriptForStatement(sqlStatement));
           } catch (error) {
             console.error("error writing file: ", error);
           }
@@ -79,6 +81,18 @@ export class Cell implements codebook.ExecutableCell {
         this.postExecutables.push(postExecutable);
       });
     }
+  }
+
+  // scriptForStatement builds the bash script that runs a single SQL statement.
+  // execOptions holds the connection options only - the statement is appended
+  // per call, so that running statement N does not also re-run statement 1.
+  private scriptForStatement(sqlStatement: string): string {
+    const connectionOptions = this.config.execOptions.join(" ");
+    return "#!/bin/bash\n\n"
+      + "set -e\n\n"
+      + `echo "${codebook.StartOutput}"\n`
+      + `${this.config.execCmd} ${connectionOptions} -e "${sqlStatement}"`
+      + `\necho "${codebook.EndOutput}"`;
   }
 
   codeBlockConfig(): codebook.CodeBlockConfig {

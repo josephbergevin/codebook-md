@@ -258,6 +258,11 @@
                   "description": "Timezone to use for the timestamp."
                 }
               }
+            },
+            "execFilename": {
+              "type": "string",
+              "default": "codebook_md_exec.js",
+              "description": "Filename for the generated JavaScript execution script."
             }
           }
         },
@@ -288,6 +293,11 @@
                   "description": "Timezone to use for the timestamp."
                 }
               }
+            },
+            "execFilename": {
+              "type": "string",
+              "default": "codebook_md_exec.ts",
+              "description": "Filename for the generated TypeScript execution script."
             }
           }
         },
@@ -296,7 +306,11 @@
           "properties": {
             "execOptions": {
               "type": "array",
-              "description": "Options to use for SQL connections."
+              "description": "Options to use for SQL connections.",
+              "default": [],
+              "items": {
+                "type": "string"
+              }
             },
             "output": {
               "type": "object",
@@ -322,6 +336,16 @@
                   "description": "Timezone to use for the timestamp."
                 }
               }
+            },
+            "execCmd": {
+              "type": "string",
+              "default": "mysql",
+              "description": "CLI command used to execute SQL code blocks (e.g. 'mysql', 'psql')."
+            },
+            "execFilename": {
+              "type": "string",
+              "default": "codebook_md_exec.sql",
+              "description": "Filename for the generated SQL execution script."
             }
           }
         },
@@ -331,7 +355,8 @@
             "pythonCmd": {
               "type": "string",
               "default": "python3",
-              "description": "Command to use for running Python code-blocks."
+              "description": "Deprecated: use 'codebook-md.python.execCmd' instead. Still honored as a fallback.",
+              "deprecationMessage": "Use codebook-md.python.execCmd instead."
             },
             "output": {
               "type": "object",
@@ -357,6 +382,16 @@
                   "description": "Timezone to use for the timestamp."
                 }
               }
+            },
+            "execCmd": {
+              "type": "string",
+              "default": "python3",
+              "description": "Command to use for running Python code-blocks (e.g. 'python3', '/usr/local/bin/python')."
+            },
+            "execFilename": {
+              "type": "string",
+              "default": "codebook_md_exec.py",
+              "description": "Filename for the generated Python execution script."
             }
           }
         },

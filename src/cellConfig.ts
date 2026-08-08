@@ -118,18 +118,49 @@ export function getLanguageConfigOptions(languageId: string): ConfigOptions {
       return {};
     case 'python':
       return {
-        pythonCmd: {
+        execCmd: {
           type: 'string',
           default: 'python3',
           description: 'Command to use for running Python code-blocks.'
+        },
+        execFilename: {
+          type: 'string',
+          default: 'codebook_md_exec.py',
+          description: 'Filename for the generated Python execution script.'
         }
       };
     case 'sql':
       return {
+        execCmd: {
+          type: 'string',
+          default: 'mysql',
+          description: 'CLI command used to execute SQL code blocks (e.g. \'mysql\', \'psql\').'
+        },
         execOptions: {
           type: 'string',
           default: '',
           description: 'Options to use for SQL connections (comma-separated).'
+        },
+        execFilename: {
+          type: 'string',
+          default: 'codebook_md_exec.sql',
+          description: 'Filename for the generated SQL execution script.'
+        }
+      };
+    case 'javascript':
+      return {
+        execFilename: {
+          type: 'string',
+          default: 'codebook_md_exec.js',
+          description: 'Filename for the generated JavaScript execution script.'
+        }
+      };
+    case 'typescript':
+      return {
+        execFilename: {
+          type: 'string',
+          default: 'codebook_md_exec.ts',
+          description: 'Filename for the generated TypeScript execution script.'
         }
       };
     case 'http':
