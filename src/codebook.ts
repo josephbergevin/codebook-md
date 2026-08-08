@@ -1090,6 +1090,19 @@ export function getCellConfig(notebookCell: NotebookCell): any {
   }
 }
 
+// OutputConfigOverrides is the partial set of output settings that a single
+// configuration layer may specify. A field left `undefined` means "not set at
+// this layer" - which is distinct from an explicit `false`. Keeping the two
+// apart is what allows a more specific layer to turn a setting off.
+export interface OutputConfigOverrides {
+  showExecutableCodeInOutput?: boolean;
+  replaceOutputCell?: boolean;
+  showTimestamp?: boolean;
+  timestampTimezone?: string;
+  prependToOutputStrings?: string[];
+  appendToOutputStrings?: string[];
+}
+
 // OutputConfig is a class that contains the configuration for the output of a cell
 export class OutputConfig {
   showExecutableCodeInOutput: boolean; // whether to print the executable code at the top of the output cell
@@ -1103,21 +1116,24 @@ export class OutputConfig {
 
   constructor(languageOutputConfig: WorkspaceConfiguration | undefined = undefined, commands: string[], cellConfig: any = undefined) {
     const outputConfig = workspace.getConfiguration('codebook-md.output');
-    // initialize the output configuration with the default values
-    this.showExecutableCodeInOutput = outputConfig.get('showExecutableCodeInOutput') || false;
-    this.replaceOutputCell = outputConfig.get('replaceOutputCell') || true;
-    this.showTimestamp = outputConfig.get('showTimestamp') || false;
-    this.timestampTimezone = validTimezone(outputConfig.get('timestampTimezone') || "");
+    // Layer 1: the global defaults. `??` is used rather than `||` throughout so
+    // that a user's explicit `false` is honored - `||` would silently discard it.
+    this.showExecutableCodeInOutput = outputConfig.get<boolean>('showExecutableCodeInOutput') ?? false;
+    this.replaceOutputCell = outputConfig.get<boolean>('replaceOutputCell') ?? true;
+    this.showTimestamp = outputConfig.get<boolean>('showTimestamp') ?? false;
+    this.timestampTimezone = validTimezone(outputConfig.get<string>('timestampTimezone') ?? "");
     this.prependToOutputStrings = [];
     this.appendToOutputStrings = [];
 
-    // languageOutputConfig is the configuration for the language output - all fields are the same as the default output config
-    // these config values are allowed to override the default output config, if they are set
+    // Layer 2: the language-specific settings (e.g. 'codebook-md.go.output'),
+    // which override the global defaults in either direction.
     if (languageOutputConfig) {
-      this.showExecutableCodeInOutput = languageOutputConfig.get('showExecutableCodeInOutput') || this.showExecutableCodeInOutput;
-      this.replaceOutputCell = languageOutputConfig.get('replaceOutputCell') || this.replaceOutputCell;
-      this.showTimestamp = languageOutputConfig.get('showTimestamp') || this.showTimestamp;
-      this.timestampTimezone = validTimezone(languageOutputConfig.get('timestampTimezone') || this.timestampTimezone);
+      this.applyOverrides({
+        showExecutableCodeInOutput: languageOutputConfig.get<boolean>('showExecutableCodeInOutput'),
+        replaceOutputCell: languageOutputConfig.get<boolean>('replaceOutputCell'),
+        showTimestamp: languageOutputConfig.get<boolean>('showTimestamp'),
+        timestampTimezone: languageOutputConfig.get<string>('timestampTimezone'),
+      });
     }
 
     // if the commands include any in-line output config, collect them
@@ -1150,28 +1166,35 @@ export class OutputConfig {
       });
     }
 
-    // check all .output configurations and override the default output config (only if they are set)
+    // Layer 3: the configuration saved for this specific cell by the config modal,
+    // stored alongside the notebook in '<notebook>.config.json'.
     if (cellConfig && cellConfig.output) {
       console.log(`checking for cell config overrides - cellConfig.output: ${JSON.stringify(cellConfig.output)}`);
+      this.applyOverrides(cellConfig.output as OutputConfigOverrides);
+    }
+  }
 
-      if (cellConfig.output.showExecutableCodeInOutput !== undefined) {
-        this.showExecutableCodeInOutput = cellConfig.output.showExecutableCodeInOutput;
-      }
-      if (cellConfig.output.replaceOutputCell !== undefined) {
-        this.replaceOutputCell = cellConfig.output.replaceOutputCell;
-      }
-      if (cellConfig.output.showTimestamp !== undefined) {
-        this.showTimestamp = cellConfig.output.showTimestamp;
-      }
-      if (cellConfig.output.timestampTimezone !== undefined) {
-        this.timestampTimezone = validTimezone(cellConfig.output.timestampTimezone);
-      }
-      if (cellConfig.output.prependToOutputStrings !== undefined) {
-        this.prependToOutputStrings = cellConfig.output.prependToOutputStrings;
-      }
-      if (cellConfig.output.appendToOutputStrings !== undefined) {
-        this.appendToOutputStrings = cellConfig.output.appendToOutputStrings;
-      }
+  // applyOverrides layers a single configuration source on top of the current
+  // values. Fields that are `undefined` are left untouched, so each successive
+  // (more specific) layer can turn a setting on *or* off.
+  private applyOverrides(overrides: OutputConfigOverrides): void {
+    if (overrides.showExecutableCodeInOutput !== undefined) {
+      this.showExecutableCodeInOutput = overrides.showExecutableCodeInOutput;
+    }
+    if (overrides.replaceOutputCell !== undefined) {
+      this.replaceOutputCell = overrides.replaceOutputCell;
+    }
+    if (overrides.showTimestamp !== undefined) {
+      this.showTimestamp = overrides.showTimestamp;
+    }
+    if (overrides.timestampTimezone !== undefined) {
+      this.timestampTimezone = validTimezone(overrides.timestampTimezone);
+    }
+    if (overrides.prependToOutputStrings !== undefined) {
+      this.prependToOutputStrings = overrides.prependToOutputStrings;
+    }
+    if (overrides.appendToOutputStrings !== undefined) {
+      this.appendToOutputStrings = overrides.appendToOutputStrings;
     }
   }
 }
