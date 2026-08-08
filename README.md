@@ -6,6 +6,26 @@
 
 Bring your markdown to life with this VS Code extension! Execute code blocks and organize your documentation all in your local environment. Inspired by Jupyter notebooks, and a furious ongoing battle against boring documentation and markdown files.
 
+## Opening a Markdown File as a Notebook
+
+Open any markdown file as a Codebook MD notebook using one of:
+
+- Right-click the file in the Explorer → **Open With...** → **codebook-md**
+- Use the **My Notebooks** view in the Codebook MD activity bar
+- Run the **Codebook MD: New Notebook** command
+
+> **Note:** Codebook MD registers its notebook editor with `"priority": "option"` rather than `"default"`. This means double-clicking a `.md` file opens it in the normal text editor, not as a notebook. This is intentional: registering as the *default* editor for every markdown file collides with other markdown-notebook extensions (e.g. Microsoft's Markdown Notebook), because VS Code only allows one notebook view type per file. Two default providers competing for `*.md` produces errors like *"A notebook with view type 'markdown-notebook' already exists ... CANNOT create another notebook with view type codebook-md."*
+>
+> If you'd like markdown files to open as Codebook MD notebooks **by default**, add an editor association to your settings (User or Workspace):
+>
+> ```jsonc
+> "workbench.editorAssociations": {
+>   "*.md": "codebook-md"
+> }
+> ```
+>
+> Note that setting this will route markdown files away from other notebook/preview extensions.
+
 ## Features
 
 ### Executable code blocks

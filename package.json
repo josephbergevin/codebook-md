@@ -38,7 +38,7 @@
     "preview",
     "rendering"
   ],
-  "version": "0.21.5",
+  "version": "0.21.6",
   "categories": [
     "Notebooks",
     "Education",
@@ -708,7 +708,7 @@
       {
         "type": "codebook-md",
         "displayName": "codebook-md",
-        "priority": "default",
+        "priority": "option",
         "selector": [
           {
             "filenamePattern": "*.{md,markdown}"
