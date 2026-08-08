@@ -21,6 +21,14 @@ jest.mock('../../codebook', () => {
         jsonStringify: jest.fn().mockReturnValue('{}')
       };
     }),
+    // mirrors the real precedence: cell config -> language settings -> default
+    resolveSetting: jest.fn((cellConfig, languageConfig, key, fallback) => {
+      const fromCell = cellConfig?.[key];
+      if (fromCell !== undefined) {
+        return fromCell;
+      }
+      return languageConfig?.get(key) ?? fallback;
+    }),
     Command: jest.fn().mockImplementation(() => {
       return {
         execute: jest.fn(),

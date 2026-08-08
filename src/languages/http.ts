@@ -183,10 +183,12 @@ export class Config {
   constructor(httpConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.http.output'), "#");
     this.execPath = config.getExecPath();
-    this.execFilename = httpConfig?.get('execFilename') || 'codebook_md_exec_http.sh';
+
+    const cellConfig = this.contentConfig.cellConfig;
+    this.execFilename = codebook.resolveSetting(cellConfig, httpConfig, 'execFilename', 'codebook_md_exec_http.sh');
     this.execFile = path.join(this.execPath, this.execFilename);
-    this.execCmd = httpConfig?.get('execCmd') || 'curl';
-    // `??` rather than `||` so that an explicit `verbose: false` is honored
-    this.verbose = httpConfig?.get<boolean>('verbose') ?? true;
+    this.execCmd = codebook.resolveSetting(cellConfig, httpConfig, 'execCmd', 'curl');
+    // resolveSetting uses `??`, so an explicit `verbose: false` is honored
+    this.verbose = codebook.resolveSetting(cellConfig, httpConfig, 'verbose', true);
   }
 }

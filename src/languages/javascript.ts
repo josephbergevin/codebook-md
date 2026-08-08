@@ -75,7 +75,10 @@ export class Config {
 
   constructor(javascriptConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
     this.execPath = config.getExecPath();
-    this.execFile = path.join(this.execPath, javascriptConfig?.get('execFilename') || 'codebook_md_exec.js');
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.javascript.output'), "//");
+
+    const execFilename = codebook.resolveSetting(
+      this.contentConfig.cellConfig, javascriptConfig, 'execFilename', 'codebook_md_exec.js');
+    this.execFile = path.join(this.execPath, execFilename);
   }
 }

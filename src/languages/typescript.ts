@@ -74,7 +74,10 @@ export class Config {
 
   constructor(typescriptConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
     this.execPath = config.getExecPath();
-    this.execFile = path.join(this.execPath, typescriptConfig?.get('execFilename') || 'codebook_md_exec.ts');
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.typescript.output'), "//");
+
+    const execFilename = codebook.resolveSetting(
+      this.contentConfig.cellConfig, typescriptConfig, 'execFilename', 'codebook_md_exec.ts');
+    this.execFile = path.join(this.execPath, execFilename);
   }
 }

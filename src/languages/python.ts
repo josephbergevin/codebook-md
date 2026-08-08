@@ -77,7 +77,10 @@ export class Config {
   constructor(pythonConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.python.output'), "#");
     this.execPath = config.getExecPath();
-    this.execFile = path.join(this.execPath, pythonConfig?.get('execFilename') || 'codebook_md_exec.py');
-    this.execCmd = pythonConfig?.get('execCmd') || 'python3';
+
+    const cellConfig = this.contentConfig.cellConfig;
+    const execFilename = codebook.resolveSetting(cellConfig, pythonConfig, 'execFilename', 'codebook_md_exec.py');
+    this.execFile = path.join(this.execPath, execFilename);
+    this.execCmd = codebook.resolveSetting(cellConfig, pythonConfig, 'execCmd', 'python3');
   }
 }
