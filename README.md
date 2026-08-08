@@ -294,6 +294,42 @@ Output from executed code blocks can be configured in the following ways:
 - In a new tab (coming soon)
 - In a file location specified in the settings (coming soon)
 
+### Configuring a cell from inside the cell
+
+Any code block can be configured in place with a `[>]` command, written as a
+comment in the cell's own language (`#` for shell/python/http, `//` for
+go/js/ts, `--` for sql). These take precedence over both the language settings
+and anything saved through the configuration modal.
+
+```bash
+# [>].output.showTimestamp(false)
+# [>].output.timestampTimezone("America/Denver")
+# [>].execPath("./scratch")
+echo "hello"
+```
+
+| Command | Effect |
+| --- | --- |
+| `[>].output.showExecutableCodeInOutput(true\|false)` | Print the cell's code above its output |
+| `[>].output.replaceOutputCell(true\|false)` | Replace the output on each run, or append to it |
+| `[>].output.showTimestamp(true\|false)` | Prepend a timestamp to the output |
+| `[>].output.timestampTimezone("UTC")` | Timezone for that timestamp |
+| `[>].execPath("./dir")` | Directory the cell executes from |
+
+Go cells also accept `[>].execTypeRunFilename("main.go")`,
+`[>].execTypeTestFilename("codebook_md_exec_test.go")`,
+`[>].execTypeTestBuildTag("playground")`, `[>].goimportsCmd("goimports")`, and
+`[>].excludeOutputPrefixes(["DEBUG"])`.
+
+Settings resolve from least to most specific: global settings
+(`codebook-md.output.*`) → language settings (`codebook-md.go.output.*`) → the
+cell configuration saved by the modal → the `[>]` commands in the cell. Any
+layer can turn a setting on *or* off.
+
+The full list for the current cell is available in the configuration modal —
+click the gear icon in the status bar below the code block. Unrecognised
+commands produce a warning rather than being ignored.
+
 #### Examples of HTTP requests:
 
 ```http

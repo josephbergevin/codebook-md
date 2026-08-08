@@ -512,37 +512,56 @@ fmt.Println("Hello, CodebookMD!")
         <h5>VS Code Settings Configuration</h5>
         <p>Configure Go execution behavior in VS Code settings:</p>
         <pre><code>{
-  "codebook-md.go": {
-    "execType": "run",              // "run" or "test"
-    "execTypeRunFilename": "main.go",
-    "execTypeTestFilename": "codebook_md_exec_test.go",
-    "execTypeTestBuildTag": "playground",
-    "goimportsCmd": "gopls imports"  // or "goimports"
-  }
+  "codebook-md.go.execType": "run",
+  "codebook-md.go.execTypeRunConfig": {
+    "execPath": ".",
+    "filename": "main.go"
+  },
+  "codebook-md.go.execTypeTestConfig": {
+    "execPath": ".",
+    "filename": "codebook_md_exec_test.go",
+    "buildTag": "playground"
+  },
+  "codebook-md.go.goimportsCmd": "gopls imports"
 }</code></pre>
+
+        <div class="note">
+          <p><strong>Settings keys vs. in-cell commands.</strong> These are two
+          different namespaces. The settings above apply to every Go cell; the
+          in-cell commands below apply to one cell only. They do not share names.</p>
+          <table>
+            <tr><th>Setting key</th><th>Equivalent in-cell command</th></tr>
+            <tr><td><code>codebook-md.go.execTypeRunConfig.filename</code></td><td><code>// [&gt;].execTypeRunFilename("main.go")</code></td></tr>
+            <tr><td><code>codebook-md.go.execTypeTestConfig.filename</code></td><td><code>// [&gt;].execTypeTestFilename("codebook_md_exec_test.go")</code></td></tr>
+            <tr><td><code>codebook-md.go.execTypeTestConfig.buildTag</code></td><td><code>// [&gt;].execTypeTestBuildTag("playground")</code></td></tr>
+            <tr><td><code>codebook-md.go.goimportsCmd</code></td><td><code>// [&gt;].goimportsCmd("gopls imports")</code></td></tr>
+            <tr><td><code>codebook-md.go.excludeOutputPrefixes</code></td><td><code>// [&gt;].excludeOutputPrefixes(["DEBUG"])</code></td></tr>
+            <tr><td><code>codebook-md.execPath</code></td><td><code>// [&gt;].execPath("./scratch")</code></td></tr>
+          </table>
+        </div>
 
         <h5>Configuring Go Code Blocks</h5>
         <p>Configure Go code blocks easily through the configuration modal:</p>
         <ol>
-          <li>Click the gear icon in the code block toolbar</li>
+          <li>Click the gear icon in the status bar below the code block</li>
           <li>Adjust settings in the Go-specific configuration section</li>
           <li>Click "Save Configuration" to apply your changes</li>
         </ol>
-            
+
         <h5>Go-specific Options</h5>
         <ul>
           <li><strong>Execution Type:</strong> Choose how your code is executed
             <ul>
               <li>Run Mode (default): Executes code as a main.go file
                 <ul>
-                  <li>Option: <strong>execTypeRunFilename</strong> - Customize the filename for run mode</li>
+                  <li>Setting: <strong>execTypeRunConfig.filename</strong> - Customize the filename for run mode</li>
                   <li>Your code is automatically wrapped in a main function if needed</li>
                 </ul>
               </li>
               <li>Test Mode: Executes code as a test file
                 <ul>
-                  <li>Option: <strong>execTypeTestFilename</strong> - Set custom test filename</li>
-                  <li>Option: <strong>execTypeTestBuildTag</strong> - Set build tag for tests</li>
+                  <li>Setting: <strong>execTypeTestConfig.filename</strong> - Set custom test filename</li>
+                  <li>Setting: <strong>execTypeTestConfig.buildTag</strong> - Set build tag for tests</li>
                   <li>Your code is automatically wrapped in a test function</li>
                 </ul>
               </li>
@@ -585,24 +604,19 @@ console.log(greeting);
         <h5>VS Code Settings Configuration</h5>
         <p>Configure JavaScript/TypeScript behavior in VS Code settings:</p>
         <pre><code>{
-  "codebook-md.javascript": {
-    "output": {
-      "showExecutableCodeInOutput": true,
-      "replaceOutputCell": true
-    }
-  },
-  "codebook-md.typescript": {
-    "output": {
-      "showExecutableCodeInOutput": true,
-      "replaceOutputCell": true
-    }
-  }
+  "codebook-md.javascript.output.showExecutableCodeInOutput": true,
+  "codebook-md.javascript.output.replaceOutputCell": true,
+  "codebook-md.javascript.execFilename": "codebook_md_exec.js",
+
+  "codebook-md.typescript.output.showExecutableCodeInOutput": true,
+  "codebook-md.typescript.output.replaceOutputCell": true,
+  "codebook-md.typescript.execFilename": "codebook_md_exec.ts"
 }</code></pre>
 
         <h5>Configuring JavaScript/TypeScript Code Blocks</h5>
         <p>Configure JavaScript/TypeScript code blocks through the configuration modal:</p>
         <ol>
-          <li>Click the gear icon in the code block toolbar</li>
+          <li>Click the gear icon in the status bar below the code block</li>
           <li>Adjust settings in the JavaScript/TypeScript-specific configuration section</li>
           <li>Click "Save Configuration" to apply your changes</li>
         </ol>
@@ -639,18 +653,15 @@ print("Hello from Python!")
         <h5>VS Code Settings Configuration</h5>
         <p>Configure Python behavior in VS Code settings:</p>
         <pre><code>{
-  "codebook-md.python": {
-    "pythonCmd": "python3",
-    "output": {
-      "showExecutableCodeInOutput": true
-    }
-  }
+  "codebook-md.python.execCmd": "python3",
+  "codebook-md.python.execFilename": "codebook_md_exec.py",
+  "codebook-md.python.output.showExecutableCodeInOutput": true
 }</code></pre>
 
         <h5>Configuring Python Code Blocks</h5>
         <p>Configure Python code blocks through the configuration modal:</p>
         <ol>
-          <li>Click the gear icon in the code block toolbar</li>
+          <li>Click the gear icon in the status bar below the code block</li>
           <li>Adjust settings in the Python-specific configuration section</li>
           <li>Click "Save Configuration" to apply your changes</li>
         </ol>
@@ -659,7 +670,7 @@ print("Hello from Python!")
         <ul>
           <li><strong>Interpreter Selection:</strong> Choose which Python interpreter to use
             <ul>
-              <li>Option: <strong>pythonCmd</strong> - Specify Python interpreter command (e.g., "python3", "python3.9", "/usr/local/bin/python")</li>
+              <li>Option: <strong>execCmd</strong> - Specify Python interpreter command (e.g., "python3", "python3.9", "/usr/local/bin/python")</li>
             </ul>
           </li>
           <li><strong>Output Configuration:</strong> Control how execution results are displayed
@@ -692,18 +703,14 @@ echo "Hello from Bash!"
         <h5>VS Code Settings Configuration</h5>
         <p>Configure Bash/Shell behavior in VS Code settings:</p>
         <pre><code>{
-  "codebook-md.bash": {
-    "output": {
-      "showExecutableCodeInOutput": true,
-      "showTimestamp": true
-    }
-  }
+  "codebook-md.bash.output.showExecutableCodeInOutput": true,
+  "codebook-md.bash.output.showTimestamp": true
 }</code></pre>
 
         <h5>Configuring Bash/Shell Code Blocks</h5>
         <p>Configure Bash/Shell code blocks through the configuration modal:</p>
         <ol>
-          <li>Click the gear icon in the code block toolbar</li>
+          <li>Click the gear icon in the status bar below the code block</li>
           <li>Adjust settings in the Bash/Shell-specific configuration section</li>
           <li>Click "Save Configuration" to apply your changes</li>
         </ol>
@@ -752,18 +759,23 @@ SELECT 'Hello from SQL!' AS greeting;
         <h5>VS Code Settings Configuration</h5>
         <p>Configure SQL behavior in VS Code settings:</p>
         <pre><code>{
-  "codebook-md.sql": {
-    "execOptions": ["--defaults-file=~/.my.cnf"],
-    "output": {
-      "showExecutableCodeInOutput": true
-    }
-  }
+  "codebook-md.sql.execCmd": "mysql",
+  "codebook-md.sql.execOptions": ["--defaults-file=~/.my.cnf"],
+  "codebook-md.sql.output.showExecutableCodeInOutput": true
 }</code></pre>
+
+        <div class="note">
+          <p><strong>execCmd is required.</strong> SQL cells shell out to a
+          database CLI, and there is no universal default. Set
+          <code>codebook-md.sql.execCmd</code> to the client you use
+          (<code>mysql</code>, <code>psql</code>, <code>sqlite3</code>, …) before
+          running a SQL cell.</p>
+        </div>
 
         <h5>Configuring SQL Code Blocks</h5>
         <p>Configure SQL code blocks through the configuration modal:</p>
         <ol>
-          <li>Click the gear icon in the code block toolbar</li>
+          <li>Click the gear icon in the status bar below the code block</li>
           <li>Adjust settings in the SQL-specific configuration section</li>
           <li>Click "Save Configuration" to apply your changes</li>
         </ol>
@@ -820,19 +832,15 @@ Authorization: Bearer {{YOUR_TOKEN}}
         <h5>VS Code Settings Configuration</h5>
         <p>Configure HTTP behavior in VS Code settings:</p>
         <pre><code>{
-  "codebook-md.http": {
-    "execCmd": "curl",
-    "verbose": true,
-    "output": {
-      "showExecutableCodeInOutput": true
-    }
-  }
+  "codebook-md.http.execCmd": "curl",
+  "codebook-md.http.verbose": true,
+  "codebook-md.http.output.showExecutableCodeInOutput": true
 }</code></pre>
 
         <h5>Configuring HTTP Code Blocks</h5>
         <p>Configure HTTP code blocks through the configuration modal:</p>
         <ol>
-          <li>Click the gear icon in the code block toolbar</li>
+          <li>Click the gear icon in the status bar below the code block</li>
           <li>Adjust settings in the HTTP-specific configuration section</li>
           <li>Click "Save Configuration" to apply your changes</li>
         </ol>
@@ -908,7 +916,7 @@ Authorization: Bearer {{YOUR_TOKEN}}
         "timestampTimezone": "America/New_York"
       },
       "execType": "run",
-      "pythonCmd": "python3"
+      "execCmd": "python3"
     }
   },
   "2": {
@@ -963,7 +971,7 @@ Authorization: Bearer {{YOUR_TOKEN}}
         
         <h4>Python Configuration</h4>
         <pre><code>"config": {
-  "pythonCmd": "python3.11",
+  "execCmd": "python3.11",
   "output": {
     "showExecutableCodeInOutput": false,
     "showTimestamp": true
@@ -1262,7 +1270,7 @@ codebook:
   
   # Language-specific settings
   python:
-    pythonCmd: "python3.11"
+    execCmd: "python3.11"
   go:
     execType: "test"
     goimportsCmd: "goimports"
@@ -1306,7 +1314,7 @@ codebook:
   showTimestamp: true
   execPath: "./data"
   python:
-    pythonCmd: "python3"
+    execCmd: "python3"
 ---</code></pre>
         
         <h4>Development Documentation</h4>
@@ -1339,7 +1347,7 @@ tags:
 codebook:
   go:
     execType: "run"
-    execTypeRunFilename: "example.go"
+    execTypeRunConfig: { filename: "example.go" }
 ---</code></pre>
         
         <h3>Best Practices</h3>

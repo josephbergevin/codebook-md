@@ -9,6 +9,11 @@ function getPrimaryWorkspaceFolderPath(): string | undefined {
   return undefined;
 }
 
+// DEFAULT_EXEC_PATH mirrors the default declared for 'codebook-md.execPath' in
+// package.json. Keep the two in sync - this is the fallback used when the
+// setting is absent entirely.
+export const DEFAULT_EXEC_PATH = './codebook-md/';
+
 // Module-level configuration accessor
 const codebookConfig = workspace.getConfiguration('codebook-md');
 
@@ -39,8 +44,7 @@ function resolveToAbsolutePath(execPathSetting: string, currentFilePath?: string
 
 // getExecPath is a convenience function to get the execPath from the configuration
 export function getExecPath(): string {
-  // Default from package.json is "./codebook-md-exec/"
-  const execPathSetting = codebookConfig.get<string>('execPath', "./codebook-md-exec/");
+  const execPathSetting = codebookConfig.get<string>('execPath', DEFAULT_EXEC_PATH);
   const currentFile = window.activeTextEditor?.document.fileName; // Can be undefined
 
   // Determine the workspace path to use for resolving execPath.

@@ -55,14 +55,14 @@ describe('OutputConfig - global settings', () => {
     expect(config.showTimestamp).toBe(true);
   });
 
-  it('falls back to the documented defaults when nothing is set', () => {
+  it('falls back to the defaults declared in package.json when nothing is set', () => {
     installSettings({ 'codebook-md.output': {} });
 
     const config = new OutputConfig(undefined, []);
 
-    expect(config.showExecutableCodeInOutput).toBe(false);
+    expect(config.showExecutableCodeInOutput).toBe(true);
     expect(config.replaceOutputCell).toBe(true);
-    expect(config.showTimestamp).toBe(false);
+    expect(config.showTimestamp).toBe(true);
     expect(config.timestampTimezone).toBe('UTC');
   });
 });

@@ -4,6 +4,76 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.5] - 2026-08-08
+
+An audit of cell execution and the settings surface. Findings and the full
+issue-by-issue breakdown are in [`AUDIT.md`](AUDIT.md).
+
+### Fixed
+
+- **In-cell `[>]` configuration now works.** The configuration modal suggested
+  commands in a syntax no parser accepted, so clicking "+" inserted a command
+  that changed nothing and warned about nothing:
+  - Output commands were emitted bare (`.showTimestamp(true)`) while the parser
+    only reads the `.output.` namespace, so every suggestion was silently dropped
+  - `.execPath("./x")` was parsed with `split(" ").pop()`, yielding the literal
+    string `.execPath("./x")` as the working directory - which was then created
+    on disk as a directory with that name
+  - `.output.timestampTimezone("MDT")` was never implemented and reported
+    "output command unknown"
+  - Commands that no parser claims now produce a warning instead of vanishing
+- **SQL cells could not run.** `execCmd` was read from settings but never
+  declared, so it defaulted to an empty string and every generated script began
+  with a bare flag (`bash: -e: command not found`). The setting is now declared,
+  and an unset command produces an actionable message rather than a broken script
+- **SQL re-ran the first statement with every later one.** The first statement
+  was baked into the shared connection options, so statement 2 ran
+  `-e "stmt1" -e "stmt2"` - duplicating writes in a cell of `INSERT`s
+- **HTTP request bodies were never sent.** All blank lines were stripped before
+  parsing, destroying the header/body separator, so body lines were parsed as
+  headers - the documented POST example produced `-H "{"a": 1}"` and no
+  `--data-binary`. Fixing this also fixed a latent `TypeError` on the body path
+- **Output settings honor an explicit `false`.** `||` was used where `??` was
+  meant, so `codebook-md.output.replaceOutputCell: false` was impossible to set,
+  `codebook-md.http.verbose: false` was ignored, and a per-language `false` could
+  never override a global `true`
+- **Language options saved in the configuration modal now reach execution.**
+  Only Go's `execType` was ever read back, leaving the modal's
+  Python/SQL/HTTP/JS/TS sections write-only
+- **JavaScript output settings apply.** `javascript.ts` read
+  `codebook-javascript.bash.output`, a typo'd section that does not exist
+- **Language settings appear in the Settings UI.** They were declared as nested
+  objects, which VS Code renders as an "Edit in settings.json" link and whose
+  nested defaults are never registered. All settings are now flat keys
+- **Commands match their declarations.** 16 registered commands were missing from
+  `contributes.commands` (so they never reached the Command Palette), and 6
+  declared commands had no implementation - including
+  `codebook-md.addCurrentFileToFavorites`, which had an editor context-menu entry
+  that errored when clicked
+
+### Added
+
+- `codebook-md.sql.execCmd`, `codebook-md.sql.execFilename`,
+  `codebook-md.python.execFilename`, `codebook-md.javascript.execFilename`,
+  `codebook-md.typescript.execFilename`, and
+  `codebook-md.go.excludeOutputPrefixes` - all read by the language modules but
+  never declared
+- Tests that guard each class of drift: settings keys read by language modules
+  must exist in `package.json`, commands must be declared and registered in both
+  directions, and every command the modal suggests must round-trip through the
+  parser to a changed value
+
+### Changed
+
+- **`codebook-md.python.pythonCmd` is deprecated in favour of
+  `codebook-md.python.execCmd`**, matching `sql`/`http` and the name the code has
+  always read. The old name is still honored as a fallback
+- In-cell `[>]` commands are now the most specific configuration layer and are
+  applied last. They are the only configuration visible in the notebook itself,
+  so a sidecar config file no longer silently overrides them
+- `.execPath` accepts the canonical `.execPath("./dir")` form in addition to the
+  legacy `.execPath: ./dir` form
+
 ## [0.21.4] - 2026-08-07
 
 ### Fixed

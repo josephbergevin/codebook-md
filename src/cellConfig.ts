@@ -2,6 +2,7 @@ import { NotebookCell, workspace, Uri } from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { writeDirAndFileSyncSafe } from './io';
+import { DEFAULT_EXEC_PATH } from './config';
 import { ExecutionHistoryEntry, ExecutionHistory } from './types/executionHistory';
 
 interface CellConfig {
@@ -249,7 +250,7 @@ export function getNotebookConfigPath(notebookUri: Uri): string {
 
   // If notebookConfigPath is not set, fall back to execPath
   if (!notebookConfigDir) {
-    notebookConfigDir = config.get<string>('execPath', './codebook-md/');
+    notebookConfigDir = config.get<string>('execPath', DEFAULT_EXEC_PATH);
   }
 
   // Get the notebook filename and create config filename
