@@ -122,11 +122,11 @@ export class Config {
   constructor(sqlConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.sql.output'), "--");
     this.execPath = config.getExecPath();
-    this.execFilename = sqlConfig?.get('execFilename') || 'codebook_md_exec.sql';
-    this.execFile = path.join(this.execPath, this.execFilename);
-    this.execCmd = sqlConfig?.get('execCmd') || '';
-    this.execOptions = sqlConfig?.get('execOptions') || [];
 
-    // add the afterExecution functions
+    const cellConfig = this.contentConfig.cellConfig;
+    this.execFilename = codebook.resolveSetting(cellConfig, sqlConfig, 'execFilename', 'codebook_md_exec.sql');
+    this.execFile = path.join(this.execPath, this.execFilename);
+    this.execCmd = codebook.resolveSetting(cellConfig, sqlConfig, 'execCmd', '');
+    this.execOptions = codebook.resolveSetting<string[]>(cellConfig, sqlConfig, 'execOptions', []);
   }
 }

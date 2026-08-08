@@ -72,9 +72,9 @@ export class Cell implements codebook.ExecutableCell {
       } else if (line.startsWith("import")) {
         this.importNumber++;
         this.imports.push(line);
-      } else if (line.startsWith("// [>].execPath:")) {
-        // set the execPath value to the line so we can use it later
-        this.config.execPath = line;
+      } else if (line.startsWith("// [>]")) {
+        // codebook command - already parsed into this.config by CodeBlockConfig,
+        // so keep it out of the generated Go source
         continue;
       } else if (this.parsingFunc) {
         this.outerScope += line;
@@ -294,44 +294,48 @@ export class Config {
   constructor(goConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell) {
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.go.output'), "//");
 
-    // Get the execution type configuration
-    this.execType = goConfig?.get<string>('execType') ?? 'run';
+    // Load cell-specific config saved by the config modal. resolveSetting gives
+    // it precedence over the workspace settings, which in turn beat the defaults.
+    const cellSpecificConfig = this.contentConfig.cellConfig as Partial<Config>;
 
-    // Get the run configuration
-    const runConfig = goConfig?.get<{ execPath: string; filename: string; }>('execTypeRunConfig') ?? {
-      execPath: ".",
-      filename: "main.go"
+    // Get the execution type configuration
+    this.execType = codebook.resolveSetting(cellSpecificConfig, goConfig, 'execType', 'run');
+
+    // Get the run configuration - spread into a fresh object, since the command
+    // parsing below mutates it and the source may be VS Code's cached config
+    this.execTypeRunConfig = {
+      ...codebook.resolveSetting(cellSpecificConfig, goConfig, 'execTypeRunConfig', {
+        execPath: ".",
+        filename: "main.go"
+      })
     };
-    this.execTypeRunConfig = runConfig;
 
     // Get the test configuration
-    const testConfig = goConfig?.get<{ execPath: string; filename: string; buildTag: string; }>('execTypeTestConfig') ?? {
-      execPath: ".",
-      filename: "codebook_md_exec_test.go",
-      buildTag: "playground"
+    this.execTypeTestConfig = {
+      ...codebook.resolveSetting(cellSpecificConfig, goConfig, 'execTypeTestConfig', {
+        execPath: ".",
+        filename: "codebook_md_exec_test.go",
+        buildTag: "playground"
+      })
     };
-    this.execTypeTestConfig = testConfig;
 
     this.execPath = '';
     this.execFile = "";
     this.execFilename = "";
     this.execPkg = "";
-    this.goimportsCmd = goConfig?.get<string>('goimportsCmd') ?? 'gopls imports';
+    this.goimportsCmd = codebook.resolveSetting(cellSpecificConfig, goConfig, 'goimportsCmd', 'gopls imports');
     this.useGoimports = this.goimportsCmd === 'goimports';
     this.execCmd = "";
     this.execArgs = [];
-    this.excludeOutputPrefixes = goConfig?.get<string[]>('excludeOutputPrefixes') ?? [];
-
-    // Load cell-specific config from metadata if available
-    const cellSpecificConfig = this.contentConfig.cellConfig as Partial<Config>;
+    this.excludeOutputPrefixes = codebook.resolveSetting<string[]>(
+      cellSpecificConfig, goConfig, 'excludeOutputPrefixes', []);
 
     // loop through the codebook commands - these have been cleaned up (trimmed off the // [>] prefix)
     // use any specified config settings to override the defaults
     this.contentConfig.commands.forEach((command) => {
-      // Parse configuration comments
-      if (command.startsWith('.execPath:')) {
-        this.execPath = command; // This might be overridden by cellSpecificConfig or execType logic
-      } else if (command.startsWith('.execTypeRunFilename(')) {
+      // Parse configuration comments. '.execPath' is handled by CodeBlockConfig
+      // and applied at the end of this constructor, once execType has settled.
+      if (command.startsWith('.execTypeRunFilename(')) {
         const match = command.match(/\.execTypeRunFilename\("([^"]+)"\)/);
         if (match) {
           this.execTypeRunConfig.filename = match[1];
@@ -383,15 +387,9 @@ export class Config {
       }
     });
 
-    // Apply cell-specific config from metadata, which can override defaults or comment-based settings
-    if (cellSpecificConfig) {
-      if (cellSpecificConfig.execPathTest) {
-        this.execPathTest = cellSpecificConfig.execPathTest;
-      }
-      // If execType is provided in cell config, use it
-      if (cellSpecificConfig.execType) {
-        this.execType = cellSpecificConfig.execType as string;
-      }
+    // execPathTest has no workspace-settings equivalent, so it is read directly
+    if (cellSpecificConfig?.execPathTest) {
+      this.execPathTest = cellSpecificConfig.execPathTest;
     }
 
     if (this.execType === 'test') {
@@ -417,6 +415,14 @@ export class Config {
       this.execFilename = this.execTypeRunConfig.filename;
       this.execFile = path.join(this.execPath, this.execFilename);
       this.execCmd = 'run';
+    }
+
+    // An in-cell `[>].execPath` command is the most specific setting there is,
+    // so it wins over both execType configs and the workspace settings.
+    const cellExecPath = this.contentConfig.execPath;
+    if (cellExecPath !== '') {
+      this.execPath = cellExecPath;
+      this.execFile = path.join(this.execPath, this.execFilename);
     }
   }
 }

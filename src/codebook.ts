@@ -951,6 +951,56 @@ export function ProcessNotebookCell(cell: NotebookCell, ...prefixes: string[]): 
   return innerScope;
 }
 
+// resolveSetting resolves a language setting through its precedence layers:
+// the config saved for this specific cell (via the config modal) wins, then the
+// language's workspace settings, then the built-in default.
+//
+// `undefined` at a layer means "not set there", so a more specific layer can
+// override a less specific one in either direction.
+export function resolveSetting<T>(
+  cellConfig: any,
+  languageConfig: WorkspaceConfiguration | undefined,
+  key: string,
+  fallback: T,
+): T {
+  const fromCell = cellConfig?.[key];
+  if (fromCell !== undefined) {
+    return fromCell as T;
+  }
+  return languageConfig?.get<T>(key) ?? fallback;
+}
+
+// OutputCommandPrefix is the namespace for in-cell output commands, e.g.
+// `// [>].output.showTimestamp(true)`. Commands are parsed by OutputConfig.
+export const OutputCommandPrefix = ".output.";
+
+// ExecPathCommand is the in-cell command name used to override the directory a
+// cell executes from, e.g. `// [>].execPath("./scratch")`.
+export const ExecPathCommand = ".execPath";
+
+// parseExecPathCommand extracts the execution path from a cell's [>] commands.
+// Two syntaxes are accepted:
+//
+//   .execPath("./relative/path")  - the canonical form, suggested by the config modal
+//   .execPath: ./relative/path    - the legacy form, still present in existing notebooks
+//
+// An empty value resolves to "" (meaning "not set") so that a placeholder such
+// as `.execPath("")` is inert rather than being taken as a literal directory name.
+export function parseExecPathCommand(commands: string[]): string {
+  const command = commands.find(cmd => cmd.startsWith(ExecPathCommand));
+  if (!command) {
+    return "";
+  }
+
+  const quoted = command.match(/^\.execPath\(\s*"([^"]*)"\s*\)/);
+  if (quoted) {
+    return quoted[1].trim();
+  }
+
+  const colon = command.match(/^\.execPath:\s*(.+)$/);
+  return colon ? colon[1].trim() : "";
+}
+
 // CodeBlockConfig is a class that contains the configuration for the content of a cell
 export class CodeBlockConfig {
   notebookCell: NotebookCell | undefined; // the notebook cell
@@ -995,45 +1045,84 @@ export class CodeBlockConfig {
 
     this.innerScope = this.innerScope.trim();
 
-    this.execPath = this.commands.find(command => command.startsWith(".execPath"))?.split(" ").pop() || "";
+    this.execPath = parseExecPathCommand(this.commands);
     // get the cell configuration from the cell
     this.cellConfig = getCellConfig(notebookCell);
     this.outputConfig = new OutputConfig(languageOutputConfig, this.commands, this.cellConfig);
+    this.warnOnUnknownCommands();
   }
 
-  // availableCommands returns the available commands for the command based on the given languageId
-  // and the commands in the configuration
+  // knownCommandPrefixes returns the [>] command names this cell's language
+  // understands. Used to surface typos rather than dropping them silently.
+  private knownCommandPrefixes(): string[] {
+    const names = [ExecPathCommand];
+    if (this.languageId === languageGo.nameId) {
+      names.push(
+        ".execType",
+        ".goimportsCmd",
+        ".excludeOutputPrefixes",
+      );
+    }
+    return names;
+  }
+
+  // warnOnUnknownCommands notifies the user about [>] commands that no parser
+  // will claim. '.output.' commands are excluded here because OutputConfig
+  // validates those itself and reports its own, more specific message.
+  private warnOnUnknownCommands(): void {
+    const known = this.knownCommandPrefixes();
+    this.commands
+      .filter(command => !command.startsWith(OutputCommandPrefix))
+      .filter(command => !known.some(name => command.startsWith(name)))
+      .forEach(command => window.showWarningMessage(`codebook-md: unknown command: ${command}`));
+  }
+
+  // availableCommands returns the [>] commands that are valid for this cell's
+  // language and not already present in the cell.
+  //
+  // The strings returned here are inserted verbatim into the cell by the config
+  // modal, so each one MUST be in a syntax that the corresponding parser
+  // accepts - output commands are namespaced under '.output.' (see OutputConfig)
+  // and execPath uses the quoted form (see parseExecPathCommand).
   availableCommands(): string[] {
     const outputConfig = workspace.getConfiguration('codebook-md.output');
     const outputConfigJson = JSON.stringify(outputConfig);
     const outputConfigKeys = Object.keys(JSON.parse(outputConfigJson));
 
-    // add "execPath" to the outputConfigKeys
-    outputConfigKeys.push(`execPath("")`);
+    const availableCommands: string[] = [];
 
-    // if this.languageId is 'go', add the go specific commands
-    if (this.languageId === languageGo.nameId) {
-      outputConfigKeys.push(`execTypeRunFilename("")`);
-      outputConfigKeys.push(`execTypeTestFilename("")`);
-      outputConfigKeys.push(`execTypeTestBuildTag("")`);
-      outputConfigKeys.push(`goimportsCmd("")`);
-      outputConfigKeys.push(`excludeOutputPrefixes([])`);
+    // notAlreadySet reports whether the cell is missing the given command name
+    const notAlreadySet = (name: string): boolean =>
+      this.commands.find(command => command.startsWith(name)) === undefined;
+
+    for (const key of outputConfigKeys) {
+      const name = `${OutputCommandPrefix}${key}`;
+      if (notAlreadySet(name)) {
+        availableCommands.push(key === "timestampTimezone" ? `${name}("UTC")` : `${name}(true)`);
+      }
     }
 
-    const availableCommands: string[] = [];
-    // loop through the outputConfigKeys, if not found in this.commands, add to availableCommands with prefix with // [>].out.
-    for (const key of outputConfigKeys) {
-      if (this.commands.find(command => command.startsWith(key)) === undefined) {
-        // add the command to the availableCommands
-        // if the command is missing the () at the end, we'll add it with true
-        if (key.endsWith(")")) {
-          availableCommands.push(`.${key}`);
-        } else if (key.endsWith("timestampTimezone")) {
-          availableCommands.push(`.${key}("UTC")`);
-        } else {
-          availableCommands.push(`.${key}(true)`);
+    // execPath applies to every language, and is not part of the output config
+    if (notAlreadySet(ExecPathCommand)) {
+      availableCommands.push(`${ExecPathCommand}("./relative/path")`);
+    }
+
+    // if this.languageId is 'go', add the go specific commands - these are
+    // suggested with real defaults rather than empty placeholders, since the
+    // parsers in languages/go.ts require a non-empty value to match
+    if (this.languageId === languageGo.nameId) {
+      const goCommands = [
+        `.execTypeRunFilename("main.go")`,
+        `.execTypeTestFilename("codebook_md_exec_test.go")`,
+        `.execTypeTestBuildTag("playground")`,
+        `.goimportsCmd("gopls imports")`,
+        `.excludeOutputPrefixes([])`,
+      ];
+      goCommands.forEach(command => {
+        if (notAlreadySet(command.split("(")[0])) {
+          availableCommands.push(command);
         }
-      }
+      });
     }
 
     return availableCommands;
@@ -1136,42 +1225,54 @@ export class OutputConfig {
       });
     }
 
-    // if the commands include any in-line output config, collect them
-    const outputCommands = commands.filter(command => command.startsWith(".output."));
-    if (outputCommands.length > 0) {
-      outputCommands.forEach(command => {
-        switch (command) {
-          case ".output.showExecutableCodeInOutput(true)":
-            this.showExecutableCodeInOutput = true;
-            break;
-          case ".output.showExecutableCodeInOutput(false)":
-            this.showExecutableCodeInOutput = false;
-            break;
-          case ".output.replaceOutputCell(true)":
-            this.replaceOutputCell = true;
-            break;
-          case ".output.replaceOutputCell(false)":
-            this.replaceOutputCell = false;
-            break;
-          case ".output.showTimestamp(true)":
-            this.showTimestamp = true;
-            break;
-          case ".output.showTimestamp(false)":
-            this.showTimestamp = false;
-            break;
-          default:
-            // if the command is not recognized, send a warning notification
-            window.showWarningMessage(`output command unknown: ${command}`);
-        }
-      });
-    }
-
     // Layer 3: the configuration saved for this specific cell by the config modal,
     // stored alongside the notebook in '<notebook>.config.json'.
     if (cellConfig && cellConfig.output) {
       console.log(`checking for cell config overrides - cellConfig.output: ${JSON.stringify(cellConfig.output)}`);
       this.applyOverrides(cellConfig.output as OutputConfigOverrides);
     }
+
+    // Layer 4: the in-cell [>] commands. These are applied last because they are
+    // the most specific - and the only layer visible in the notebook itself, so
+    // they should never be silently overridden by a sidecar config file.
+    this.applyOutputCommands(commands);
+  }
+
+  // applyOutputCommands parses the in-cell `[>].output.*` commands, e.g.
+  // `// [>].output.showTimestamp(false)` or `// [>].output.timestampTimezone("MDT")`.
+  private applyOutputCommands(commands: string[]): void {
+    const outputCommands = commands.filter(command => command.startsWith(OutputCommandPrefix));
+
+    outputCommands.forEach(command => {
+      const match = command.match(/^\.output\.(\w+)\((.*)\)$/);
+      if (!match) {
+        window.showWarningMessage(`output command unknown: ${command}`);
+        return;
+      }
+
+      const [, key, rawValue] = match;
+      // accept both `(true)` and `("UTC")` - strip the optional quotes
+      const value = rawValue.trim().replace(/^"(.*)"$/, '$1');
+      const asBool = value === 'true' ? true : value === 'false' ? false : undefined;
+
+      switch (key) {
+        case 'showExecutableCodeInOutput':
+        case 'replaceOutputCell':
+        case 'showTimestamp':
+          if (asBool === undefined) {
+            window.showWarningMessage(`output command '${key}' expects true or false, got: ${rawValue}`);
+            return;
+          }
+          this.applyOverrides({ [key]: asBool });
+          break;
+        case 'timestampTimezone':
+          this.applyOverrides({ timestampTimezone: value });
+          break;
+        default:
+          // if the command is not recognized, send a warning notification
+          window.showWarningMessage(`output command unknown: ${command}`);
+      }
+    });
   }
 
   // applyOverrides layers a single configuration source on top of the current
