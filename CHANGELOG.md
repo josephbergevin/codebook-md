@@ -4,6 +4,25 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.6] - 2026-08-08
+
+### Fixed
+
+- **Only one markdown notebook could be open at a time.** The notebook editor
+  was contributed with `"priority": "default"`, which registered codebook-md as
+  the *default* editor for every `*.md` file. When another notebook provider was
+  present (e.g. Microsoft's Markdown Notebook, view type `markdown-notebook`),
+  two default providers competed for the same file pattern. Because VS Code binds
+  at most one notebook view type per file URI, this produced errors such as
+  *"A notebook with view type 'markdown-notebook' already exists ... CANNOT create
+  another notebook with view type codebook-md"* (and the mirror-image error),
+  broke opening subsequent markdown files as notebooks, and also broke the
+  Microsoft extension. The contribution now uses `"priority": "option"`, so
+  markdown files open as codebook notebooks through **Open With**, the
+  **My Notebooks** view, or the **New Notebook** command without hijacking the
+  default editor. Users who want `.md` to open as a codebook notebook by default
+  can set `workbench.editorAssociations` (see the README).
+
 ## [0.21.5] - 2026-08-08
 
 An audit of cell execution and the settings surface. Findings and the full
