@@ -186,6 +186,7 @@ export class Config {
     this.execFilename = httpConfig?.get('execFilename') || 'codebook_md_exec_http.sh';
     this.execFile = path.join(this.execPath, this.execFilename);
     this.execCmd = httpConfig?.get('execCmd') || 'curl';
-    this.verbose = httpConfig?.get('verbose') || true;
+    // `??` rather than `||` so that an explicit `verbose: false` is honored
+    this.verbose = httpConfig?.get<boolean>('verbose') ?? true;
   }
 }
