@@ -17,3 +17,21 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 **/.vscode-test.*
+
+# Local scratch directories - untracked, never part of a release
+tooling/**
+apiplayground/**
+codebook-md/**
+
+# Test scaffolding
+test/**
+__mocks__/**
+jest.config.js
+eslint.config.mjs
+
+# Image assets: the repo keeps the full set for docs and design history,
+# but only the three referenced at runtime need to ship in the VSIX.
+extension/src/img/**
+!extension/src/img/logo_3_128x128.png
+!extension/src/img/logo_3_800x800.png
+!extension/src/img/icon_logo_v1.svg

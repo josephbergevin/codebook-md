@@ -4,6 +4,14 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.4] - 2026-08-07
+
+### Fixed
+
+- **Extension package size reduced from 5.2 MB to ~1.3 MB:**
+  - `.vscodeignore` did not cover `extension/src/img/**`, local scratch directories (`tooling/`, `apiplayground/`, `codebook-md/`), or test scaffolding (`test/`, `__mocks__/`, `jest.config.js`, `eslint.config.mjs`), so all of it shipped to both registries
+  - The VSIX now carries only the three image assets referenced at runtime; the repository keeps the full set for docs and design history
+
 ## [0.21.3] - 2026-08-07
 
 ### Fixed
