@@ -824,5 +824,108 @@ This is the main content.`;
     expect(cells[1].kind).toBe(1); // NotebookCellKind.Markup
     expect(cells[1].language).toBe('markdown');
     expect(cells[1].content).toBe('# Main Content\n\nThis is the main content.');
+
+    // The Front Matter cell must be flagged so the serializer can restore its delimiters
+    expect(cells[0].isFrontMatter).toBe(true);
+    expect(cells[1].isFrontMatter).toBeUndefined();
+  });
+});
+
+describe('Front Matter serialization', () => {
+  // NotebookCellKind values from the vscode mock at the top of this file
+  const markup = 1;
+  const code = 2;
+
+  // markupCell/codeCell build the minimal NotebookCellData shape writeCellsToMarkdown reads
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const markupCell = (value: string, metadata?: Record<string, unknown>): any => ({
+    kind: markup, languageId: 'markdown', value, metadata, outputs: []
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const codeCell = (value: string, languageId: string): any => ({
+    kind: code, languageId, value, metadata: {}, outputs: []
+  });
+
+  it('re-attaches hidden Front Matter when serializing', () => {
+    const cells = [
+      markupCell('# Main Content'),
+      codeCell('print("Hello, World!")', 'python'),
+    ];
+
+    const result = codebook.writeCellsToMarkdown(cells, 'mode: "agent"\nmodel: Claude Sonnet 4');
+
+    expect(result).toBe([
+      '---',
+      'mode: "agent"',
+      'model: Claude Sonnet 4',
+      '---',
+      '',
+      '# Main Content',
+      '',
+      '```python',
+      'print("Hello, World!")',
+      '```',
+    ].join('\n'));
+  });
+
+  it('serializes a shown Front Matter cell with its delimiters restored', () => {
+    const cells = [
+      markupCell('mode: "agent"', { codebookFrontMatter: true }),
+      markupCell('# Main Content'),
+    ];
+
+    const result = codebook.writeCellsToMarkdown(cells);
+
+    expect(result).toBe('---\nmode: "agent"\n---\n\n# Main Content');
+  });
+
+  it('does not duplicate Front Matter when a Front Matter cell is present', () => {
+    const cells = [
+      markupCell('mode: "agent"', { codebookFrontMatter: true }),
+      markupCell('# Main Content'),
+    ];
+
+    // The cell is the source of truth - stale hidden Front Matter must be ignored
+    const result = codebook.writeCellsToMarkdown(cells, 'mode: "stale"');
+
+    expect(result).toBe('---\nmode: "agent"\n---\n\n# Main Content');
+    expect(result).not.toContain('stale');
+  });
+
+  it('leaves markdown unchanged when there is no Front Matter', () => {
+    const cells = [markupCell('# Main Content')];
+
+    expect(codebook.writeCellsToMarkdown(cells)).toBe('# Main Content');
+    expect(codebook.writeCellsToMarkdown(cells, '')).toBe('# Main Content');
+    expect(codebook.writeCellsToMarkdown(cells, '   ')).toBe('# Main Content');
+  });
+
+  it('does not double up delimiters typed into the Front Matter cell', () => {
+    const cells = [
+      markupCell('---\nmode: "agent"\n---', { codebookFrontMatter: true }),
+      markupCell('# Main Content'),
+    ];
+
+    expect(codebook.writeCellsToMarkdown(cells)).toBe('---\nmode: "agent"\n---\n\n# Main Content');
+  });
+
+  it('writes Front Matter for a document with no other content', () => {
+    expect(codebook.writeCellsToMarkdown([], 'mode: "agent"')).toBe('---\nmode: "agent"\n---');
+  });
+
+  it('parseFrontMatterFromContent extracts the Front Matter body', () => {
+    const content = '---\nmode: "agent"\n---\n\n# Main Content';
+
+    const result = codebook.parseFrontMatterFromContent(content);
+
+    expect(result.hasFrontMatter).toBe(true);
+    expect(result.content).toBe('mode: "agent"');
+    expect(result.endIndex).toBe(3);
+  });
+
+  it('parseFrontMatterFromContent ignores an unterminated Front Matter block', () => {
+    const content = '---\nmode: "agent"\n\n# Main Content';
+
+    expect(codebook.parseFrontMatterFromContent(content).hasFrontMatter).toBe(false);
   });
 });

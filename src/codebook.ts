@@ -34,7 +34,17 @@ export interface RawNotebookCell {
   content: string;
   kind: NotebookCellKind;
   outputs?: [unknown];
+  // isFrontMatter marks the cell as the YAML Front Matter block of the document.
+  // Set only when the frontMatter.showInNotebook setting is enabled; it tells the
+  // serializer to write the cell back out wrapped in --- delimiters.
+  isFrontMatter?: boolean;
 }
+
+// Metadata key used to carry the Front Matter flag on a NotebookCellData, and the
+// key used to stash hidden Front Matter on NotebookData/NotebookDocument metadata.
+// Both are needed so Front Matter survives a deserialize/serialize round trip.
+export const frontMatterCellMetadataKey = 'codebookFrontMatter';
+export const frontMatterNotebookMetadataKey = 'codebookFrontMatter';
 
 // Cell is an interface that defines the methods that a cell must implement
 export interface ExecutableCell {
@@ -366,6 +376,58 @@ function isCodeBlockEndLine(line: string): boolean {
   return !!line.match(/^\s*```/);
 }
 
+// FrontMatterResult describes the YAML Front Matter found at the top of a markdown
+// document. content excludes the surrounding --- delimiters; endIndex is the index of
+// the first line after the closing delimiter.
+export interface FrontMatterResult {
+  hasFrontMatter: boolean;
+  endIndex: number;
+  content?: string;
+}
+
+// parseFrontMatter detects and extracts the YAML Front Matter block at the top of the
+// given lines. An opening --- with no closing --- is not Front Matter and is left to be
+// parsed as regular markdown content.
+export function parseFrontMatter(lines: string[]): FrontMatterResult {
+  // Front Matter must start at the very beginning of the file
+  if (lines.length === 0 || lines[0].trim() !== '---') {
+    return { hasFrontMatter: false, endIndex: 0 };
+  }
+
+  // Look for the closing --- marker
+  for (let j = 1; j < lines.length; j++) {
+    if (lines[j].trim() === '---') {
+      // Found closing marker, extract Front Matter content
+      const frontMatterContent = lines.slice(1, j).join('\n');
+      return {
+        hasFrontMatter: true,
+        endIndex: j + 1, // Start parsing after the closing ---
+        content: frontMatterContent
+      };
+    }
+  }
+
+  // If we reach here, there's an opening --- but no closing ---, treat as regular content
+  return { hasFrontMatter: false, endIndex: 0 };
+}
+
+// parseFrontMatterFromContent is a convenience wrapper around parseFrontMatter that
+// takes the raw document content instead of pre-split lines.
+export function parseFrontMatterFromContent(content: string): FrontMatterResult {
+  return parseFrontMatter(content.split(/\r?\n/g));
+}
+
+// shouldShowFrontMatter reports whether the user wants the Front Matter block surfaced
+// as a cell in the notebook. Defaults to hidden.
+export function shouldShowFrontMatter(): boolean {
+  try {
+    const config = workspace.getConfiguration('codebook-md.frontMatter');
+    return config.get('showInNotebook', false);
+  } catch {
+    return false; // Default to hidden if config access fails
+  }
+}
+
 export function parseMarkdown(content: string): RawNotebookCell[] {
   const lines = content.split(/\r?\n/g);
   const cells: RawNotebookCell[] = [];
@@ -380,51 +442,19 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
   if (frontMatterResult.hasFrontMatter) {
     i = frontMatterResult.endIndex;
 
-    // Check if user wants to show Front Matter in notebook
-    const shouldShowFrontMatter = getShouldShowFrontMatter();
-    if (shouldShowFrontMatter && frontMatterResult.content) {
+    // Check if user wants to show Front Matter in notebook. When hidden, the Front
+    // Matter is carried on the notebook metadata instead (see deserializeNotebook) so
+    // that serializing the notebook back to markdown doesn't drop it.
+    if (shouldShowFrontMatter() && frontMatterResult.content) {
       cells.push({
         language: 'yaml',
         content: frontMatterResult.content,
         kind: NotebookCellKind.Markup,
         leadingWhitespace: '',
-        trailingWhitespace: ''
+        trailingWhitespace: '',
+        isFrontMatter: true
       });
     }
-  }
-
-  // Helper function to get Front Matter visibility setting
-  function getShouldShowFrontMatter(): boolean {
-    try {
-      const config = workspace.getConfiguration('codebook-md.frontMatter');
-      return config.get('showInNotebook', false);
-    } catch {
-      return false; // Default to hidden if config access fails
-    }
-  }
-
-  // Helper function to detect and parse Front Matter
-  function parseFrontMatter(lines: string[]): { hasFrontMatter: boolean; endIndex: number; content?: string; } {
-    // Front Matter must start at the very beginning of the file
-    if (lines.length === 0 || lines[0].trim() !== '---') {
-      return { hasFrontMatter: false, endIndex: 0 };
-    }
-
-    // Look for the closing --- marker
-    for (let j = 1; j < lines.length; j++) {
-      if (lines[j].trim() === '---') {
-        // Found closing marker, extract Front Matter content
-        const frontMatterContent = lines.slice(1, j).join('\n');
-        return {
-          hasFrontMatter: true,
-          endIndex: j + 1, // Start parsing after the closing ---
-          content: frontMatterContent
-        };
-      }
-    }
-
-    // If we reach here, there's an opening --- but no closing ---, treat as regular content
-    return { hasFrontMatter: false, endIndex: 0 };
   }
 
   // Each parse function starts with line i, leaves i on the line after the last line parsed
@@ -534,12 +564,40 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
   return cells;
 }
 
+// formatFrontMatter wraps the given Front Matter body in --- delimiters. Returns an
+// empty string when there is nothing to write.
+function formatFrontMatter(content: string | undefined): string {
+  const trimmed = content?.trim();
+  if (!trimmed) {
+    return '';
+  }
+  // The content may already carry its delimiters if the user typed them into the
+  // Front Matter cell - don't double them up
+  const alreadyDelimited = parseFrontMatter(trimmed.split(/\r?\n/g)).hasFrontMatter;
+  if (alreadyDelimited) {
+    return trimmed;
+  }
+  return '---\n' + trimmed + '\n---';
+}
+
 const stringDecoder = new TextDecoder();
-export function writeCellsToMarkdown(cells: ReadonlyArray<NotebookCellData>): string {
+
+// writeCellsToMarkdown serializes notebook cells back to markdown.
+//
+// hiddenFrontMatter is the document's Front Matter when it is *not* represented as a
+// cell (the frontMatter.showInNotebook setting is off). It is re-emitted at the top of
+// the document so that saving the notebook - which happens implicitly when reopening it
+// with the text editor - doesn't delete the Front Matter. When the Front Matter *is*
+// shown as a cell, that cell is the source of truth and this argument is ignored.
+export function writeCellsToMarkdown(cells: ReadonlyArray<NotebookCellData>, hiddenFrontMatter?: string): string {
   let result = '';
+  const hasFrontMatterCell = cells.some(cell => cell.metadata?.[frontMatterCellMetadataKey] === true);
   cells.forEach(cell => {
     result += "\n\n";
-    if (cell.kind === NotebookCellKind.Code) {
+    if (cell.metadata?.[frontMatterCellMetadataKey] === true) {
+      // Restore the --- delimiters that were stripped when the cell was created
+      result += formatFrontMatter(cell.value);
+    } else if (cell.kind === NotebookCellKind.Code) {
       let outputParsed = "";
       if (cell.outputs) {
         for (const x of cell.outputs) {
@@ -569,7 +627,17 @@ export function writeCellsToMarkdown(cells: ReadonlyArray<NotebookCellData>): st
   });
   // Each cell adds a newline at the start to keep spacing between code blocks correct,
   // so we'll remove the first newline on the way out
-  return result.substring(2);
+  const body = result.substring(2);
+
+  // Re-attach Front Matter that was hidden from the notebook
+  if (!hasFrontMatterCell) {
+    const frontMatter = formatFrontMatter(hiddenFrontMatter);
+    if (frontMatter) {
+      return body ? frontMatter + '\n\n' + body : frontMatter;
+    }
+  }
+
+  return body;
 }
 
 // permalinkToVSCodeScheme returns the permalink converted to a CodeDocument object

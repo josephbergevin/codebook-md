@@ -4,6 +4,22 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.7] - 2026-08-17
+
+### Fixed
+
+- **Front matter was deleted when saving a notebook.** With
+  `codebook-md.frontMatter.showInNotebook` off (the default), the deserializer
+  stripped the YAML front matter block and no cell carried it, so the serializer
+  had nothing to write back - any save rewrote the markdown file without its
+  front matter. The most visible trigger was the **Text** toolbar button
+  ("Reopen Editor with Text Editor"): reopening a modified notebook saves it
+  first, so the front matter vanished on the way to the text editor. Hidden
+  front matter is now kept on the notebook metadata and re-emitted at the top of
+  the file on every save. With `showInNotebook` on, the front matter cell is
+  serialized back inside its `---` delimiters instead of being flattened into a
+  plain markdown paragraph.
+
 ## [0.21.6] - 2026-08-08
 
 ### Fixed
