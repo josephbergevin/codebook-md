@@ -1240,7 +1240,11 @@ import matplotlib.pyplot as plt
           <li>Enable "Front Matter: Show In Notebook"</li>
           <li>Front matter will appear as an editable cell at the top of your notebook</li>
         </ol>
-        
+        <p><strong>Note:</strong> Front matter is preserved either way. When it is hidden from the
+          notebook, CodebookMD keeps it on the notebook's metadata and writes it back to the top of
+          the markdown file on save - including the implicit save that happens when you reopen the
+          notebook with the text editor via the <strong>Text</strong> toolbar button.</p>
+
         <h3>Supported Front Matter Fields</h3>
         <p>While you can include any YAML content in front matter, CodebookMD recognizes several special fields:</p>
         

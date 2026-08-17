@@ -313,7 +313,8 @@ export function rawToNotebookCellData(data: codebook.RawNotebookCell): NotebookC
     metadata: {
       leadingWhitespace: data.leadingWhitespace,
       trailingWhitespace: data.trailingWhitespace,
-      indentation: data.indentation
+      indentation: data.indentation,
+      [codebook.frontMatterCellMetadataKey]: data.isFrontMatter === true
     },
     outputs: data.outputs || [],
     value: data.content,
@@ -328,16 +329,26 @@ class MarkdownProvider implements NotebookSerializer {
     const content = Buffer.from(data).toString('utf8');
     const cellRawData = codebook.parseMarkdown(content);
     const cells = cellRawData.map(rawToNotebookCellData);
-    return {
-      cells
-    };
+    const notebookData: NotebookData = { cells };
+
+    // When Front Matter is hidden from the notebook it isn't represented by any cell,
+    // so stash it on the notebook metadata. serializeNotebook writes it back out,
+    // otherwise saving the notebook (which happens when reopening it with the text
+    // editor) would silently delete the Front Matter from the markdown file.
+    const frontMatter = codebook.parseFrontMatterFromContent(content);
+    if (frontMatter.hasFrontMatter && frontMatter.content && !codebook.shouldShowFrontMatter()) {
+      notebookData.metadata = { [codebook.frontMatterNotebookMetadataKey]: frontMatter.content };
+    }
+
+    return notebookData;
   }
 
   serializeNotebook(data: NotebookData, token: CancellationToken): Uint8Array | Thenable<Uint8Array> {
     if (token.isCancellationRequested) {
       return Promise.resolve(new Uint8Array());
     }
-    return Buffer.from(codebook.writeCellsToMarkdown(data.cells));
+    const hiddenFrontMatter = data.metadata?.[codebook.frontMatterNotebookMetadataKey] as string | undefined;
+    return Buffer.from(codebook.writeCellsToMarkdown(data.cells, hiddenFrontMatter));
   }
 }
 
