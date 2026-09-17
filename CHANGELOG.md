@@ -4,6 +4,27 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.8] - 2026-09-17
+
+### Fixed
+
+- **Cell output repeated itself while a command was running.** Single-command
+  cells (most visibly long-running shell commands) rendered a growing stack of
+  output blocks, each one repeating everything before it. The per-language
+  output settings (e.g. `codebook-md.bash.output.replaceOutputCell`) declare no
+  default, and VS Code reports an unset boolean setting as `false` rather than
+  "not set" - so every language silently overrode the global
+  `codebook-md.output.replaceOutputCell: true` and ran in append mode, where
+  each streamed chunk appends another cumulative copy of the output.
+  Language-level settings now only apply when you have actually set them.
+- **Timestamps and the executed command were missing from cell output.** Same
+  cause: `showTimestamp` and `showExecutableCodeInOutput` were being forced off
+  for every language regardless of the global setting. Both now follow
+  `codebook-md.output.*` again unless overridden for the language or the cell.
+
+> Versions 0.21.6 and 0.21.7 were not published to the Marketplace or Open VSX;
+> their fixes ship for the first time in this release.
+
 ## [0.21.7] - 2026-08-17
 
 ### Fixed
