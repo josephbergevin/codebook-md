@@ -1,104 +1,173 @@
 ---
 name: release-extension
-description: Cut a CodebookMD release — bump the version, update the changelog, package, and publish to the VS Code Marketplace and Open VSX. Use when asked to release, publish, ship a version, or bump the extension version.
+description: Take finished work live — bump the version, write the changelog and README updates, open and merge the PR, then publish to the VS Code Marketplace and Open VSX and tag the release. Use when asked to release, publish, ship, go live, cut a version, or bump the extension version.
 ---
 
 # Release the Extension
 
-Publishing is manual and goes to two registries. Do not publish without
-explicit confirmation from the user — it is an outward-facing, irreversible
-action.
+This skill starts where the coding stops: the fix or feature is committed on a
+branch, and it needs to become a published version.
 
-## Preflight
-
-All three must be clean before anything else:
-
-```bash
-npm run lint
-npm test
-npm run compile
+```
+release commit  →  push + PR  →  CI green  →  merge  →  publish from main  →  tag
 ```
 
-Also confirm:
+Two ideas shape the order:
 
-- The working tree is clean and you are on `main` (or the release branch the
-  user names).
-- `README.md` and `src/webview/templates/documentation.html` describe every
-  user-facing change since the last release. Check `git log <last-tag>..HEAD`.
+- **The version bump is part of the release commit, not of publishing.** Never
+  run `vsce publish patch|minor|major` — that form bumps, commits (with a bare
+  `0.21.8` message and no context), tags, and publishes in one irreversible
+  call. Bump with `npm version --no-git-tag-version` instead, so the version,
+  changelog, and README land together in one reviewable commit, and
+  `vsce publish` (no argument) just ships whatever `package.json` says.
+- **Publish last, from `main`.** Publishing cannot be undone, so it happens
+  after CI has passed and the PR has merged. It also means the tag lands on a
+  commit that actually exists on `main` — the repo rebase-merges, so a tag made
+  on the branch would point at an orphan.
 
-## 1. Bump the version
+## 0. Preflight
 
-Edit `version` in `package.json`. Semver:
+```bash
+git status --short                          # clean, on the feature branch
+git fetch origin && git log --oneline origin/main..HEAD
+npm run lint && npm test && npm run compile
+npx vsce show josephbergevin.codebook-md    # version currently live
+```
+
+`git log origin/main..HEAD` is the content of this release — every entry in the
+changelog comes from it. If the branch is behind `origin/main`, rebase first.
+
+## 1. Pick the version
 
 - **patch** — bug fixes only
 - **minor** — new features, backward compatible
 - **major** — breaking changes to settings, commands, or config file format
 
-## 2. Update `CHANGELOG.md`
-
-Add a section for the new version at the top. Group entries by kind (Added,
-Changed, Fixed) and call out breaking changes explicitly. Derive entries from
-the commit log:
+Infer it from the commit types (`fix` → patch, `feat` → minor), say which you
+picked and why, and let the user override.
 
 ```bash
-git log --oneline <previous-version>..HEAD
+npm version patch --no-git-tag-version    # or minor / major
 ```
 
-## 3. Commit
+This updates `package.json` **and** `package-lock.json` together and creates no
+commit and no tag. Do not hand-edit the version — that is how the lockfile
+drifts.
 
-The repository history uses the bare version number as the message for
-version-bump commits:
+The new version must be greater than the live one from preflight. If
+`package.json` was already ahead of the Marketplace (an earlier release was
+bumped but never published), say so and ask whether to fold those entries into
+this release.
+
+## 2. Write the release notes
+
+Everything here describes the version from step 1:
+
+- **`CHANGELOG.md`** — new `## [x.y.z] - YYYY-MM-DD` section at the top, grouped
+  under Added / Changed / Fixed. Lead each entry with the user-visible symptom
+  in bold, then the cause and the fix. Call out breaking changes explicitly.
+- **`README.md`** — this is the Marketplace listing page; it is packaged as-is.
+  Update it for any user-facing change.
+- **`src/webview/templates/documentation.html`** — same changes, plus its index.
+
+Bug-fix-only releases usually touch only the changelog.
+
+## 3. Release commit
+
+One commit carries the bump and the notes:
 
 ```bash
-git commit -am "0.21.3"
+git add package.json package-lock.json CHANGELOG.md README.md src/webview/templates/documentation.html
+git commit -m "chore(release): 0.21.8"
 ```
 
-## 4. Package
+Give it a body summarizing the release when there is more than one change.
+
+## 4. Verify the package
 
 ```bash
-npm run package
+npx vsce package
+npx vsce ls | head -40
 ```
 
-This is the production webpack build (`webpack --mode production --devtool
-hidden-source-map`). `vscode:prepublish` runs it automatically, but running it
-first surfaces packaging problems before you touch a registry.
+`vsce package` runs the production build via `vscode:prepublish` and writes
+`codebook-md-<version>.vsix` (gitignored). Check that the file list has
+`dist/`, `README.md`, `CHANGELOG.md`, and nothing from `src/`, `.agents/`, or
+local scratch directories. Packaging respects `.vscodeignore`.
 
-Packaging respects `.vscodeignore`.
+This is a dry run — the artifact that ships is rebuilt from `main` in step 7.
 
-## 5. Publish
+## 5. Push and open the PR
 
-Confirm with the user before running either command.
+Pushing and opening a PR are outward-facing: confirm with the user unless they
+already asked for the full release.
 
 ```bash
-npm run publish:ovsx   # Open VSX Registry
-npx vsce publish       # VS Code Marketplace
+git push -u origin HEAD
+gh pr create --base main --title "<version> - <short summary>" --body "<changelog section>"
 ```
 
-Credentials:
+Title follows the existing PRs (`0.21.3 - vscode env var support & ws token
+vars`). The body is the new changelog section verbatim.
 
-- Open VSX — access token from
-  [open-vsx.org](https://open-vsx.org/user-settings/tokens). `ovsx` prompts if
-  it is not configured. The `-p <token>` form leaks into shell history; prefer
-  the prompt.
-- Marketplace — an Azure DevOps PAT for the `josephbergevin` publisher.
-
-Never write a token into a file or a committed script, and never echo one.
-
-## 6. Tag and push
+## 6. Wait for CI, then merge
 
 ```bash
-git tag v0.21.3
-git push origin main --tags
+gh pr checks --watch
+gh pr merge --rebase
 ```
 
-## Automating later
+Rebase-merge keeps the conventional commits intact on `main` (merge commits are
+disabled; squash would fold the release commit into the feature). The branch is
+deleted on merge. Never merge with failing or pending checks.
 
-CI (`.github/workflows/typescript-ci.yml`) currently only installs, lints, and
-tests. To automate publishing: add `OPEN_VSX_TOKEN` and `VSCE_PAT` to the
-repository secrets and add a workflow triggered on release creation that runs
-the publish commands.
+## 7. Publish from `main`
+
+```bash
+git switch main && git pull --ff-only
+npx vsce package
+```
+
+Confirm `package.json` on `main` shows the new version, then **stop and get an
+explicit yes from the user** — name the version and both registries. Then ship
+the same `.vsix` to both, so the registries are byte-identical:
+
+```bash
+npx vsce publish --packagePath codebook-md-<version>.vsix
+npx ovsx publish codebook-md-<version>.vsix
+```
+
+Credentials are the user's. `vsce` uses the PAT stored by `vsce login
+josephbergevin` (or `VSCE_PAT`); `ovsx` uses `OVSX_PAT`. If either command
+fails on auth, hand the command to the user to run — never ask for a token,
+never pass one with `-p` (it lands in shell history), never write one to a file.
+
+If the Marketplace publish succeeds and Open VSX fails, do not re-bump. Fix the
+cause and re-run only the `ovsx` command with the same `.vsix`.
+
+## 8. Tag and verify
+
+```bash
+git tag v<version>
+git push origin v<version>
+npx vsce show josephbergevin.codebook-md
+```
+
+The tag goes on the `main` commit that was published. Confirm `vsce show`
+reports the new version (the Marketplace can take a few minutes) before calling
+the release done.
+
+## If something goes wrong
+
+| Situation | What to do |
+| --- | --- |
+| CI fails on the PR | Fix on the branch, push, wait again. Nothing is published yet. |
+| Bug found after merge, before publish | Fix forward in a new PR; bump again only if the release commit is already on `main`. |
+| Bug found after publish | Published versions are permanent. Ship a new patch release. |
+| Version already exists on a registry | It was published earlier. Skip that registry; do not bump to work around it. |
 
 ## Related
 
 - [`.agents/references/publishing.md`](../../references/publishing.md)
+- [`.agents/references/git-conventions.md`](../../references/git-conventions.md)
 - [`PUBLISHING.md`](../../../PUBLISHING.md) — the user-facing guide

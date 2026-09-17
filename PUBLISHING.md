@@ -10,34 +10,54 @@ This guide describes how to publish the `codebook-md` extension to both the VS C
 
 ## Publishing
 
-### 1. Package the Extension
+The release flow is: release commit → PR → CI → merge → publish from `main` →
+tag. Publishing is irreversible, so it comes last.
 
-Before publishing, it's good practice to ensure the extension packages correctly.
+### 1. Bump the version and write the notes
 
 ```bash
-npm run package
+npm version patch --no-git-tag-version   # or minor / major
 ```
 
-### 2. Publish to Open VSX
-
-To publish to the Open VSX Registry, use the following command. You will be prompted for your Open VSX Access Token if it's not already configured.
+This updates `package.json` and `package-lock.json` without committing or
+tagging. Add the new version's section to `CHANGELOG.md`, update `README.md`
+(it becomes the Marketplace listing page) and the in-app documentation, then
+commit it all together:
 
 ```bash
-npm run publish:ovsx
+git commit -am "chore(release): 0.21.8"
 ```
 
-Or, providing the token via command line (be careful with history):
+Avoid `vsce publish patch|minor|major` — it bumps, commits, tags, and publishes
+in one step, so the version commit lands after the changelog that describes it.
+
+### 2. Open a PR and merge
+
+Push the branch, open a PR against `main`, wait for CI, and rebase-merge.
+
+### 3. Package and publish from `main`
 
 ```bash
-npm run publish:ovsx -- -p <YOUR_OPEN_VSX_TOKEN>
+git switch main && git pull --ff-only
+npx vsce package
 ```
 
-### 3. Publish to VS Code Marketplace
-
-(Assuming you have `vsce` installed globally or use `npx`)
+Publish the same `.vsix` to both registries:
 
 ```bash
-npx vsce publish
+npx vsce publish --packagePath codebook-md-0.21.8.vsix
+npx ovsx publish codebook-md-0.21.8.vsix
+```
+
+`vsce` uses the token stored by `vsce login josephbergevin` (or `VSCE_PAT`);
+`ovsx` uses `OVSX_PAT`. Avoid passing tokens with `-p` — they end up in shell
+history.
+
+### 4. Tag the release
+
+```bash
+git tag v0.21.8
+git push origin v0.21.8
 ```
 
 ## Automated Publishing (CI)
