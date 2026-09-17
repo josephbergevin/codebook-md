@@ -16,18 +16,29 @@ prompts for it if it is not already configured.
 
 ## Release checklist
 
+The order is: release commit → PR → CI → merge → publish from `main` → tag.
+The [release-extension](../skills/release-extension/SKILL.md) skill has the
+full procedure; this is the summary.
+
 1. `npm run lint` and `npm test` clean; `npm run compile` succeeds.
-2. Bump `version` in `package.json`.
+2. `npm version <patch|minor|major> --no-git-tag-version` — bumps
+   `package.json` and `package-lock.json` together, with no commit and no tag.
 3. Add a `CHANGELOG.md` entry for the new version, calling out breaking changes
-   explicitly.
-4. Confirm `README.md` and `src/webview/templates/documentation.html` cover any
-   new user-facing feature.
-5. Commit the bump with the bare version as the message (e.g. `0.21.3`), which
-   matches the existing history.
-6. `npm run package` — production webpack build. `vscode:prepublish` runs this
-   automatically, but running it first catches packaging problems early.
-7. `npm run publish:ovsx` — publish to Open VSX.
-8. `npx vsce publish` — publish to the VS Code Marketplace.
+   explicitly. Update `README.md` (it is the Marketplace listing page) and
+   `src/webview/templates/documentation.html` for any user-facing change.
+4. Commit the bump and the notes together as `chore(release): <version>`.
+5. `npx vsce package` and `npx vsce ls` — dry run to catch packaging problems.
+6. Push, open a PR titled `<version> - <summary>`, wait for CI, and
+   rebase-merge.
+7. On an up-to-date `main`: `npx vsce package`, then publish that one `.vsix` to
+   both registries — `npx vsce publish --packagePath <file>` and
+   `npx ovsx publish <file>`.
+8. `git tag v<version>` on the published `main` commit and push the tag.
+
+Never use `vsce publish patch|minor|major`. It bumps, commits, tags, and
+publishes in a single irreversible call, which puts the version commit after
+the changelog that describes it and tags a branch commit that rebase-merging
+then orphans.
 
 ## Notes
 

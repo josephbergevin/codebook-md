@@ -57,7 +57,11 @@ fix(config): resolve relative execPath against workspace root
 docs: add commit message guidelines to code conventions
 ```
 
-Version-bump commits are the bare version number (`0.21.2`).
+Release commits are `chore(release): <version>` and carry the version bump,
+changelog, and README updates together. Older history uses the bare version
+number (`0.21.2`), which is what `vsce publish <bump>` generates — see the
+[release-extension](../skills/release-extension/SKILL.md) skill for why that
+form is no longer used.
 
 ## Related documents
 
