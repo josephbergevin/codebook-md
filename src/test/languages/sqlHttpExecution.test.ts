@@ -25,6 +25,7 @@ function installSettings(tree: Record<string, Record<string, unknown>>): void {
       return {
         get: (key: string, defaultValue?: unknown) =>
           key in values ? values[key] : defaultValue,
+        inspect: (key: string) => ({ key, globalValue: values[key] }),
         update: jest.fn(),
       };
     }
