@@ -145,6 +145,17 @@ never pass one with `-p` (it lands in shell history), never write one to a file.
 If the Marketplace publish succeeds and Open VSX fails, do not re-bump. Fix the
 cause and re-run only the `ovsx` command with the same `.vsix`.
 
+The agent's permission mode may refuse to run the publish commands at all. Do
+not work around that — give the user the two commands to run themselves and
+pick up at step 8 once they report back.
+
+**Open VSX is not set up yet.** As of 0.21.8 the extension has never been
+published there and the `josephbergevin` namespace does not exist
+(`curl -s https://open-vsx.org/api/josephbergevin/codebook-md` returns 404).
+Until the user has created a token and run
+`npx ovsx create-namespace josephbergevin` once, the `ovsx` step is optional:
+ask whether to include it, and skip it without fuss if not.
+
 ## 8. Tag and verify
 
 ```bash
@@ -153,9 +164,15 @@ git push origin v<version>
 npx vsce show josephbergevin.codebook-md
 ```
 
-The tag goes on the `main` commit that was published. Confirm `vsce show`
-reports the new version (the Marketplace can take a few minutes) before calling
-the release done.
+The tag goes on the `main` commit that was published — tag as soon as the
+Marketplace publish reports `DONE`, since the version is then permanent.
+
+`DONE` means uploaded, not live: the Marketplace validates each version before
+listing it, which can take several minutes, and `vsce show` keeps reporting the
+old version until then. Poll rather than assume, and point the user at the
+publisher hub (`https://marketplace.visualstudio.com/manage/publishers/josephbergevin`)
+if it has not appeared after ~15 minutes — a failed validation shows up there,
+not in the CLI. Do not call the release done until the new version is listed.
 
 ## If something goes wrong
 
