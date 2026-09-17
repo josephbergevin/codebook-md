@@ -49,7 +49,8 @@ describe('Go Language Support', () => {
           default:
             return undefined;
         }
-      })
+      }),
+      inspect: jest.fn()
     });
 
     // Mock NotebookCell
@@ -157,7 +158,8 @@ func main() {
             default:
               return undefined;
           }
-        })
+        }),
+        inspect: jest.fn()
       });
 
       // Mock cell with single import
@@ -203,7 +205,8 @@ func main() {
             default:
               return undefined;
           }
-        })
+        }),
+        inspect: jest.fn()
       });
 
       // Mock cell with multiple imports
@@ -256,7 +259,8 @@ func main() {
             default:
               return undefined;
           }
-        })
+        }),
+        inspect: jest.fn()
       });
 
       // Mock cell with no imports

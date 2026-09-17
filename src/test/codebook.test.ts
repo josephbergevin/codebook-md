@@ -504,7 +504,16 @@ describe('CellContentConfig', () => {
         }
       }),
       has: jest.fn().mockReturnValue(true),
-      inspect: jest.fn(),
+      inspect: jest.fn().mockImplementation((key: string) => {
+        // these values are explicitly set at the language level
+        const explicit: Record<string, unknown> = {
+          showExecutableCodeInOutput: false,
+          replaceOutputCell: true,
+          showTimestamp: false,
+          timestampTimezone: '',
+        };
+        return { key, globalValue: explicit[key] };
+      }),
       update: jest.fn().mockResolvedValue(undefined)
     } as WorkspaceConfiguration;
 

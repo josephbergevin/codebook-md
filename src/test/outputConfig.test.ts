@@ -14,6 +14,7 @@ function installSettings(tree: Record<string, Record<string, unknown>>): void {
       return {
         get: (key: string, defaultValue?: unknown) =>
           key in values ? values[key] : defaultValue,
+        inspect: (key: string) => ({ key, globalValue: values[key] }),
         update: jest.fn(),
       };
     }
@@ -171,5 +172,29 @@ describe('OutputConfig - cell config overrides language settings', () => {
 
     expect(config.prependToOutputStrings).toEqual(['before']);
     expect(config.appendToOutputStrings).toEqual(['after']);
+  });
+});
+
+describe('OutputConfig - unset language settings', () => {
+  it('ignores the type default VS Code reports for an unset language setting', () => {
+    // Real VS Code returns false / '' from get() for a setting that declares no
+    // default, even though the user never set it. Only inspect() tells them apart.
+    (vscode.workspace.getConfiguration as unknown as jest.Mock).mockImplementation(
+      (section: string) => {
+        const isLanguage = section === 'codebook-md.bash.output';
+        return {
+          get: (key: string) => isLanguage ? (key === 'timestampTimezone' ? '' : false) : undefined,
+          inspect: (key: string) => ({ key }),
+          update: jest.fn(),
+        };
+      }
+    );
+
+    const config = new OutputConfig(languageConfig('codebook-md.bash.output'), []);
+
+    expect(config.showExecutableCodeInOutput).toBe(true);
+    expect(config.replaceOutputCell).toBe(true);
+    expect(config.showTimestamp).toBe(true);
+    expect(config.timestampTimezone).toBe('UTC');
   });
 });

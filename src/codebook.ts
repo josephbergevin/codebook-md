@@ -1287,11 +1287,15 @@ export class OutputConfig {
     // Layer 2: the language-specific settings (e.g. 'codebook-md.go.output'),
     // which override the global defaults in either direction.
     if (languageOutputConfig) {
+      // explicitSetting() is used rather than get(): these settings declare no
+      // default, and for those get() returns VS Code's type default (false, '')
+      // instead of undefined - which would override the global layer even
+      // though the user never set anything.
       this.applyOverrides({
-        showExecutableCodeInOutput: languageOutputConfig.get<boolean>('showExecutableCodeInOutput'),
-        replaceOutputCell: languageOutputConfig.get<boolean>('replaceOutputCell'),
-        showTimestamp: languageOutputConfig.get<boolean>('showTimestamp'),
-        timestampTimezone: languageOutputConfig.get<string>('timestampTimezone'),
+        showExecutableCodeInOutput: explicitSetting<boolean>(languageOutputConfig, 'showExecutableCodeInOutput'),
+        replaceOutputCell: explicitSetting<boolean>(languageOutputConfig, 'replaceOutputCell'),
+        showTimestamp: explicitSetting<boolean>(languageOutputConfig, 'showTimestamp'),
+        timestampTimezone: explicitSetting<string>(languageOutputConfig, 'timestampTimezone'),
       });
     }
 
@@ -1368,6 +1372,19 @@ export class OutputConfig {
       this.appendToOutputStrings = overrides.appendToOutputStrings;
     }
   }
+}
+
+/**
+ * explicitSetting returns the value a user actually set for `key`, or undefined
+ * when it is unset. Unlike `get()`, it never returns VS Code's implicit type
+ * default (false / '' / 0) for a setting whose schema declares no default.
+ */
+export function explicitSetting<T>(configuration: WorkspaceConfiguration, key: string): T | undefined {
+  const inspected = configuration.inspect<T>(key);
+  if (!inspected) {
+    return undefined;
+  }
+  return inspected.workspaceFolderValue ?? inspected.workspaceValue ?? inspected.globalValue;
 }
 
 // validTimezone returns the timezone if it's valid, otherwise it returns 'UTC'
