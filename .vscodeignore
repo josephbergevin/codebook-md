@@ -23,6 +23,15 @@ tooling/**
 apiplayground/**
 codebook-md/**
 
+# Repo-only files - not needed at runtime
+# go.mod and codebook_md_exec* exist so Go cells can run inside this repo;
+# the exec files are generated (and gitignored), never shipped.
+go.mod
+go.sum
+codebook_md_exec*
+AUDIT.md
+PUBLISHING.md
+
 # Test scaffolding
 test/**
 __mocks__/**
