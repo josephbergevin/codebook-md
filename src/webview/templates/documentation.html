@@ -453,36 +453,29 @@ echo "Hello from CodebookMD!"
         <p>The recommended way to configure code blocks is through the intuitive configuration modal:</p>
         <ol>
           <li>Click the gear icon (<svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align: middle;"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>) in the code block toolbar</li>
-          <li>This opens a configuration panel with easy-to-use form controls for all available options</li>
-          <li>Changes made in the configuration panel are saved directly to the code block metadata</li>
-          <li>Click "Save Configuration" to apply your changes</li>
+          <li>This opens a configuration panel beside the notebook for the selected cell</li>
+          <li>Change any option - each one shows where its value comes from</li>
+          <li>Click <strong>Save</strong> (or press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd> in the panel)</li>
         </ol>
+        <p>Cell settings are stored next to the notebook in <code>&lt;notebook&gt;.md.config.json</code>.</p>
 
-        <h4>Features of the Configuration Modal</h4>
+        <h4>Cell overrides and inherited values</h4>
+        <p>Every option in the panel starts out <em>inherited</em>: it follows your VS Code settings (the language setting such as <code>codebook-md.bash.*</code>, then the global <code>codebook-md.output.*</code> settings, then the built-in default). The label under each option tells you which applies:</p>
         <ul>
-          <li><strong>User-friendly Interface:</strong> Simple toggles, dropdowns, and text fields for all options</li>
-          <li><strong>Language-specific Options:</strong> Only shows relevant options for the current language</li>
-          <li><strong>Settings Integration:</strong> Each configuration option includes a settings wheel icon (<span class="codicon codicon-settings-gear"></span>) that opens VS Code settings directly filtered to that specific setting</li>
-          <li><strong>Command Management:</strong> Easily browse and add available commands for your code block</li>
-          <li><strong>Output Configuration:</strong> Visual controls for customizing how output is displayed</li>
-          <li><strong>Execution Path:</strong> Set custom execution paths for your code blocks</li>
+          <li><strong>Default</strong> - the built-in default; you haven't set it anywhere</li>
+          <li><strong>From your settings</strong> - a value from your VS Code settings. The gear (<span class="codicon codicon-settings-gear"></span>) opens that setting</li>
+          <li><strong>Set for this cell</strong> - a value saved for this cell only; it wins over your settings</li>
         </ul>
-        
+        <p>Only the options you change are saved for the cell, so everything else keeps following your settings when you change them later. Setting an option back to its inherited value removes the override. Use <strong>Reset to inherited</strong> under an option, or <strong>Reset all</strong> at the bottom, to remove overrides.</p>
+        <p>If you select another cell while the panel has unsaved changes, the panel keeps showing the current cell until you save or discard them.</p>
+
         <h4>Configuration Sections</h4>
-        <p>The configuration modal is organized into several key sections:</p>
         <ul>
-          <li><strong>Output Configuration:</strong> Control how execution results are displayed
-            <ul>
-              <li>Show/hide executed code in output</li>
-              <li>Control whether output is shown after execution</li>
-              <li>Replace existing output or append new output</li>
-              <li>Show/hide execution timestamp and set timezone</li>
-            </ul>
-          </li>
-          <li><strong>Language-specific Configuration:</strong> Options specific to the current language</li>
-          <li><strong>Execution Path:</strong> Set the directory where code will be executed</li>
-          <li><strong>Available Commands:</strong> Browse and add commands specific to your code block</li>
-          <li><strong>Code Block Commands:</strong> View and manage commands already configured for your code block</li>
+          <li><strong>Execution:</strong> the directory the cell runs in (shell, Python, JavaScript, TypeScript and SQL cells). Leave it empty to use <code>codebook-md.execPath</code></li>
+          <li><strong>Language-specific Configuration:</strong> options for the cell's language, such as the command used to run it or the persistent shell session for shell cells</li>
+          <li><strong>Output Configuration:</strong> show the code in the output, replace or append output on each run, and the execution timestamp and its timezone</li>
+          <li><strong>Execution History:</strong> past runs of this cell. The two history options here change your workspace settings for every notebook</li>
+          <li><strong>In-cell commands:</strong> <code>[&gt;]</code> commands written as comments in the cell. They override the panel's options; copy one from the list to use it</li>
         </ul>
 
         <h3 id="output-config">Output Configuration</h3>

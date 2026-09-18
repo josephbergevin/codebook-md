@@ -1231,9 +1231,11 @@ export class CodeBlockConfig {
 
     this.innerScope = this.innerScope.trim();
 
-    this.execPath = parseExecPathCommand(this.commands);
     // get the cell configuration from the cell
     this.cellConfig = getCellConfig(notebookCell);
+    // an in-cell [>].execPath command wins over the path saved by the config modal
+    const savedExecPath = typeof this.cellConfig?.execPath === 'string' ? this.cellConfig.execPath.trim() : '';
+    this.execPath = parseExecPathCommand(this.commands) || savedExecPath;
     this.outputConfig = new OutputConfig(languageOutputConfig, this.commands, this.cellConfig);
     this.warnOnUnknownCommands();
   }

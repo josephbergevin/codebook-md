@@ -141,6 +141,9 @@ export class Config {
     this.execFilename = codebook.resolveSetting(cellConfig, sqlConfig, 'execFilename', 'codebook_md_exec.sql');
     this.execFile = path.join(this.execPath, this.execFilename);
     this.execCmd = codebook.resolveSetting(cellConfig, sqlConfig, 'execCmd', '');
-    this.execOptions = codebook.resolveSetting<string[]>(cellConfig, sqlConfig, 'execOptions', []);
+    // Normally a list; accept a plain string too, which older versions of the
+    // config modal saved
+    const execOptions = codebook.resolveSetting<string[] | string>(cellConfig, sqlConfig, 'execOptions', []);
+    this.execOptions = Array.isArray(execOptions) ? execOptions : (execOptions ? [String(execOptions)] : []);
   }
 }

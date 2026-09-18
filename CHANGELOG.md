@@ -32,6 +32,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Cell configuration panel (the gear below a cell).** A round of fixes:
+  - Saving no longer deletes the cell's execution history.
+  - SQL cells no longer fail to run after their configuration is saved
+    (connection options were stored as text where a list was expected).
+  - Shell cells now show and link the `codebook-md.bash.*` settings they
+    actually use; the panel read a non-existent `shellscript` section.
+  - Only the options you change are saved for the cell, so the rest keep
+    following your settings. Each option shows where its value comes from,
+    with a *Reset to inherited* button, plus *Reset all*.
+  - Output options now reflect language-level output settings, as runs do.
+  - The *Execution path* option now takes effect, and Go run/test options
+    can be overridden one at a time.
+  - Saving always targets the cell being edited, even after cells are
+    inserted or moved; unsaved edits are kept when you select another cell.
+  - *Clear* and *Delete* in the execution history now work (they asked for
+    confirmation in a way webviews block).
+  - The history options now change the workspace settings, as labelled,
+    rather than your user settings.
+  - The panel escapes all content and runs under a Content-Security-Policy.
+  - The in-cell command buttons that did nothing are replaced by a list of
+    the cell's commands and ones you can copy.
+
 - **Saving a notebook mangled indented and aliased code blocks.** A code
   block indented inside a list item was written back at column 0, breaking
   the list, and fence names such as `bash`, `golang` or `py` were rewritten

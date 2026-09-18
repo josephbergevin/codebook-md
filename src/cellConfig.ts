@@ -61,15 +61,16 @@ export async function saveCellConfig(notebookCell: NotebookCell, config: CellCon
   }
 }
 
-interface ConfigOption {
+export interface ConfigOption {
   type: string;
+  label?: string; // Short label shown in the config modal; description is shown as help text
   default: string | boolean | number | Record<string, unknown>;
   options?: string[];
   description: string;
   internal?: boolean; // Optional flag to mark options for internal use only (not displayed in UI)
 }
 
-type ConfigOptions = Record<string, ConfigOption>;
+export type ConfigOptions = Record<string, ConfigOption>;
 
 /**
  * Helper function to get language-specific config options 
@@ -83,6 +84,7 @@ export function getLanguageConfigOptions(languageId: string): ConfigOptions {
       return {
         execType: {
           type: 'select',
+          label: 'Execution type',
           default: 'run',
           options: ['run', 'test'],
           description: 'Execution type for Go code: \'run\' uses execTypeRunConfig, \'test\' uses execTypeTestConfig.'
@@ -106,6 +108,7 @@ export function getLanguageConfigOptions(languageId: string): ConfigOptions {
         },
         goimportsCmd: {
           type: 'select',
+          label: 'Imports tool',
           default: 'gopls imports',
           options: ['gopls imports', 'goimports'],
           description: '\'goimports\' requires goimports to be installed.'
@@ -117,6 +120,7 @@ export function getLanguageConfigOptions(languageId: string): ConfigOptions {
       return {
         persistentSession: {
           type: 'boolean',
+          label: 'Persistent shell session',
           default: false,
           description: 'Run in the notebook\'s persistent shell session, so cd, export and variables carry over between cells.'
         }
@@ -125,11 +129,13 @@ export function getLanguageConfigOptions(languageId: string): ConfigOptions {
       return {
         execCmd: {
           type: 'string',
+          label: 'Command',
           default: 'python3',
           description: 'Command to use for running Python code-blocks.'
         },
         execFilename: {
           type: 'string',
+          label: 'Script filename',
           default: 'codebook_md_exec.py',
           description: 'Filename for the generated Python execution script.'
         }
@@ -138,16 +144,19 @@ export function getLanguageConfigOptions(languageId: string): ConfigOptions {
       return {
         execCmd: {
           type: 'string',
+          label: 'Command',
           default: 'mysql',
           description: 'CLI command used to execute SQL code blocks (e.g. \'mysql\', \'psql\').'
         },
         execOptions: {
-          type: 'string',
+          type: 'list',
+          label: 'Connection options',
           default: '',
-          description: 'Options to use for SQL connections (comma-separated).'
+          description: 'Options passed to the SQL command before the statement, e.g. -h localhost -u root mydb.'
         },
         execFilename: {
           type: 'string',
+          label: 'Script filename',
           default: 'codebook_md_exec.sql',
           description: 'Filename for the generated SQL execution script.'
         }
@@ -156,6 +165,7 @@ export function getLanguageConfigOptions(languageId: string): ConfigOptions {
       return {
         execFilename: {
           type: 'string',
+          label: 'Script filename',
           default: 'codebook_md_exec.js',
           description: 'Filename for the generated JavaScript execution script.'
         }
@@ -164,6 +174,7 @@ export function getLanguageConfigOptions(languageId: string): ConfigOptions {
       return {
         execFilename: {
           type: 'string',
+          label: 'Script filename',
           default: 'codebook_md_exec.ts',
           description: 'Filename for the generated TypeScript execution script.'
         }
@@ -172,16 +183,19 @@ export function getLanguageConfigOptions(languageId: string): ConfigOptions {
       return {
         execCmd: {
           type: 'string',
+          label: 'Command',
           default: 'curl',
           description: 'Command to use for HTTP requests.'
         },
         execFilename: {
           type: 'string',
+          label: 'Script filename',
           default: 'codebook_md_exec_http.sh',
           description: 'Filename for the executable HTTP script.'
         },
         verbose: {
           type: 'boolean',
+          label: 'Verbose output',
           default: true,
           description: 'Use verbose mode for HTTP requests.'
         }
@@ -199,21 +213,25 @@ export function getOutputConfigOptions(): ConfigOptions {
   return {
     showExecutableCodeInOutput: {
       type: 'boolean',
+      label: 'Show code in output',
       default: true,
       description: 'Include the executable code in the output.'
     },
     replaceOutputCell: {
       type: 'boolean',
+      label: 'Replace output on each run',
       default: true,
       description: 'Clear the output cell on run.'
     },
     showTimestamp: {
       type: 'boolean',
+      label: 'Show timestamp',
       default: true,
       description: 'Include the timestamp in the output.'
     },
     timestampTimezone: {
       type: 'string',
+      label: 'Timestamp timezone',
       default: 'UTC',
       description: 'Timezone to use for the timestamp.'
     }
@@ -228,11 +246,13 @@ export function getExecutionHistoryConfigOptions(): ConfigOptions {
   return {
     enabled: {
       type: 'boolean',
+      label: 'Record execution history',
       default: true,
       description: 'Enable execution history tracking for code blocks.'
     },
     historyLimit: {
       type: 'number',
+      label: 'History entries per cell',
       default: 10,
       description: 'Maximum number of execution history entries to retain per cell (0 for unlimited).'
     }
