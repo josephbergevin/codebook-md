@@ -17,8 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Persistent shell sessions.** Shell cells can now run in one long-lived
   shell per notebook, so `cd`, `export`, variables and functions carry over
   from one cell to the next. Turn it on with the new
-  `codebook-md.bash.persistentSession` setting, per cell with
-  `# [>].persistentSession(true)`, or from the configuration modal. Stopping a
+  `codebook-md.bash.persistentSession` setting, or per cell from the cell's
+  configuration (the gear below the cell). Stopping a
   cell interrupts it without losing the session; *CodebookMD: Restart Shell
   Session* starts over. Session cells behave like a terminal: a failing
   command doesn't stop the rest of the cell. Off by default, so existing

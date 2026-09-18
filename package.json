@@ -171,7 +171,7 @@
         "codebook-md.bash.persistentSession": {
           "type": "boolean",
           "default": false,
-          "description": "Run shell cells in one long-lived shell per notebook, so cd, export, variables and functions carry over from one cell to the next - like typing into a terminal. A failing command doesn't stop the rest of the cell. Override per cell with # [>].persistentSession(true|false).",
+          "description": "Run shell cells in one long-lived shell per notebook, so cd, export, variables and functions carry over from one cell to the next - like typing into a terminal. A failing command doesn't stop the rest of the cell. Override it for a single cell from the cell's configuration (the gear below the cell).",
           "scope": "window"
         },
         "codebook-md.bash.output.showExecutableCodeInOutput": {
