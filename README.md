@@ -2,57 +2,82 @@
 <img src="extension/src/img/logo_3_800x800.png" alt="Codebook MD Logo" width="256" height="256" />
 </div>
 
-# Codebook MD
+# CodebookMD — Runnable Markdown Notebooks
 
-Bring your markdown to life with this VS Code extension! Execute code blocks and organize your documentation all in your local environment. Inspired by Jupyter notebooks, and a furious ongoing battle against boring documentation and markdown files.
+**Run the code in your markdown.** CodebookMD opens any `.md` file — a README,
+a runbook, onboarding notes, an API scratchpad — as a Jupyter-style notebook in
+VS Code. Every fenced code block gets a ▶ button; output lands right under the
+block. The file stays plain markdown, so it still renders on GitHub and diffs
+cleanly in review.
 
-## Opening a Markdown File as a Notebook
+<!--
+  DEMO GIF: record a 5-10s clip (open a .md -> Open With codebook-md -> run a
+  Go, shell and HTTP cell -> output appears), save it as
+  extension/src/img/demo.gif, then replace this comment with:
+  <img src="extension/src/img/demo.gif" alt="Running code blocks in a markdown notebook" width="800" />
+-->
 
-Open any markdown file as a Codebook MD notebook using one of:
+## Why CodebookMD
 
-- Right-click the file in the Explorer → **Open With...** → **codebook-md**
-- Use the **My Notebooks** view in the Codebook MD activity bar
-- Run the **Codebook MD: New Notebook** command
+- **Go is a first-class citizen.** Run a Go block as a standalone `main.go`, or
+  *inside your package* as a `_test.go` file with access to its unexported code.
+- **Your whole backend workflow in one doc.** Shell, Go, Python, JavaScript,
+  TypeScript, SQL (through `psql`, `mysql`, `mycli`, …) and HTTP requests — no
+  extra extensions required.
+- **Find the right doc fast.** The *My Notebooks* sidebar shows the markdown
+  files relevant to whatever you're editing, plus virtual folders you can commit
+  and share with your team.
+- **Configure a cell from inside the cell.** A comment like
+  `# [>].execPath("./scratch")` changes how that one block runs.
+- **Ask about your notebook.** `@codebook` in VS Code chat, plus *Start Chat
+  with Cell / Section / Notebook* to hand context straight to the assistant.
+- **Runs locally.** Code executes on your machine with your own toolchain and
+  environment variables — no cloud service or account required.
 
-> **Note:** Codebook MD registers its notebook editor with `"priority": "option"` rather than `"default"`. This means double-clicking a `.md` file opens it in the normal text editor, not as a notebook. This is intentional: registering as the *default* editor for every markdown file collides with other markdown-notebook extensions (e.g. Microsoft's Markdown Notebook), because VS Code only allows one notebook view type per file. Two default providers competing for `*.md` produces errors like *"A notebook with view type 'markdown-notebook' already exists ... CANNOT create another notebook with view type codebook-md."*
->
-> If you'd like markdown files to open as Codebook MD notebooks **by default**, add an editor association to your settings (User or Workspace):
->
-> ```jsonc
-> "workbench.editorAssociations": {
->   "*.md": "codebook-md"
-> }
-> ```
->
-> Note that setting this will route markdown files away from other notebook/preview extensions.
+## Quick start
 
-## Features
+1. Install CodebookMD.
+2. Right-click any `.md` file in the Explorer → **Open With...** →
+   **codebook-md** (or run **New CodebookMD Notebook** from the Command Palette).
+3. Press ▶ on a code block:
 
-### Executable code blocks
+   ```bash
+   echo "Hello from $(uname -s)"
+   ```
 
-Execute code blocks in markdown files by pressing the corresponding Play button at the top of the code block.
+   ```http
+   GET https://jsonplaceholder.typicode.com/todos/1
+   ```
 
-- Languages supported:
+**Want every markdown file to open as a notebook?** Add this to your settings:
 
-  - Golang
-    - Executed from a main.go file.
-    - Executed from within a package as a \_test.go file.
-  - Shell/Bash
-    - Executed from a .sh file.
-  - JavaScript
-    - Executed from a .js file.
-  - TypeScript
-    - Executed from a .ts file.
-  - SQL
-    - Executed as a shell command using a specified cli client, such as mysql, mycli, psql, etc.
-  - HTTP
-    - Executed by converting the code block to a curl command and executing it as a shell command.
+```jsonc
+"workbench.editorAssociations": {
+  "*.md": "codebook-md"
+}
+```
 
-- Languages supported with an accompanying extension:
-  - SQL
-    - Executed using a SQL extension offering Codelens functionality.
-  - HTTP
-    - Executed using the REST Client extension.
+> CodebookMD registers as an *optional* editor for `.md` rather than the
+> default, so it doesn't collide with other markdown-notebook extensions (VS Code
+> allows only one default notebook type per file). The association above opts
+> you in; note it routes markdown away from other notebook/preview extensions.
+
+## Supported languages
+
+| Language | Fence | How it runs |
+| --- | --- | --- |
+| Go | `go`, `golang` | As a `main.go`, or as a `_test.go` inside a package |
+| Shell | `bash`, `sh`, `zsh`, `shell` | As a `.sh` script |
+| Python | `python`, `py` | As a `.py` file with your configured interpreter |
+| JavaScript | `javascript`, `js` | As a `.js` file with Node |
+| TypeScript | `typescript`, `ts` | As a `.ts` file with `ts-node` |
+| SQL | `sql`, `mysql`, `postgres` | Through a CLI client you choose (`psql`, `mysql`, `mycli`, …) |
+| HTTP | `http` | Converted to a `curl` command |
+
+SQL and HTTP blocks can also be run through a SQL extension that provides
+CodeLens actions, or through the REST Client extension.
+
+## Feature reference
 
 ### Notebook Organization in Activity Bar
 
@@ -74,22 +99,11 @@ You can customize the dynamic folder group through VS Code settings (`settings.j
 
 ```json
 {
-  "codebook-md": {
-    "dynamicFolderGroup": {
-      "enabled": true,
-      "name": "Relevant Docs",
-      "description": "Relevant docs for the current file",
-      "subFolderInclusions": [
-        ".github",
-        ".vscode"
-      ],
-      "exclusions": [
-        "node_modules",
-        "out",
-        "dist"
-      ]
-    }
-  }
+  "codebook-md.dynamicFolderGroup.enabled": true,
+  "codebook-md.dynamicFolderGroup.name": "Relevant Docs",
+  "codebook-md.dynamicFolderGroup.description": "Relevant docs for the current file",
+  "codebook-md.dynamicFolderGroup.subFolderInclusions": [".github", ".vscode"],
+  "codebook-md.dynamicFolderGroup.exclusions": ["node_modules", "out", "dist"]
 }
 ```
 
@@ -371,24 +385,6 @@ Accept: application/json
 }
 ```
 
-## Release Notes
-
-All notable changes to Codebook MD are documented in our [CHANGELOG](CHANGELOG.md). We follow [Semantic Versioning](https://semver.org/) and structure our changelog according to [Keep a Changelog](https://keepachangelog.com/).
-
-## Issues & Feature Requests
-
-If you encounter any issues or have feature requests, please open an issue on our [GitHub repository](https://github.com/josephbergevin/codebook-md/issues).
-
-## Inspiration
-
-This extension was inspired by the Jupyter notebook, which allows for the execution of Python code blocks in a notebook environment. The goal of this extension is to bring that functionality to markdown files in VS Code. While some inspiration was also drawn from existing markdown extensions in the VS Code marketplace, I wanted to have the ability to move quicker with adding new features and languages. More specifically, I wanted to implement a way to interact with local files from within the markdown file itself.
-
-- Extensions of Note:
-  - [Go Notebook](https://marketplace.visualstudio.com/items?itemName=gobookdev.gobook)
-    - Last updated in 2022, no public repository
-  - [Codebook](https://marketplace.visualstudio.com/items?itemName=gobookdev.gobook)
-    - Last updated in 2022, no public repository
-
 ### Markdown Contributions Integration
 
 CodebookMD automatically integrates with VS Code's markdown extension ecosystem to provide enhanced rendering capabilities:
@@ -433,3 +429,16 @@ graph TD;
 ```
 
 **Enhanced Tables with auto-formatting and styling from Markdown All in One**
+
+## Release Notes
+
+All notable changes to Codebook MD are documented in our [CHANGELOG](CHANGELOG.md). We follow [Semantic Versioning](https://semver.org/) and structure our changelog according to [Keep a Changelog](https://keepachangelog.com/).
+
+## Issues & Feature Requests
+
+If you encounter any issues or have feature requests, please open an issue on our [GitHub repository](https://github.com/josephbergevin/codebook-md/issues).
+If CodebookMD saves you time, a [rating on the Marketplace](https://marketplace.visualstudio.com/items?itemName=josephbergevin.codebook-md&ssr=false#review-details) helps other developers find it.
+
+## Inspiration
+
+This extension was inspired by the Jupyter notebook, which allows for the execution of Python code blocks in a notebook environment. The goal of this extension is to bring that functionality to markdown files in VS Code, with the ability to interact with local files from within the markdown file itself.
