@@ -168,6 +168,12 @@
           "type": "string",
           "description": "go: Timezone to use for the timestamp (e.g. 'UTC', 'America/New_York'). Overrides codebook-md.output.timestampTimezone."
         },
+        "codebook-md.bash.persistentSession": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run shell cells in one long-lived shell per notebook, so cd, export, variables and functions carry over from one cell to the next - like typing into a terminal. A failing command doesn't stop the rest of the cell. Override per cell with # [>].persistentSession(true|false).",
+          "scope": "window"
+        },
         "codebook-md.bash.output.showExecutableCodeInOutput": {
           "type": "boolean",
           "description": "bash: Show the executable code at the top of the output. Overrides codebook-md.output.showExecutableCodeInOutput."
@@ -475,6 +481,12 @@
         "category": "CodebookMD"
       },
       {
+        "command": "codebook-md.restartShellSession",
+        "title": "Restart Shell Session",
+        "category": "CodebookMD",
+        "icon": "$(debug-restart)"
+      },
+      {
         "command": "codebook-md.reopenWithTextEditor",
         "title": "Reopen Editor with Text Editor",
         "shortTitle": "Text",
@@ -646,6 +658,10 @@
         }
       ],
       "commandPalette": [
+        {
+          "command": "codebook-md.restartShellSession",
+          "when": "notebookType == codebook-md"
+        },
         {
           "command": "codebook-md.openAsNotebook",
           "when": "resourceLangId == markdown"

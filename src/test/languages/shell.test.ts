@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Cell } from '../../languages/shell';
+import { Cell, SessionCommand, parsePersistentSessionCommand } from '../../languages/shell';
 
 // Mock the fs module to prevent actual file operations
 jest.mock('fs', () => ({
@@ -34,7 +34,9 @@ jest.mock('../../codebook', () => {
     parseCommands: jest.fn().mockReturnValue([
       { command: 'echo', args: ['hello'] }
     ]),
-    newCodeDocumentCurrentFile: jest.fn().mockReturnValue({ fileDir: '/test/path' })
+    newCodeDocumentCurrentFile: jest.fn().mockReturnValue({ fileDir: '/test/path' }),
+    resolveSetting: jest.fn().mockImplementation((cellConfig, languageConfig, key, fallback) =>
+      cellConfig?.[key] ?? languageConfig?.get(key) ?? fallback)
   };
 });
 
@@ -87,7 +89,8 @@ const createMockNotebookCell = (content: string) => ({
   },
   metadata: {
     custom: {}
-  }
+  },
+  notebook: { uri: { toString: () => 'file:///test/notebook.md' } }
 } as unknown as vscode.NotebookCell);
 
 describe('Shell Language Support', () => {
@@ -215,5 +218,66 @@ describe('Shell Language Support', () => {
       ]);
       expect(new Cell(createMockNotebookCell('echo one\necho two')).allowKeepOutput()).toBe(false);
     });
+  });
+
+  describe('persistent session', () => {
+    // mockCellConfig makes the next CodeBlockConfig report the given [>]
+    // commands, config-modal values and execPath
+    const mockCellConfig = (commands: string[], cellConfig: Record<string, unknown> = {}, execPath = '') => {
+      const codebook = jest.requireMock('../../codebook');
+      codebook.CodeBlockConfig.mockImplementationOnce((cell: vscode.NotebookCell) => ({
+        innerScope: cell.document.getText(),
+        commands,
+        comments: [],
+        execPath,
+        cellConfig,
+        languageId: 'shellscript',
+        jsonStringify: jest.fn().mockReturnValue('{}')
+      }));
+    };
+
+    it('runs in a fresh process by default', () => {
+      const cell = new Cell(createMockNotebookCell('export A=1'));
+      expect(cell.mainExecutable).not.toBeInstanceOf(SessionCommand);
+      expect(cell.config.persistentSession).toBe(false);
+    });
+
+    it('runs in the notebook session when the cell asks for it', () => {
+      mockCellConfig(['.persistentSession(true)']);
+      const cell = new Cell(createMockNotebookCell('export A=1'));
+
+      expect(cell.mainExecutable).toBeInstanceOf(SessionCommand);
+      const command = cell.mainExecutable as SessionCommand;
+      expect(command.sessionKey).toBe('file:///test/notebook.md');
+      expect(command.script).toBe('export A=1');
+      expect(command.script).not.toContain('set -e');
+      expect(command.cwd).toBe('/test/path');
+    });
+
+    it('uses the config modal value, and lets the cell command override it', () => {
+      mockCellConfig([], { persistentSession: true });
+      expect(new Cell(createMockNotebookCell('echo hi')).mainExecutable).toBeInstanceOf(SessionCommand);
+
+      mockCellConfig(['.persistentSession(false)'], { persistentSession: true });
+      expect(new Cell(createMockNotebookCell('echo hi')).mainExecutable).not.toBeInstanceOf(SessionCommand);
+    });
+
+    it('turns [>].execPath into a cd at the start of the session script', () => {
+      mockCellConfig(['.persistentSession(true)'], {}, './scratch');
+      const command = new Cell(createMockNotebookCell('ls')).mainExecutable as SessionCommand;
+      expect(command.script).toBe(`cd '/test/path/scratch' || return\nls`);
+    });
+  });
+});
+
+describe('parsePersistentSessionCommand', () => {
+  it('reads true, false and the bare form', () => {
+    expect(parsePersistentSessionCommand(['.persistentSession(true)'])).toBe(true);
+    expect(parsePersistentSessionCommand(['.persistentSession(false)'])).toBe(false);
+    expect(parsePersistentSessionCommand(['.persistentSession()'])).toBe(true);
+  });
+
+  it('returns undefined when the cell does not set it', () => {
+    expect(parsePersistentSessionCommand(['.execPath("./x")'])).toBeUndefined();
   });
 });
