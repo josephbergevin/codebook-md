@@ -163,6 +163,13 @@ export function isDynamicFolderGroupEnabled(): boolean {
   return getDynamicFolderGroupConfig().enabled;
 }
 
+// isCodeLensEnabled returns whether the Run / Open as Notebook CodeLens links are
+// shown above code blocks in markdown text editors. Read fresh on every call so a
+// settings change takes effect without reloading the window.
+export function isCodeLensEnabled(): boolean {
+  return workspace.getConfiguration('codebook-md.codeLens').get<boolean>('enabled', true);
+}
+
 // getWorkspaceFolder returns the actual workspace folder path
 export function getWorkspaceFolder(): string {
   const rootPathSetting = codebookConfig.get<string>('rootPath', '');

@@ -86,6 +86,7 @@
         <li><a href="#chat-participant">Chat Participant Integration</a></li>
         <li><a href="#dynamic-folders">Dynamic Folders (Current Context)</a></li>
         <li><a href="#executable-code">Executable Code Blocks</a></li>
+        <li><a href="#run-from-text-editor">Running Blocks from the Text Editor</a></li>
         <li><a href="#codeblock-config">CodeBlock Configuration</a></li>
         <li><a href="#custom-cellconfig">Custom CellConfig JSON Files</a></li>
         <li><a href="#execution-history">Execution History</a></li>
@@ -423,6 +424,15 @@ echo "Hello from CodebookMD!"
           <li>The code will execute and display its output directly below the code block</li>
           <li>Tip: To create a new code block within a markdown file (already opened in CodebookMD), click on the "+ Code" button found above or below an existing cell in the notebook.</li>
         </ol>
+
+        <h3 id="run-from-text-editor">Running Blocks from the Text Editor</h3>
+        <p>You don't have to open a file as a notebook first. When a markdown file with runnable code blocks is open in the normal text editor, CodebookMD adds links (CodeLens) right in the editor:</p>
+        <ul>
+          <li><span class="feature-highlight">Open as CodebookMD Notebook</span> at the top of the file opens it in the notebook editor. The same action is on the editor title bar and in the Command Palette as <em>CodebookMD: Open as CodebookMD Notebook</em>.</li>
+          <li><span class="feature-highlight">Run in CodebookMD</span> above each runnable code block opens the file as a notebook, scrolls to that block, and runs it.</li>
+        </ul>
+        <p>Unsaved changes in the text editor are saved first, since the notebook is loaded from the file on disk. Blocks in languages CodebookMD can't run (for example <code>json</code> or <code>mermaid</code>) don't get a Run link.</p>
+        <p>To hide the links, turn off <code>codebook-md.codeLens.enabled</code> (default: <code>true</code>).</p>
 
         <h3>Supported Languages</h3>
         <p>CodebookMD supports executing code in multiple languages:</p>
