@@ -4,6 +4,23 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Run code blocks from the plain text editor.** Markdown files open in the
+  normal text editor now show *Open as CodebookMD Notebook* at the top and
+  *Run in CodebookMD* above each runnable code block (CodeLens). Run opens the
+  file as a notebook, reveals the block, and executes it. *Open as CodebookMD
+  Notebook* is also on the editor title bar and in the Command Palette. Hide
+  the links with the new `codebook-md.codeLens.enabled` setting.
+
+### Changed
+
+- **Marketplace listing.** The extension is now listed as *CodebookMD -
+  Runnable Markdown Notebooks*, with a README that leads with a quick start
+  and a supported-languages table.
+
 ## [0.21.8] - 2026-09-17
 
 ### Fixed

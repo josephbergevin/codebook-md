@@ -398,6 +398,12 @@
           "default": 10,
           "description": "Maximum number of execution history entries to retain per cell (0 for unlimited)",
           "scope": "window"
+        },
+        "codebook-md.codeLens.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show \"Open as CodebookMD Notebook\" and \"Run in CodebookMD\" links above code blocks when a markdown file is open in the text editor.",
+          "scope": "window"
         }
       }
     },
@@ -455,6 +461,18 @@
         "shortTitle": "Config",
         "category": "CodebookMD",
         "icon": "$(gear)"
+      },
+      {
+        "command": "codebook-md.openAsNotebook",
+        "title": "Open as CodebookMD Notebook",
+        "shortTitle": "Notebook",
+        "category": "CodebookMD",
+        "icon": "$(notebook)"
+      },
+      {
+        "command": "codebook-md.runCodeBlockInNotebook",
+        "title": "Run Code Block in CodebookMD",
+        "category": "CodebookMD"
       },
       {
         "command": "codebook-md.reopenWithTextEditor",
@@ -600,6 +618,13 @@
           "group": "navigation"
         }
       ],
+      "editor/title": [
+        {
+          "command": "codebook-md.openAsNotebook",
+          "when": "resourceLangId == markdown && resourceScheme == file && activeEditor == workbench.editors.files.textFileEditor",
+          "group": "navigation"
+        }
+      ],
       "editor/context": [
         {
           "command": "codebook-md.createNotebookFromSelection",
@@ -621,6 +646,14 @@
         }
       ],
       "commandPalette": [
+        {
+          "command": "codebook-md.openAsNotebook",
+          "when": "resourceLangId == markdown"
+        },
+        {
+          "command": "codebook-md.runCodeBlockInNotebook",
+          "when": "false"
+        },
         {
           "command": "codebook-md.renameFolderInMyNotebooks",
           "when": "false"

@@ -16,6 +16,7 @@ import { NotebooksViewProvider } from './webview/notebooksView';
 import { WelcomeViewProvider } from './webview/welcomeView';
 import { DocumentationViewProvider } from './webview/documentationView';
 import * as configModal from './webview/configModal';
+import * as codeLens from './codeLens';
 import { createNewNotebook, createNotebookFromSelection } from './createNotebook';
 import { getMarkdownRenderingService } from './markdownRenderer';
 
@@ -742,6 +743,35 @@ export async function activate(context: ExtensionContext) {
   });
 
   context.subscriptions.push(disposable);
+
+  // CodeLens links ("Open as CodebookMD Notebook", "Run in CodebookMD") above code
+  // blocks when a markdown file is open in the plain text editor
+  const codeLensProvider = new codeLens.RunCodeBlockCodeLensProvider();
+  context.subscriptions.push(
+    codeLensProvider,
+    languages.registerCodeLensProvider({ language: 'markdown', scheme: 'file' }, codeLensProvider),
+    workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('codebook-md.codeLens')) {
+        codeLensProvider.refresh();
+      }
+    }),
+    commands.registerCommand('codebook-md.openAsNotebook', async (uri?: Uri) => {
+      try {
+        await codeLens.openAsNotebook(uri);
+      } catch (error) {
+        console.error('openAsNotebook failed:', error);
+        window.showErrorMessage(`Codebook: could not open the file as a notebook - ${error}`);
+      }
+    }),
+    commands.registerCommand('codebook-md.runCodeBlockInNotebook', async (uri: Uri, cellIndex: number, expectedContent?: string) => {
+      try {
+        await codeLens.runCodeBlockInNotebook(uri, cellIndex, expectedContent);
+      } catch (error) {
+        console.error('runCodeBlockInNotebook failed:', error);
+        window.showErrorMessage(`Codebook: could not run the code block - ${error}`);
+      }
+    }),
+  );
 
   // hoverProvider will fire-off for any language, but will automatically return if the document.fileName 
   // is not a markdown file

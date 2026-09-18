@@ -38,6 +38,9 @@ export interface RawNotebookCell {
   // Set only when the frontMatter.showInNotebook setting is enabled; it tells the
   // serializer to write the cell back out wrapped in --- delimiters.
   isFrontMatter?: boolean;
+  // startLine is the 0-based line of the opening ``` fence in the source markdown.
+  // Set for code cells only; the CodeLens provider uses it to place its links.
+  startLine?: number;
 }
 
 // Metadata key used to carry the Front Matter flag on a NotebookCellData, and the
@@ -287,6 +290,12 @@ languages.forEach(lang => {
   });
 });
 
+// isExecutableLanguage reports whether a code block language (a fence name or alias,
+// or a cell language id) is one CodebookMD knows how to run.
+export function isExecutableLanguage(language: string): boolean {
+  return languagesByAbbrev.get(language.toLowerCase())?.isExecutable ?? false;
+}
+
 function findLanguageId(language: string): string {
   const lang = languagesByAbbrev.get(language.toLowerCase());
   if (lang) {
@@ -524,6 +533,7 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
         kind: NotebookCellKind.Code,
         leadingWhitespace: leadingWhitespace,
         trailingWhitespace: trailingWhitespace,
+        startLine: startSourceIdx - 1,
       });
     }
   }
