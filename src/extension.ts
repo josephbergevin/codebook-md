@@ -690,25 +690,8 @@ export async function activate(context: ExtensionContext) {
       return;
     }
 
-    // For notebook-level config, we don't need a specific cell
-    // Just create a dummy executable cell for the modal structure
-    const dummyCell = activeNotebook.cellAt(0);
-    if (!dummyCell) {
-      window.showWarningMessage('Notebook has no cells.');
-      return;
-    }
-
-    const execCell = codebook.NewExecutableCell(dummyCell);
-    if (!execCell) {
-      // If first cell is not executable, still open modal for notebook config
-      // Create a minimal executable cell for the structure
-      window.showWarningMessage('Opening notebook configuration. First cell is not executable.');
-      configModal.openNotebookConfigModal(null, activeNotebook, context);
-      return;
-    }
-
-    // Open config modal in notebook-only mode
-    configModal.openNotebookConfigModal(execCell, activeNotebook, context);
+    // Notebook-level config needs no cell
+    configModal.openNotebookConfigModal(null, activeNotebook, context);
   });
 
   context.subscriptions.push(disposable);

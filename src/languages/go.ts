@@ -301,22 +301,22 @@ export class Config {
     // Get the execution type configuration
     this.execType = codebook.resolveSetting(cellSpecificConfig, goConfig, 'execType', 'run');
 
-    // Get the run configuration - spread into a fresh object, since the command
-    // parsing below mutates it and the source may be VS Code's cached config
+    // Get the run and test configurations. The cell's fields are layered over
+    // the setting's, so a cell can override just one of them (the config modal
+    // saves only the fields that differ). Spread into fresh objects, since the
+    // command parsing below mutates them and the setting is VS Code's cached value.
     this.execTypeRunConfig = {
-      ...codebook.resolveSetting(cellSpecificConfig, goConfig, 'execTypeRunConfig', {
-        execPath: ".",
-        filename: "main.go"
-      })
+      execPath: ".",
+      filename: "main.go",
+      ...goConfig?.get<Partial<Config['execTypeRunConfig']>>('execTypeRunConfig'),
+      ...cellSpecificConfig?.execTypeRunConfig,
     };
-
-    // Get the test configuration
     this.execTypeTestConfig = {
-      ...codebook.resolveSetting(cellSpecificConfig, goConfig, 'execTypeTestConfig', {
-        execPath: ".",
-        filename: "codebook_md_exec_test.go",
-        buildTag: "playground"
-      })
+      execPath: ".",
+      filename: "codebook_md_exec_test.go",
+      buildTag: "playground",
+      ...goConfig?.get<Partial<Config['execTypeTestConfig']>>('execTypeTestConfig'),
+      ...cellSpecificConfig?.execTypeTestConfig,
     };
 
     this.execPath = '';

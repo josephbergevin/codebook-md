@@ -104,6 +104,34 @@ describe('SQL execution', () => {
     expect(cellUnderTest.executableCode).toContain('psql');
     jest.restoreAllMocks();
   });
+
+  // Regression: the old config modal saved execOptions as a plain string, and
+  // the runtime called .join() on it - every such SQL cell threw on run
+  it('accepts execOptions saved as a string by older versions of the config modal', () => {
+    installSettings({ 'codebook-md.sql': { execCmd: 'mysql' } });
+    const notebookCell = cell('SELECT 1;', 'sql');
+    notebookCell.notebook = { uri: { fsPath: '/ws/test.md' } };
+    jest.spyOn(cellConfigModule, 'loadNotebookConfig')
+      .mockReturnValue({ '0': { config: { execOptions: '-h db -u app' } } });
+
+    const cellUnderTest = new sql.Cell(notebookCell);
+
+    expect(cellUnderTest.executableCode).toContain('mysql -h db -u app -e "SELECT 1;"');
+    jest.restoreAllMocks();
+  });
+
+  it('uses the execution path saved in the cell config', () => {
+    installSettings({ 'codebook-md.sql': { execCmd: 'mysql' } });
+    const notebookCell = cell('SELECT 1;', 'sql');
+    notebookCell.notebook = { uri: { fsPath: '/ws/test.md' } };
+    jest.spyOn(cellConfigModule, 'loadNotebookConfig')
+      .mockReturnValue({ '0': { config: { execPath: '/ws/db' } } });
+
+    const cellUnderTest = new sql.Cell(notebookCell);
+
+    expect(cellUnderTest.config.execPath).toBe('/ws/db');
+    jest.restoreAllMocks();
+  });
 });
 
 describe('HTTP execution', () => {
