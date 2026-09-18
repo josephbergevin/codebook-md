@@ -938,3 +938,130 @@ describe('Front Matter serialization', () => {
     expect(codebook.parseFrontMatterFromContent(content).hasFrontMatter).toBe(false);
   });
 });
+
+describe('Code fence round trip', () => {
+  // roundTrip parses markdown into notebook cells and serializes them straight back,
+  // the same path VS Code takes when a markdown file is opened as a notebook and saved
+  const roundTrip = (markdown: string): string =>
+    codebook.writeCellsToMarkdown(codebook.parseMarkdown(markdown).map(codebook.rawToNotebookCellData));
+
+  it('preserves an indented fence inside a numbered list item', () => {
+    const markdown = [
+      '# Quick start',
+      '',
+      '1. Install the extension.',
+      '2. Open a markdown file.',
+      '3. Press ▶ on a code block:',
+      '',
+      '   ```bash',
+      '   echo "Hello from $(uname -s)"',
+      '   ```',
+      '',
+      '4. Done.',
+    ].join('\n');
+
+    expect(roundTrip(markdown)).toBe(markdown);
+  });
+
+  it('shows indented fence content dedented in the cell and records the fence', () => {
+    const markdown = [
+      '- item:',
+      '',
+      '  ```py',
+      '  for i in range(3):',
+      '      print(i)',
+      '  ```',
+    ].join('\n');
+
+    const cells = codebook.parseMarkdown(markdown);
+    const code = cells[1];
+
+    expect(code.language).toBe('python');
+    expect(code.content).toBe('for i in range(3):\n    print(i)');
+    expect(code.indentation).toBe('  ');
+    expect(code.fenceInfo).toBe('py');
+    // startLine still points at the opening fence line, for the CodeLens provider
+    expect(code.startLine).toBe(2);
+    expect(roundTrip(markdown)).toBe(markdown);
+  });
+
+  it('keeps blank lines inside an indented fence', () => {
+    const markdown = [
+      '1. Run:',
+      '',
+      '   ```sh',
+      '   echo one',
+      '',
+      '   echo two',
+      '   ```',
+    ].join('\n');
+
+    expect(codebook.parseMarkdown(markdown)[1].content).toBe('echo one\n\necho two');
+    expect(roundTrip(markdown)).toBe(markdown);
+  });
+
+  it('preserves fence aliases and info strings', () => {
+    const markdown = [
+      '# Aliases',
+      '',
+      '```bash',
+      'echo hi',
+      '```',
+      '',
+      '```golang',
+      'fmt.Println("hi")',
+      '```',
+      '',
+      '```py',
+      'print("hi")',
+      '```',
+      '',
+      '```js title="main.js"',
+      'console.log("hi")',
+      '```',
+    ].join('\n');
+
+    expect(roundTrip(markdown)).toBe(markdown);
+  });
+
+  it('writes the cell language id when the user changed the language', () => {
+    const cells = codebook.parseMarkdown('# Title\n\n```bash\necho hi\n```').map(codebook.rawToNotebookCellData);
+    cells[1].languageId = 'python';
+
+    expect(codebook.writeCellsToMarkdown(cells)).toBe('# Title\n\n```python\necho hi\n```');
+  });
+
+  it('writes the cell language id for cells with no stored fence', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cell: any = { kind: 2, languageId: 'shellscript', value: 'echo hi', metadata: {}, outputs: [] };
+
+    expect(codebook.writeCellsToMarkdown([cell])).toBe('```shellscript\necho hi\n```');
+  });
+
+  it('preserves an indented non-executable fence rendered as markdown', () => {
+    const markdown = [
+      '1. Diagram:',
+      '',
+      '   ```mermaid',
+      '   graph TD',
+      '     A --> B',
+      '   ```',
+    ].join('\n');
+
+    expect(roundTrip(markdown)).toBe(markdown);
+  });
+
+  it('does not treat ``` in the middle of a line as a fence', () => {
+    const markdown = [
+      'Wrap code in ```bash fences like this.',
+      '',
+      'Inline ```js``` is not a fence either.',
+    ].join('\n');
+
+    const cells = codebook.parseMarkdown(markdown);
+
+    expect(cells).toHaveLength(1);
+    expect(cells[0].kind).toBe(1);
+    expect(roundTrip(markdown)).toBe(markdown);
+  });
+});

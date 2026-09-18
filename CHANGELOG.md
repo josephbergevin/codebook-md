@@ -21,6 +21,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Runnable Markdown Notebooks*, with a README that leads with a quick start
   and a supported-languages table.
 
+### Fixed
+
+- **Saving a notebook mangled indented and aliased code blocks.** A code
+  block indented inside a list item was written back at column 0, breaking
+  the list, and fence names such as `bash`, `golang` or `py` were rewritten
+  to `shellscript`, `go` and `python`. Fences now keep their indentation and
+  original name (until you change the cell's language), and the cell shows
+  the code without the list indentation. A ```` ``` ```` in the middle of a
+  line is no longer mistaken for the start of a code block.
+
 ## [0.21.8] - 2026-09-17
 
 ### Fixed

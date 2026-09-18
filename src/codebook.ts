@@ -27,7 +27,13 @@ import * as io from './io';
 import * as config from './config';
 
 export interface RawNotebookCell {
+  // indentation is the leading whitespace of the opening ``` fence (e.g. when the code
+  // block sits inside a list item). It is stripped from the content lines on parse and
+  // re-applied to the fences and content on write.
   indentation?: string;
+  // fenceInfo is the original info string of the opening fence (e.g. `bash`, `golang`).
+  // It is written back in place of the cell's language id while the language is unchanged.
+  fenceInfo?: string;
   leadingWhitespace: string;
   trailingWhitespace: string;
   language: string;
@@ -369,16 +375,70 @@ export const StartOutput = `!!output-start-cell`;
 // EndOutput is a string that indicates the end of an output block
 export const EndOutput = `!!output-end-cell`;
 
-function parseCodeBlockStart(line: string): string | null {
-  const match = line.match(/( {4}|\t)?```(\S*)/);
-  if (match) {
-    return match[2];
+// Metadata keys used to carry a code cell's fence indentation and original fence info
+// string on a NotebookCellData, so writeCellsToMarkdown can restore the fence as written.
+export const indentationCellMetadataKey = 'indentation';
+export const fenceInfoCellMetadataKey = 'fenceInfo';
+
+// CodeBlockStart describes an opening ``` fence line.
+interface CodeBlockStart {
+  // indentation is the whitespace before the fence
+  indentation: string;
+  // language is the first word of the info string (e.g. `bash`)
+  language: string;
+  // info is the full info string (e.g. `bash` or `go title="main.go"`)
+  info: string;
+}
+
+// parseCodeBlockStart parses an opening ``` fence with a language. The fence must start
+// the line (after any indentation, e.g. for a code block inside a list item), and per
+// CommonMark its info string may not contain backticks - so inline code such as
+// ```x``` is not mistaken for a fence. Fences with no language are not code cells.
+function parseCodeBlockStart(line: string): CodeBlockStart | null {
+  const match = line.match(/^([ \t]*)```([^`]*)$/);
+  if (!match) {
+    return null;
   }
-  return null;
+  const info = match[2].trim();
+  const language = info.split(/\s+/)[0];
+  if (!language) {
+    return null;
+  }
+  return { indentation: match[1], language, info };
 }
 
 function isCodeBlockStart(line: string): boolean {
   return !!parseCodeBlockStart(line);
+}
+
+// languageForFence returns the cell language id for a fence language or alias
+// (e.g. `bash` -> `shellscript`).
+function languageForFence(fenceLanguage: string): string {
+  const languageInfo = languagesByAbbrev.get(fenceLanguage.toLowerCase());
+  return languageInfo?.displayName.toLowerCase() ?? fenceLanguage.toLowerCase();
+}
+
+// dedent removes up to indentation.length characters of leading whitespace from each
+// line - the CommonMark rule for the content of an indented fenced code block.
+function dedent(lines: string[], indentation: string): string[] {
+  if (!indentation) {
+    return lines;
+  }
+  return lines.map(line => {
+    let n = 0;
+    while (n < indentation.length && n < line.length && (line[n] === ' ' || line[n] === '\t')) {
+      n++;
+    }
+    return line.slice(n);
+  });
+}
+
+// indent prefixes each non-blank line with the given indentation.
+function indent(lines: string[], indentation: string): string[] {
+  if (!indentation) {
+    return lines;
+  }
+  return lines.map(line => line.trim() === '' ? line : indentation + line);
 }
 
 function isCodeBlockEndLine(line: string): boolean {
@@ -469,9 +529,9 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
   // Each parse function starts with line i, leaves i on the line after the last line parsed
   while (i < lines.length) {
     const leadingWhitespace = i === 0 ? parseWhitespaceLines(true) : '';
-    const languageSyntax = parseCodeBlockStart(lines[i]);
-    if (languageSyntax) {
-      parseCodeBlock(leadingWhitespace, languageSyntax);
+    const codeBlockStart = parseCodeBlockStart(lines[i]);
+    if (codeBlockStart) {
+      parseCodeBlock(leadingWhitespace, codeBlockStart);
     } else {
       parseMarkdownParagraph(leadingWhitespace);
     }
@@ -494,9 +554,11 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
     return '\n'.repeat(numWhitespaceLines);
   }
 
-  function parseCodeBlock(leadingWhitespace: string, languageSyntax: string): void {
+  function parseCodeBlock(leadingWhitespace: string, codeBlockStart: CodeBlockStart): void {
+    const { indentation, info } = codeBlockStart;
+    const languageSyntax = codeBlockStart.language;
     const languageInfo = languagesByAbbrev.get(languageSyntax.toLowerCase());
-    const language = languageInfo?.displayName.toLowerCase() ?? languageSyntax.toLowerCase();
+    const language = languageForFence(languageSyntax);
     const startSourceIdx = ++i;
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -510,21 +572,23 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
       i++;
     }
     const textEncoder = new TextEncoder();
-    const content = lines.slice(startSourceIdx, i - 1)
-      .join('\n');
+    // The content is dedented by the fence's indentation so the cell shows clean code
+    const contentLines = lines.slice(startSourceIdx, i - 1);
+    const content = dedent(contentLines, indentation).join('\n');
     const trailingWhitespace = parseWhitespaceLines(false);
     if (languageSyntax === "text") {
       cells[cells.length - 1].outputs = [{ items: [{ data: textEncoder.encode(content), mime: "text/plain" }] }];
     } else if (languageInfo && !languageInfo.isExecutable) {
       // For non-executable languages like Mermaid, treat as markdown content
       // This allows the markdown preview system to render them properly
-      const markdownContent = '```' + languageSyntax + '\n' + content + '\n```';
+      const markdownContent = '```' + info + '\n' + content + '\n```';
       cells.push({
         language: 'markdown',
         content: markdownContent,
         kind: NotebookCellKind.Markup,
         leadingWhitespace: leadingWhitespace,
         trailingWhitespace: trailingWhitespace,
+        indentation: indentation || undefined,
       });
     } else {
       cells.push({
@@ -534,6 +598,8 @@ export function parseMarkdown(content: string): RawNotebookCell[] {
         leadingWhitespace: leadingWhitespace,
         trailingWhitespace: trailingWhitespace,
         startLine: startSourceIdx - 1,
+        indentation: indentation || undefined,
+        fenceInfo: info,
       });
     }
   }
@@ -592,6 +658,45 @@ function formatFrontMatter(content: string | undefined): string {
 
 const stringDecoder = new TextDecoder();
 
+// rawToNotebookCellData converts a parsed markdown cell into NotebookCellData, carrying
+// what writeCellsToMarkdown needs to reproduce the markdown on the cell's metadata.
+export function rawToNotebookCellData(data: RawNotebookCell): NotebookCellData {
+  return <NotebookCellData>{
+    kind: data.kind,
+    languageId: data.language,
+    metadata: {
+      leadingWhitespace: data.leadingWhitespace,
+      trailingWhitespace: data.trailingWhitespace,
+      [indentationCellMetadataKey]: data.indentation,
+      [fenceInfoCellMetadataKey]: data.fenceInfo,
+      [frontMatterCellMetadataKey]: data.isFrontMatter === true
+    },
+    outputs: data.outputs || [],
+    value: data.content,
+  };
+}
+
+// cellIndentation returns the fence indentation stored on a cell's metadata, if any.
+function cellIndentation(cell: NotebookCellData): string {
+  const indentation = cell.metadata?.[indentationCellMetadataKey];
+  return typeof indentation === 'string' && /^[ \t]*$/.test(indentation) ? indentation : '';
+}
+
+// fenceInfoFor returns the info string to write on a code cell's opening fence: the
+// original one (e.g. `bash`) while the cell's language is unchanged, otherwise the
+// official language name recognized by VS Code - if the language is not recognized by
+// VS Code, it won't be executable.
+function fenceInfoFor(cell: NotebookCellData): string {
+  const fenceInfo = cell.metadata?.[fenceInfoCellMetadataKey];
+  if (typeof fenceInfo === 'string' && fenceInfo) {
+    const fenceLanguage = fenceInfo.split(/\s+/)[0];
+    if (languageForFence(fenceLanguage) === cell.languageId.toLowerCase()) {
+      return fenceInfo;
+    }
+  }
+  return findLanguageId(cell.languageId);
+}
+
 // writeCellsToMarkdown serializes notebook cells back to markdown.
 //
 // hiddenFrontMatter is the document's Front Matter when it is *not* represented as a
@@ -617,12 +722,13 @@ export function writeCellsToMarkdown(cells: ReadonlyArray<NotebookCellData>, hid
         }
       }
 
-      // set the language to the official language name recognized by VS Code
-      // if the language is not recognized by VS Code, it won't be executable.
-      const codePrefix = '```' + findLanguageId(cell.languageId) + '\n';
-      const contents = cell.value.split(/\r?\n/g)
+      // Restore the fence's indentation (e.g. inside a list item) on both fences and
+      // the content, so the surrounding markdown structure is preserved
+      const indentation = cellIndentation(cell);
+      const codePrefix = indentation + '```' + fenceInfoFor(cell) + '\n';
+      const contents = indent(cell.value.split(/\r?\n/g), indentation)
         .join('\n');
-      const codeSuffix = '\n```';
+      const codeSuffix = '\n' + indentation + '```';
       result += codePrefix + contents + codeSuffix;
       if (outputParsed !== '' && outputParsed !== '\n' && outputParsed.length > 0) {
         result += '\n\n```text\n' + outputParsed;
@@ -632,7 +738,9 @@ export function writeCellsToMarkdown(cells: ReadonlyArray<NotebookCellData>, hid
         result += '```';
       }
     } else {
-      result += cell.value.trim();
+      // Markup cells parsed from an indented fence (e.g. Mermaid in a list item) are
+      // stored dedented, so re-indent them
+      result += indent(cell.value.trim().split(/\r?\n/g), cellIndentation(cell)).join('\n');
     }
   });
   // Each cell adds a newline at the start to keep spacing between code blocks correct,
