@@ -791,6 +791,7 @@
     "@types/vscode": "^1.88.0",
     "@types/vscode-notebook-renderer": "^1.72.3",
     "@types/webpack-env": "^1.18.5",
+    "@vscode/codicons": "^0.0.46-24",
     "@vscode/test-electron": "^2.3.9",
     "chai": "^5.1.1",
     "copy-webpack-plugin": "^13.0.0",

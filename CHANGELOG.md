@@ -53,6 +53,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - The panel escapes all content and runs under a Content-Security-Policy.
   - The in-cell command buttons that did nothing are replaced by a list of
     the cell's commands and ones you can copy.
+  - Easier to use: Save, Reset all and the save status sit in a toolbar
+    that stays in view; Save is enabled only when something changed. The
+    cell's settings come first, with the notebook front matter collapsed
+    below them. Colours follow your theme, and icons ship with the extension
+    so they work offline. Controls are real buttons, reachable by keyboard.
+  - The cell status bar now shows *Configure* on code cells only.
 
 - **Saving a notebook mangled indented and aliased code blocks.** A code
   block indented inside a list item was written back at column 0, breaking

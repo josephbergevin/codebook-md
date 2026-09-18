@@ -53,6 +53,12 @@ const extensionConfig = {
         {
           from: 'src/webview/templates/*.html',
           to: 'templates/[name][ext]'
+        },
+        // Icons for webviews - shipped with the extension so they work offline
+        // and under the webviews' Content-Security-Policy
+        {
+          from: 'node_modules/@vscode/codicons/dist/codicon.{css,ttf}',
+          to: 'codicons/[name][ext]'
         }
       ]
     })
