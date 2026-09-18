@@ -17,6 +17,10 @@ export interface ModalCell {
 export interface ModalRenderParams {
   cspSource: string;
   nonce: string;
+  // Webview URI of the codicon stylesheet shipped with the extension
+  codiconsCssUri?: string;
+  // Show "Saved" in the toolbar - the panel was re-rendered after a save
+  justSaved?: boolean;
   notebookUri?: string;
   // undefined in notebook-only mode (a markdown cell, or the notebook toolbar)
   cell?: ModalCell;
@@ -160,18 +164,9 @@ function renderCommandList(commands: string[], copyable: boolean, emptyText: str
 }
 
 function renderCellSection(params: ModalRenderParams, cell: ModalCell): string {
-  const icon = languageIcons[cell.languageId] ?? { text: 'CODE', class: 'default' };
   const docs = languageDocs[cell.languageId];
   const historyScope = params.history.target === 'workspace' ? 'workspace setting' : 'user setting';
   return `
-      <div class="header">
-        <div class="header-left">
-          <span class="language-icon ${escapeHtml(icon.class)}">${escapeHtml(icon.text)}</span>
-          <h1>Cell ${cell.index + 1} &middot; ${escapeHtml(cell.languageId)}</h1>
-        </div>
-      </div>
-
-      <div class="content">
         <div id="pendingBanner" class="banner" hidden>
           <span>You selected another cell. Save or discard the changes here to switch to it.</span>
           <button type="button" data-action="discard">Discard changes</button>
@@ -255,41 +250,48 @@ function renderCellSection(params: ModalRenderParams, cell: ModalCell): string {
               </div>
             </details>
           </div>
-        </div>
-      </div>`;
+        </div>`;
 }
 
-function renderFrontMatterSection(params: ModalRenderParams): string {
+function renderNotebookSection(params: ModalRenderParams): string {
   return `
-      <div class="notebook-config-section-wrapper">
-        <div class="header notebook-header">
-          <div class="header-left">
+        <details class="form-section notebook-section" ${params.cell ? '' : 'open'}>
+          <summary>
             <span class="codicon codicon-notebook"></span>
-            <h1>Notebook Config</h1>
-          </div>
-        </div>
-        <div class="content notebook-content">
-          <details class="form-section notebook-config-section" ${params.cell ? '' : 'open'}>
-            <summary>
-              <span class="codicon codicon-edit"></span>
-              <span>Front Matter Settings</span>
-            </summary>
-            <div class="notebook-config-content">
-              <div class="form-group">
-                <label for="frontMatter" class="label-text">YAML Front Matter</label>
-                <textarea id="frontMatter" rows="6" spellcheck="false" placeholder="Enter YAML front matter content (without --- delimiters)&#10;Example:&#10;title: My notebook&#10;description: What this notebook is for">${escapeHtml(params.frontMatter)}</textarea>
-                <small>Configure notebook metadata using YAML format. Do not include the --- delimiters.</small>
-              </div>
-              <div class="form-group">
-                <button type="button" class="notebook-save-button" data-action="save-front-matter">Save Front Matter</button>
-              </div>
+            <span>Notebook settings: front matter</span>
+          </summary>
+          <div class="notebook-section-body">
+            <div class="form-group">
+              <label for="frontMatter" class="label-text">YAML front matter for the whole notebook</label>
+              <textarea id="frontMatter" rows="6" spellcheck="false" placeholder="Enter YAML front matter content (without --- delimiters)&#10;Example:&#10;title: My notebook&#10;description: What this notebook is for">${escapeHtml(params.frontMatter)}</textarea>
+              <small class="field-help">Do not include the --- delimiters.</small>
+            </div>
+            <div class="form-group">
+              <button type="button" class="notebook-save-button" data-action="save-front-matter">Save Front Matter</button>
               <button type="button" class="link-button help-link" data-action="open-docs" data-section="front-matter">
                 <span class="codicon codicon-question"></span>
-                <span>Learn more about Front Matter configuration</span>
+                <span>About front matter</span>
               </button>
             </div>
-          </details>
-        </div>
+          </div>
+        </details>`;
+}
+
+function renderToolbar(params: ModalRenderParams): string {
+  const cell = params.cell;
+  const icon = cell ? (languageIcons[cell.languageId] ?? { text: 'CODE', class: 'default' }) : undefined;
+  const title = cell
+    ? `<span class="language-icon ${escapeHtml(icon?.class)}">${escapeHtml(icon?.text)}</span>
+          <h1>Cell ${cell.index + 1} &middot; ${escapeHtml(cell.languageId)}</h1>`
+    : `<span class="codicon codicon-notebook"></span><h1>Notebook settings</h1>`;
+  return `
+      <div class="toolbar">
+        <div class="toolbar-title">${title}</div>
+        ${cell ? `
+        <span id="saveStatus" class="save-status${params.justSaved ? ' saved' : ''}" aria-live="polite">${params.justSaved ? 'Saved' : ''}</span>
+        <button type="button" class="secondary-button" data-action="reset-all" title="Remove every override so this cell follows your settings">Reset all</button>
+        <button type="button" data-action="save" id="saveButton" title="Save (Ctrl/Cmd+S)" disabled>Save</button>` : ''}
+        <button type="button" class="icon-button close-button" data-action="close" title="Close" aria-label="Close">×</button>
       </div>`;
 }
 
@@ -297,8 +299,8 @@ function renderFrontMatterSection(params: ModalRenderParams): string {
 export function renderConfigModalHtml(params: ModalRenderParams): string {
   const csp = [
     `default-src 'none'`,
-    `style-src ${params.cspSource} 'unsafe-inline' https://cdn.jsdelivr.net`,
-    `font-src ${params.cspSource} https://cdn.jsdelivr.net`,
+    `style-src ${params.cspSource} 'unsafe-inline'`,
+    `font-src ${params.cspSource}`,
     `script-src 'nonce-${params.nonce}'`,
   ].join('; ');
 
@@ -315,25 +317,17 @@ export function renderConfigModalHtml(params: ModalRenderParams): string {
       <meta http-equiv="Content-Security-Policy" content="${escapeHtml(csp)}">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Code Block Config</title>
+      ${params.codiconsCssUri ? `<link rel="stylesheet" href="${escapeHtml(params.codiconsCssUri)}">` : ''}
       <style>
 ${modalStyles}
       </style>
     </head>
     <body>
-      <div class="global-header">
-        <button type="button" class="close-button" data-action="close" title="Close" aria-label="Close">×</button>
-      </div>
-
-      ${renderFrontMatterSection(params)}
-      ${params.cell ? renderCellSection(params, params.cell) : ''}
-
-      <div class="modal-actions">
-        ${params.cell ? `
-        <span id="dirtyStatus" class="dirty-status" aria-live="polite"></span>
-        <button type="button" class="secondary-button" data-action="reset-all" title="Remove every override so this cell follows your settings">Reset all</button>
-        <button type="button" data-action="save" id="saveButton">Save</button>` : ''}
-        <button type="button" class="secondary-button" data-action="close">Close</button>
-      </div>
+      ${renderToolbar(params)}
+      <main class="content">
+        ${params.cell ? renderCellSection(params, params.cell) : ''}
+        ${renderNotebookSection(params)}
+      </main>
 
       <script nonce="${escapeHtml(params.nonce)}">
 ${pageScript(pageData)}
@@ -414,8 +408,15 @@ function pageScript(pageData: unknown): string {
 
         function updateDirty() {
           const nowDirty = JSON.stringify(overrides) !== savedOverrides;
-          const status = document.getElementById('dirtyStatus');
-          if (status) { status.textContent = nowDirty ? 'Unsaved changes' : ''; }
+          const status = document.getElementById('saveStatus');
+          if (status && (nowDirty || !status.classList.contains('saved'))) {
+            status.classList.remove('saved');
+            status.textContent = nowDirty ? 'Unsaved changes' : '';
+          }
+          const saveButton = document.getElementById('saveButton');
+          if (saveButton) { saveButton.disabled = !nowDirty; }
+          const resetAll = document.querySelector('[data-action="reset-all"]');
+          if (resetAll) { resetAll.disabled = Object.keys(overrides).length === 0; }
           if (nowDirty !== dirty) {
             dirty = nowDirty;
             vscode.postMessage({ command: 'dirtyChanged', dirty });
@@ -448,6 +449,7 @@ function pageScript(pageData: unknown): string {
 
         fields.forEach(renderField);
         updateVisibility();
+        updateDirty();
 
         document.addEventListener('change', event => {
           if (event.target.matches && event.target.matches('[data-field]:not(button)')) {
@@ -461,7 +463,7 @@ function pageScript(pageData: unknown): string {
         });
 
         function save() {
-          if (!page.cell) { return; }
+          if (!page.cell || !dirty) { return; }
           vscode.postMessage({
             command: 'saveConfig',
             notebookUri: page.notebookUri,
@@ -650,19 +652,15 @@ function pageScript(pageData: unknown): string {
   `;
 }
 
-const modalStyles = `        @import url("https://cdn.jsdelivr.net/npm/vscode-codicons@0.0.17/dist/codicon.css");
-        body {
+const modalStyles = `        body {
           font-family: var(--vscode-font-family);
           font-size: var(--vscode-font-size);
           color: var(--vscode-foreground);
+          background: var(--vscode-editor-background);
           padding: 0;
-          /* Set max dimensions to make it more modal-like */
-          max-width: 500px;
+          max-width: 720px;
           margin: 0 auto;
           box-sizing: border-box;
-          /* Add blue outline to match selected cell styling */
-          border: 2px solid var(--vscode-focusBorder);
-          border-radius: 4px;
         }
         .codicon {
           font-size: 16px;
@@ -706,13 +704,6 @@ const modalStyles = `        @import url("https://cdn.jsdelivr.net/npm/vscode-co
           vertical-align: middle;
           cursor: pointer;
         }
-        .checkbox-label {
-          display: flex;
-          align-items: center;
-          cursor: pointer;
-          margin-bottom: 0;
-          user-select: none;
-        }
         button {
           padding: 8px 16px;
           margin-right: 10px;
@@ -729,29 +720,6 @@ const modalStyles = `        @import url("https://cdn.jsdelivr.net/npm/vscode-co
           padding: 2px 8px;
           min-width: 28px;
           text-align: center;
-          margin-right: 8px;
-        }
-        .header {
-          position: sticky;
-          top: 0;
-          z-index: 1000;
-          background: var(--vscode-editor-background);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin: 0;
-          border-bottom: 1px solid var(--vscode-panel-border);
-          padding: 12px 16px;
-          /* Add subtle shadow to emphasize the sticky header */
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .header-left {
-          display: flex;
-          align-items: center;
-        }
-        .header img {
-          width: 20px;
-          height: 20px;
           margin-right: 8px;
         }
         .language-icon {
@@ -773,40 +741,12 @@ const modalStyles = `        @import url("https://cdn.jsdelivr.net/npm/vscode-co
         .language-icon.ts { background-color: #3178c6; }
         .language-icon.py { background-color: #3776ab; }
         .language-icon.go { background-color: #00add8; }
-        .language-icon.java { background-color: #ed8b00; }
-        .language-icon.cs { background-color: #239120; }
-        .language-icon.cpp { background-color: #00599c; }
-        .language-icon.c { background-color: #a8b9cc; color: #000; }
-        .language-icon.rust { background-color: #dea584; color: #000; }
-        .language-icon.php { background-color: #777bb4; }
-        .language-icon.ruby { background-color: #cc342d; }
-        .language-icon.swift { background-color: #fa7343; }
-        .language-icon.kotlin { background-color: #7f52ff; }
-        .language-icon.scala { background-color: #dc322f; }
-        .language-icon.r { background-color: #276dc3; }
         .language-icon.sql { background-color: #336791; }
         .language-icon.bash,
         .language-icon.shell,
         .language-icon.shellscript { background-color: #89e051; color: #000; }
-        .language-icon.powershell { background-color: #012456; }
-        .language-icon.cmd { background-color: #4d4d4d; }
         .language-icon.http { background-color: #61dafb; color: #000; }
-        .language-icon.html { background-color: #e34c26; }
-        .language-icon.css { background-color: #1572b6; }
-        .language-icon.scss { background-color: #cf649a; }
-        .language-icon.less { background-color: #1d365d; }
-        .language-icon.json { background-color: #292929; }
-        .language-icon.xml { background-color: #0060ac; }
-        .language-icon.yaml { background-color: #cb171e; }
-        .language-icon.toml { background-color: #9c4221; }
-        .language-icon.dockerfile { background-color: #384d54; }
-        .language-icon.makefile { background-color: #427819; }
-        .language-icon.md { background-color: #083fa1; }
         .language-icon.default { background-color: #6cc04a; color: #000; }
-        .header h1 {
-          font-size: 1.2em;
-          margin: 0;
-        }
         .close-button {
           background: transparent;
           border: none;
@@ -819,13 +759,6 @@ const modalStyles = `        @import url("https://cdn.jsdelivr.net/npm/vscode-co
         .close-button:hover {
           background: var(--vscode-toolbar-hoverBackground);
           border-radius: 3px;
-        }
-        .modal-actions {
-          display: flex;
-          justify-content: flex-end;
-          margin-top: 16px;
-          padding-top: 10px;
-          border-top: 1px solid var(--vscode-panel-border);
         }
         .command-list {
           border: 1px solid var(--vscode-input-border);
@@ -844,28 +777,12 @@ const modalStyles = `        @import url("https://cdn.jsdelivr.net/npm/vscode-co
         .command-item:last-child {
           border-bottom: none;
         }
-        .command-button {
-          padding: 2px 8px;
-          margin-right: 8px;
-          min-width: 28px;
-          text-align: center;
-        }
-        .add-button {
-          background-color: #28a745;
-        }
-        .remove-button {
-          background-color: #dc3545;
-        }
         .command-name {
           flex-grow: 1;
         }
         .list-container {
           display: flex;
           flex-direction: column;
-        }
-        .list-title {
-          margin-bottom: 5px;
-          font-weight: bold;
         }
         details summary {
           padding: 8px;
@@ -884,9 +801,6 @@ const modalStyles = `        @import url("https://cdn.jsdelivr.net/npm/vscode-co
         details summary::marker {
           color: var(--vscode-button-secondaryForeground);
         }
-        details summary .summary-icon {
-          margin-right: 8px;
-        }
         .form-section {
           margin-bottom: 20px;
           padding: 10px;
@@ -904,13 +818,6 @@ const modalStyles = `        @import url("https://cdn.jsdelivr.net/npm/vscode-co
           margin-bottom: 8px;
           font-size: 0.9em;
           color: var(--vscode-editor-foreground);
-        }
-        .subsection {
-          margin-bottom: 20px;
-          padding: 10px;
-          border-left: 2px solid var(--vscode-panel-border);
-          background-color: rgba(128, 128, 128, 0.05);
-          border-radius: 3px;
         }
         .config-section {
           margin-bottom: 20px;
@@ -950,68 +857,6 @@ const modalStyles = `        @import url("https://cdn.jsdelivr.net/npm/vscode-co
         }
         .content {
           padding: 16px;
-        }
-        
-        /* Global Header with Close Button */
-        .global-header {
-          position: absolute;
-          top: 8px;
-          right: 8px;
-          z-index: 1000;
-        }
-        
-        /* Notebook Configuration Section - Top Level */
-        .notebook-config-section-wrapper {
-          background: var(--vscode-sideBar-background);
-          border-bottom: 2px solid var(--vscode-panel-border);
-          margin-bottom: 0;
-        }
-        .notebook-header {
-          background: var(--vscode-titleBar-activeBackground);
-          border-bottom: 1px solid var(--vscode-panel-border);
-          padding: 8px 16px;
-          margin: 0;
-        }
-        .notebook-header h1 {
-          margin: 0;
-          font-size: 16px;
-          font-weight: 600;
-          color: var(--vscode-titleBar-activeForeground);
-        }
-        .notebook-content {
-          padding: 16px;
-          margin: 0;
-        }
-        
-        .notebook-config-section {
-          margin-bottom: 0;
-        }
-        .notebook-config-section summary {
-          padding: 12px;
-          background: var(--vscode-button-secondaryBackground);
-          color: var(--vscode-button-secondaryForeground);
-          border-radius: 3px;
-          cursor: pointer;
-          font-weight: bold;
-          margin-bottom: 5px;
-          display: flex;
-          align-items: center;
-        }
-        .notebook-config-section summary:hover {
-          background: var(--vscode-button-secondaryHoverBackground);
-        }
-        .notebook-config-section summary::marker {
-          color: var(--vscode-button-secondaryForeground);
-        }
-        .notebook-config-section summary .codicon {
-          margin-right: 8px;
-        }
-        .notebook-config-content {
-          padding: 15px;
-          border: 1px solid var(--vscode-panel-border);
-          border-top: none;
-          border-radius: 0 0 3px 3px;
-          background: var(--vscode-editor-background);
         }
         textarea {
           width: 100%;
@@ -1149,10 +994,10 @@ const modalStyles = `        @import url("https://cdn.jsdelivr.net/npm/vscode-co
           border-bottom: none;
         }
         .history-entry.success {
-          border-left: 3px solid #4caf50;
+          border-left: 3px solid var(--vscode-testing-iconPassed);
         }
         .history-entry.failure {
-          border-left: 3px solid #f44336;
+          border-left: 3px solid var(--vscode-testing-iconFailed);
         }
         .history-entry-header {
           display: flex;
@@ -1172,10 +1017,10 @@ const modalStyles = `        @import url("https://cdn.jsdelivr.net/npm/vscode-co
           flex: 0 0 auto;
         }
         .history-entry-status.success {
-          color: #4caf50;
+          color: var(--vscode-testing-iconPassed);
         }
         .history-entry-status.failure {
-          color: #f44336;
+          color: var(--vscode-testing-iconFailed);
         }
         .history-entry-timestamp {
           font-size: 0.85em;
@@ -1302,6 +1147,12 @@ const modalStyles = `        @import url("https://cdn.jsdelivr.net/npm/vscode-co
         [hidden] {
           display: none !important;
         }
+        input,
+        select,
+        textarea {
+          box-sizing: border-box;
+          max-width: 100%;
+        }
         .icon-button,
         .link-button {
           background: none;
@@ -1378,11 +1229,62 @@ const modalStyles = `        @import url("https://cdn.jsdelivr.net/npm/vscode-co
         .secondary-button:hover {
           background: var(--vscode-button-secondaryHoverBackground);
         }
-        .dirty-status {
-          margin-right: auto;
-          color: var(--vscode-descriptionForeground);
-          font-style: italic;
-        }
         code.command-name {
           font-family: var(--vscode-editor-font-family);
+        }
+        .toolbar {
+          position: sticky;
+          top: 0;
+          z-index: 1000;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 16px;
+          background: var(--vscode-editor-background);
+          border-bottom: 1px solid var(--vscode-panel-border);
+        }
+        .toolbar h1 {
+          margin: 0;
+          font-size: 14px;
+          font-weight: 600;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .toolbar-title {
+          display: flex;
+          align-items: center;
+          min-width: 0;
+          margin-right: auto;
+        }
+        .toolbar button {
+          margin: 0;
+          padding: 4px 12px;
+          width: auto;
+        }
+        .toolbar .close-button {
+          padding: 2px 6px;
+        }
+        .toolbar button:disabled {
+          opacity: 0.5;
+          cursor: default;
+        }
+        .save-status {
+          color: var(--vscode-descriptionForeground);
+          font-style: italic;
+          white-space: nowrap;
+        }
+        .save-status.saved {
+          color: var(--vscode-testing-iconPassed);
+          font-style: normal;
+        }
+        .notebook-section summary {
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-weight: 600;
+        }
+        .notebook-section-body {
+          margin-top: 12px;
         }`;

@@ -105,6 +105,8 @@ let currentTarget: ModalTarget | undefined = undefined;
 let dirty = false;
 // pendingTarget is a cell selected while the shown cell had unsaved edits
 let pendingTarget: ModalTarget | undefined = undefined;
+// extensionUri locates the codicon stylesheet shipped in dist/codicons
+let extensionUri: Uri | undefined = undefined;
 
 // Settings the page may change directly (the execution history controls)
 const updatableSettings = new Set(['executionHistory.enabled', 'executionHistory.historyLimit']);
@@ -176,7 +178,7 @@ function showTarget(target: ModalTarget): void {
   render(target);
 }
 
-function render(target: ModalTarget): void {
+function render(target: ModalTarget, options: { justSaved?: boolean; } = {}): void {
   if (!currentPanel) {
     return;
   }
@@ -201,6 +203,10 @@ function render(target: ModalTarget): void {
   const params: ModalRenderParams = {
     cspSource: panel.webview.cspSource,
     nonce,
+    codiconsCssUri: extensionUri
+      ? panel.webview.asWebviewUri(Uri.joinPath(extensionUri, 'dist', 'codicons', 'codicon.css')).toString()
+      : undefined,
+    justSaved: options.justSaved,
     notebookUri: notebook?.uri.toString(),
     frontMatter,
     fields: [],
@@ -240,6 +246,7 @@ function settingsTarget(): ConfigurationTarget {
 // ---------------------------------------------------------------------------
 
 function openPanel(context?: ExtensionContext): void {
+  extensionUri = context?.extensionUri ?? extensionUri;
   // Open next to the notebook, keeping focus on it
   const activeColumn = window.activeNotebookEditor?.viewColumn ?? window.activeTextEditor?.viewColumn ?? ViewColumn.One;
   const modalColumn = activeColumn >= ViewColumn.Three ? ViewColumn.One : (activeColumn + 1) as ViewColumn;
@@ -255,7 +262,7 @@ function openPanel(context?: ExtensionContext): void {
     { viewColumn: modalColumn, preserveFocus: true },
     {
       enableScripts: true,
-      localResourceRoots: [],
+      localResourceRoots: extensionUri ? [Uri.joinPath(extensionUri, 'dist', 'codicons')] : [],
       retainContextWhenHidden: true,
     }
   );
@@ -395,7 +402,7 @@ async function saveConfig(message: Record<string, unknown>): Promise<void> {
   if (pendingTarget) {
     render(pendingTarget);
   } else if (isCodeCellTarget(currentTarget) && currentTarget.notebookCell.document.uri.toString() === cell.document.uri.toString()) {
-    render({ execCell: currentTarget.execCell, notebookCell: cell });
+    render({ execCell: currentTarget.execCell, notebookCell: cell }, { justSaved: true });
   }
 }
 

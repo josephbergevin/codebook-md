@@ -228,7 +228,7 @@ echo "Hello from CodebookMD!"
 
 ## Quick Tips
 
-- Use the gear icon (⚙️) to configure code blocks
+- Use Configure (⚙️) below a code cell to configure it
 - Hover over file links to preview their content
 - Add this notebook to your My Notebooks view for quick access</code></pre>
         
@@ -452,10 +452,10 @@ echo "Hello from CodebookMD!"
         <h4>Using the Configuration Modal</h4>
         <p>The recommended way to configure code blocks is through the intuitive configuration modal:</p>
         <ol>
-          <li>Click the gear icon (<svg width="14" height="14" viewBox="0 0 24 24" style="vertical-align: middle;"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>) in the code block toolbar</li>
+          <li>Click <strong><span class="codicon codicon-gear"></span> Configure</strong> in the status bar below a code cell</li>
           <li>This opens a configuration panel beside the notebook for the selected cell</li>
           <li>Change any option - each one shows where its value comes from</li>
-          <li>Click <strong>Save</strong> (or press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd> in the panel)</li>
+          <li>Click <strong>Save</strong> in the panel's toolbar (or press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd> in the panel)</li>
         </ol>
         <p>Cell settings are stored next to the notebook in <code>&lt;notebook&gt;.md.config.json</code>.</p>
 
@@ -466,7 +466,7 @@ echo "Hello from CodebookMD!"
           <li><strong>From your settings</strong> - a value from your VS Code settings. The gear (<span class="codicon codicon-settings-gear"></span>) opens that setting</li>
           <li><strong>Set for this cell</strong> - a value saved for this cell only; it wins over your settings</li>
         </ul>
-        <p>Only the options you change are saved for the cell, so everything else keeps following your settings when you change them later. Setting an option back to its inherited value removes the override. Use <strong>Reset to inherited</strong> under an option, or <strong>Reset all</strong> at the bottom, to remove overrides.</p>
+        <p>Only the options you change are saved for the cell, so everything else keeps following your settings when you change them later. Setting an option back to its inherited value removes the override. Use <strong>Reset to inherited</strong> under an option, or <strong>Reset all</strong> in the toolbar, to remove overrides.</p>
         <p>If you select another cell while the panel has unsaved changes, the panel keeps showing the current cell until you save or discard them.</p>
 
         <h4>Configuration Sections</h4>
@@ -475,6 +475,7 @@ echo "Hello from CodebookMD!"
           <li><strong>Language-specific Configuration:</strong> options for the cell's language, such as the command used to run it or the persistent shell session for shell cells</li>
           <li><strong>Output Configuration:</strong> show the code in the output, replace or append output on each run, and the execution timestamp and its timezone</li>
           <li><strong>Execution History:</strong> past runs of this cell. The two history options here change your workspace settings for every notebook</li>
+          <li><strong>Notebook settings: front matter</strong> (collapsed at the bottom): the YAML front matter of the whole notebook. The notebook toolbar's settings button opens just this section</li>
           <li><strong>In-cell commands:</strong> <code>[&gt;]</code> commands written as comments in the cell. They override the panel's options; copy one from the list to use it</li>
         </ul>
 
@@ -547,7 +548,7 @@ fmt.Println("Hello, CodebookMD!")
         <h5>Configuring Go Code Blocks</h5>
         <p>Configure Go code blocks easily through the configuration modal:</p>
         <ol>
-          <li>Click the gear icon in the status bar below the code block</li>
+          <li>Click <strong>Configure</strong> in the status bar below the code cell</li>
           <li>Adjust settings in the Go-specific configuration section</li>
           <li>Click "Save Configuration" to apply your changes</li>
         </ol>
@@ -620,7 +621,7 @@ console.log(greeting);
         <h5>Configuring JavaScript/TypeScript Code Blocks</h5>
         <p>Configure JavaScript/TypeScript code blocks through the configuration modal:</p>
         <ol>
-          <li>Click the gear icon in the status bar below the code block</li>
+          <li>Click <strong>Configure</strong> in the status bar below the code cell</li>
           <li>Adjust settings in the JavaScript/TypeScript-specific configuration section</li>
           <li>Click "Save Configuration" to apply your changes</li>
         </ol>
@@ -665,7 +666,7 @@ print("Hello from Python!")
         <h5>Configuring Python Code Blocks</h5>
         <p>Configure Python code blocks through the configuration modal:</p>
         <ol>
-          <li>Click the gear icon in the status bar below the code block</li>
+          <li>Click <strong>Configure</strong> in the status bar below the code cell</li>
           <li>Adjust settings in the Python-specific configuration section</li>
           <li>Click "Save Configuration" to apply your changes</li>
         </ol>
@@ -714,7 +715,7 @@ echo "Hello from Bash!"
         <h5>Configuring Bash/Shell Code Blocks</h5>
         <p>Configure Bash/Shell code blocks through the configuration modal:</p>
         <ol>
-          <li>Click the gear icon in the status bar below the code block</li>
+          <li>Click <strong>Configure</strong> in the status bar below the code cell</li>
           <li>Adjust settings in the Bash/Shell-specific configuration section</li>
           <li>Click "Save Configuration" to apply your changes</li>
         </ol>
@@ -803,7 +804,7 @@ SELECT 'Hello from SQL!' AS greeting;
         <h5>Configuring SQL Code Blocks</h5>
         <p>Configure SQL code blocks through the configuration modal:</p>
         <ol>
-          <li>Click the gear icon in the status bar below the code block</li>
+          <li>Click <strong>Configure</strong> in the status bar below the code cell</li>
           <li>Adjust settings in the SQL-specific configuration section</li>
           <li>Click "Save Configuration" to apply your changes</li>
         </ol>
@@ -868,7 +869,7 @@ Authorization: Bearer {{YOUR_TOKEN}}
         <h5>Configuring HTTP Code Blocks</h5>
         <p>Configure HTTP code blocks through the configuration modal:</p>
         <ol>
-          <li>Click the gear icon in the status bar below the code block</li>
+          <li>Click <strong>Configure</strong> in the status bar below the code cell</li>
           <li>Adjust settings in the HTTP-specific configuration section</li>
           <li>Click "Save Configuration" to apply your changes</li>
         </ol>
@@ -968,7 +969,7 @@ Authorization: Bearer {{YOUR_TOKEN}}
         <h4>Automatic Configuration</h4>
         <p>Configuration files are created and managed automatically:</p>
         <ol>
-          <li>Open any code block's configuration modal by clicking the gear icon</li>
+          <li>Open any code block's configuration modal by clicking <strong>Configure</strong> below the cell</li>
           <li>Adjust your settings using the intuitive interface</li>
           <li>Click "Save Configuration" to apply changes</li>
           <li>Settings are automatically saved to the appropriate JSON file</li>
@@ -1060,7 +1061,7 @@ Authorization: Bearer {{YOUR_TOKEN}}
         <h3>Accessing Execution History</h3>
         <p>To view and manage execution history for your code blocks:</p>
         <ol>
-          <li>Open the configuration modal for any code block by clicking the gear icon</li>
+          <li>Open the configuration modal for any code block by clicking <strong>Configure</strong> below the cell</li>
           <li>Navigate to the <strong>"Execution History"</strong> section</li>
           <li>The history will automatically load, displaying all past executions for that cell</li>
         </ol>
@@ -1245,7 +1246,7 @@ import matplotlib.pyplot as plt
         <p>The easiest way to manage front matter is through the configuration interface:</p>
         <ol>
           <li><strong>From Notebook Toolbar:</strong> Click the gear icon (⚙️) in the notebook toolbar at the top of any notebook</li>
-          <li><strong>From Markdown Cells:</strong> When a markdown cell is selected, click the gear icon to open notebook-level configuration</li>
+          <li><strong>From Markdown Cells:</strong> While the configuration panel is open, selecting a markdown cell switches it to the notebook settings</li>
           <li><strong>Front Matter Section:</strong> The configuration modal includes a dedicated "Front Matter" section where you can view and edit the YAML content</li>
           <li><strong>Visual Interface:</strong> Use the expandable text area to modify front matter with syntax highlighting</li>
           <li><strong>Save Changes:</strong> Click "Save Front Matter" to apply your changes to the notebook</li>
@@ -1322,7 +1323,7 @@ codebook:
         
         <h4>Working with the Interface</h4>
         <ol>
-          <li><strong>Open Configuration:</strong> Click the gear icon in the notebook toolbar or from a markdown cell</li>
+          <li><strong>Open Configuration:</strong> Click the gear icon in the notebook toolbar</li>
           <li><strong>Expand Front Matter:</strong> Click on "Front Matter" to expand the section</li>
           <li><strong>Edit Content:</strong> Modify the YAML content in the text area</li>
           <li><strong>Save Changes:</strong> Click "Save Front Matter" to apply your modifications</li>

@@ -1,6 +1,6 @@
 import {
   languages, commands, window, notebooks, workspace, env,
-  ExtensionContext, StatusBarAlignment, NotebookCell,
+  ExtensionContext, StatusBarAlignment, NotebookCell, NotebookCellKind, NotebookCellStatusBarAlignment,
   NotebookSerializer, NotebookData, NotebookDocument,
   CancellationToken, Uri, chat, ChatRequestHandler,
 } from 'vscode';
@@ -626,22 +626,20 @@ export async function activate(context: ExtensionContext) {
     'codebook-md',
     {
       provideCellStatusBarItems: (cell: NotebookCell) => {
-        if (cell.document.languageId) {
-          // Use undefined for alignment as a workaround
-          // VS Code API will handle it correctly
-          return [{
-            text: '$(gear)',
-            tooltip: 'Configure Code Block',
-            command: {
-              title: 'Configure Code Block',
-              command: 'codebook-md.openCodeBlockConfig',
-              arguments: [cell]
-            },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            alignment: undefined as any // This forces TypeScript to accept our object shape
-          }];
+        // Only code cells have settings; notebook settings are on the toolbar
+        if (cell.kind !== NotebookCellKind.Code) {
+          return [];
         }
-        return [];
+        return [{
+          text: '$(gear) Configure',
+          tooltip: 'Configure how this code block runs and shows its output',
+          command: {
+            title: 'Configure Code Block',
+            command: 'codebook-md.openCodeBlockConfig',
+            arguments: [cell]
+          },
+          alignment: NotebookCellStatusBarAlignment.Right,
+        }];
       }
     }
   );
