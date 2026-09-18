@@ -1242,6 +1242,9 @@ export class CodeBlockConfig {
   // understands. Used to surface typos rather than dropping them silently.
   private knownCommandPrefixes(): string[] {
     const names = [ExecPathCommand];
+    if (this.languageId === languageShellScript.nameId) {
+      names.push(".persistentSession");
+    }
     if (this.languageId === languageGo.nameId) {
       names.push(
         ".execType",
@@ -1309,6 +1312,10 @@ export class CodeBlockConfig {
           availableCommands.push(command);
         }
       });
+    }
+
+    if (this.languageId === languageShellScript.nameId && notAlreadySet(".persistentSession")) {
+      availableCommands.push(`.persistentSession(true)`);
     }
 
     return availableCommands;

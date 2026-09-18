@@ -5,11 +5,17 @@ import { existsSync } from "fs";
 import { NotebookCell, WorkspaceConfiguration } from "vscode";
 import { workspace } from "vscode";
 import * as config from "../config";
+import * as path from "path";
+import * as shellSession from "../shellSession";
+
+// PersistentSessionCommand is the in-cell command that turns the persistent
+// shell session on or off for one cell, e.g. `# [>].persistentSession(true)`.
+export const PersistentSessionCommand = ".persistentSession";
 
 export class Cell implements codebook.ExecutableCell {
   innerScope: string;
   executableCode: string;
-  mainExecutable: codebook.Command;
+  mainExecutable: codebook.Executable;
   postExecutables: codebook.Executable[] = [];
   commandCount: number = 0;
   config: Config;
@@ -19,6 +25,22 @@ export class Cell implements codebook.ExecutableCell {
     // handled here, and their settings are declared under 'codebook-md.bash'
     this.config = new Config(workspace.getConfiguration('codebook-md.bash'), notebookCell);
     this.innerScope = this.config.contentConfig.innerScope;
+
+    // In a persistent session the cell runs inside the notebook's long-lived
+    // shell, so its cd/export/variables carry over to the next session cell
+    if (this.config.persistentSession && notebookCell) {
+      this.commandCount = codebook.parseCommands(this.innerScope, this.config.execPath).length;
+      this.executableCode = this.innerScope.trim();
+      if (this.config.contentConfig.execPath) {
+        // [>].execPath becomes a cd - and, like any cd in a session, it sticks
+        const target = path.resolve(this.config.execPath, this.config.contentConfig.execPath);
+        this.executableCode = `cd ${shellSession.shellQuote(target)} || return\n${this.executableCode}`;
+      }
+      io.mkdirIfNotExistsSafe(this.config.execPath);
+      this.mainExecutable = new SessionCommand(
+        notebookCell.notebook.uri.toString(), this.executableCode, this.config.execPath, this.innerScope.trim());
+      return;
+    }
 
     // Check if cell has a specific execPath configured
     if (this.config.contentConfig.execPath) {
@@ -46,20 +68,21 @@ export class Cell implements codebook.ExecutableCell {
     this.executableCode = `#!/bin/bash\nset -e\n\n${this.innerScope.trim()}\n`;
 
     // Set the main executable to run our script
-    this.mainExecutable = new codebook.Command("bash", ["-c", this.executableCode], this.config.execPath);
+    let command = new codebook.Command("bash", ["-c", this.executableCode], this.config.execPath);
 
     // Set a clean display of the commands for output
-    this.mainExecutable.setCommandToDisplay(this.innerScope.trim());
+    command.setCommandToDisplay(this.innerScope.trim());
 
     // Override the working directory if it doesn't exist
-    if (!existsSync(this.mainExecutable.cwd)) {
-      console.warn(`Working directory ${this.mainExecutable.cwd} does not exist, falling back to ${this.config.execPath}`);
-      this.mainExecutable = new codebook.Command(
-        this.mainExecutable.command,
-        this.mainExecutable.args,
+    if (!existsSync(command.cwd)) {
+      console.warn(`Working directory ${command.cwd} does not exist, falling back to ${this.config.execPath}`);
+      command = new codebook.Command(
+        command.command,
+        command.args,
         this.config.execPath
       );
     }
+    this.mainExecutable = command;
   }
 
   allowKeepOutput(): boolean {
@@ -92,12 +115,59 @@ export class Cell implements codebook.ExecutableCell {
   }
 }
 
+/**
+ * SessionCommand runs a cell's script in the notebook's persistent shell session
+ * rather than in a fresh process.
+ */
+export class SessionCommand implements codebook.Executable {
+  constructor(
+    readonly sessionKey: string,
+    readonly script: string,
+    readonly cwd: string,
+    readonly commandToDisplay: string,
+  ) { }
+
+  execute(): ChildProcessWithoutNullStreams {
+    const session = shellSession.getSession(this.sessionKey, this.cwd, io.getMergedEnvironmentVariables());
+    // CellRun provides the parts of the ChildProcess interface the kernel uses
+    return session.run(this.script) as unknown as ChildProcessWithoutNullStreams;
+  }
+
+  toString(): string {
+    return this.commandToDisplay;
+  }
+
+  jsonStringify(): string {
+    return JSON.stringify({ session: this.sessionKey, script: this.script, cwd: this.cwd });
+  }
+}
+
+/**
+ * parsePersistentSessionCommand reads `[>].persistentSession(true|false)` from a
+ * cell's commands; returns undefined when the cell doesn't set it.
+ */
+export function parsePersistentSessionCommand(commands: string[]): boolean | undefined {
+  for (const command of commands) {
+    const match = command.match(/^\.persistentSession\(\s*(true|false)?\s*\)/);
+    if (match) {
+      return match[1] !== 'false';
+    }
+  }
+  return undefined;
+}
+
 export class Config {
   contentConfig: codebook.CodeBlockConfig;
   execPath: string;
+  persistentSession: boolean;
 
   constructor(bashConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell | undefined) {
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.bash.output'), "#");
+
+    // Least to most specific: setting -> config modal -> [>] command in the cell
+    this.persistentSession = codebook.resolveSetting<boolean>(
+      this.contentConfig.cellConfig, bashConfig, 'persistentSession', false) === true;
+    this.persistentSession = parsePersistentSessionCommand(this.contentConfig.commands) ?? this.persistentSession;
 
     // Use config.getExecPath() which properly handles execution path resolution
     // This respects the codebook-md.execPath setting and rootPath configuration

@@ -88,6 +88,7 @@
         <li><a href="#executable-code">Executable Code Blocks</a></li>
         <li><a href="#run-from-text-editor">Running Blocks from the Text Editor</a></li>
         <li><a href="#codeblock-config">CodeBlock Configuration</a></li>
+        <li><a href="#shell-session">Persistent Shell Sessions</a></li>
         <li><a href="#custom-cellconfig">Custom CellConfig JSON Files</a></li>
         <li><a href="#execution-history">Execution History</a></li>
         <li><a href="#front-matter">Front Matter Configuration</a></li>
@@ -748,6 +749,32 @@ echo "Hello from Bash!"
             </ul>
           </li>
           <li><strong>Execution Path:</strong> Set the directory where code will be executed</li>
+          <li><strong>persistentSession:</strong> Run the cell in the notebook's persistent shell session (see below)</li>
+        </ul>
+
+        <h5 id="shell-session">Persistent Shell Sessions</h5>
+        <p>By default every shell cell runs in a fresh process, so a <code>cd</code> or <code>export</code> in one cell is gone by the next. Turn on a persistent session and shell cells run in one long-lived shell per notebook instead - like typing into a terminal:</p>
+        <pre><code>```bash
+# [>].persistentSession(true)
+cd ./services/api
+export API_URL=http://localhost:8080
+```
+
+```bash
+# [>].persistentSession(true)
+pwd            # still in ./services/api
+curl "$API_URL/health"
+```</code></pre>
+        <ul>
+          <li><span class="feature-highlight">Turn it on everywhere:</span> set <code>codebook-md.bash.persistentSession</code> to <code>true</code> (default: <code>false</code>)</li>
+          <li><span class="feature-highlight">Per cell:</span> <code># [>].persistentSession(true)</code> or <code>(false)</code>, or the <strong>persistentSession</strong> option in the configuration modal. The cell command wins over the modal, which wins over the setting.</li>
+          <li><span class="feature-highlight">What carries over:</span> the working directory, exported and plain variables, functions and aliases</li>
+          <li><span class="feature-highlight">Errors:</span> like a terminal, a failing command doesn't stop the rest of the cell, and the cell reports the exit code of its last command. Chain with <code>&amp;&amp;</code> to stop on the first failure. Don't use <code>set -e</code> in a session cell - it would end the session on the first error.</li>
+          <li><span class="feature-highlight">Stopping a cell:</span> the notebook's stop button interrupts the running command and skips the rest of the cell; the session and its state are kept</li>
+          <li><span class="feature-highlight">Input:</span> commands get an empty stdin, so a command waiting for input finishes instead of hanging</li>
+          <li><span class="feature-highlight">Execution path:</span> <code>[>].execPath(...)</code> becomes a <code>cd</code> at the start of the cell, and like any <code>cd</code> it sticks</li>
+          <li><span class="feature-highlight">Restarting:</span> run <em>CodebookMD: Restart Shell Session</em> to start over with a fresh shell. Running <code>exit</code> in a cell also ends the session; the next session cell starts a new one. Sessions end when the notebook is closed.</li>
+          <li><span class="feature-highlight">Environment:</span> the session reads the <code>terminal.integrated.env.*</code> variables when it starts; restart it to pick up changes</li>
         </ul>
 
         <h5>Best Practices for Bash/Shell</h5>

@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   file as a notebook, reveals the block, and executes it. *Open as CodebookMD
   Notebook* is also on the editor title bar and in the Command Palette. Hide
   the links with the new `codebook-md.codeLens.enabled` setting.
+- **Persistent shell sessions.** Shell cells can now run in one long-lived
+  shell per notebook, so `cd`, `export`, variables and functions carry over
+  from one cell to the next. Turn it on with the new
+  `codebook-md.bash.persistentSession` setting, per cell with
+  `# [>].persistentSession(true)`, or from the configuration modal. Stopping a
+  cell interrupts it without losing the session; *CodebookMD: Restart Shell
+  Session* starts over. Session cells behave like a terminal: a failing
+  command doesn't stop the rest of the cell. Off by default, so existing
+  notebooks behave exactly as before.
 
 ### Changed
 

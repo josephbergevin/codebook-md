@@ -17,6 +17,7 @@ import { WelcomeViewProvider } from './webview/welcomeView';
 import { DocumentationViewProvider } from './webview/documentationView';
 import * as configModal from './webview/configModal';
 import * as codeLens from './codeLens';
+import * as shellSession from './shellSession';
 import { createNewNotebook, createNotebookFromSelection } from './createNotebook';
 import { getMarkdownRenderingService } from './markdownRenderer';
 
@@ -758,6 +759,29 @@ export async function activate(context: ExtensionContext) {
     }),
   );
 
+  // Persistent shell sessions: one per notebook, ended when the notebook closes
+  context.subscriptions.push(
+    workspace.onDidCloseNotebookDocument(notebook => {
+      shellSession.disposeSession(notebook.uri.toString());
+    }),
+    commands.registerCommand('codebook-md.restartShellSession', () => {
+      try {
+        const notebook = window.activeNotebookEditor?.notebook;
+        if (!notebook) {
+          window.showWarningMessage('Codebook: open a notebook first.');
+          return;
+        }
+        const ended = shellSession.disposeSession(notebook.uri.toString());
+        window.showInformationMessage(ended
+          ? 'Codebook: shell session restarted - the next session cell starts a fresh shell.'
+          : 'Codebook: this notebook has no shell session running.');
+      } catch (error) {
+        console.error('restartShellSession failed:', error);
+        window.showErrorMessage(`Codebook: could not restart the shell session - ${error}`);
+      }
+    }),
+  );
+
   // hoverProvider will fire-off for any language, but will automatically return if the document.fileName 
   // is not a markdown file
   context.subscriptions.push(languages.registerHoverProvider({ scheme: 'vscode-notebook-cell' }, new codebook.CellHover()));
@@ -1423,7 +1447,9 @@ export async function activate(context: ExtensionContext) {
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() { }
+export function deactivate() {
+  shellSession.disposeAllSessions();
+}
 
 // Export markdown contribution function for VS Code's markdown preview
 export function extendMarkdownIt(md: unknown): unknown {

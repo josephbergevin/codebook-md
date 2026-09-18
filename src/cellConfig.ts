@@ -114,9 +114,13 @@ export function getLanguageConfigOptions(languageId: string): ConfigOptions {
     case 'bash':
     case 'shellscript':
     case 'shell':
-      // Shell cells are executed verbatim via `bash -c`; there are no
-      // language-specific options beyond the shared output config.
-      return {};
+      return {
+        persistentSession: {
+          type: 'boolean',
+          default: false,
+          description: 'Run in the notebook\'s persistent shell session, so cd, export and variables carry over between cells.'
+        }
+      };
     case 'python':
       return {
         execCmd: {
