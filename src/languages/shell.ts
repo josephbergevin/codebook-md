@@ -8,10 +8,6 @@ import * as config from "../config";
 import * as path from "path";
 import * as shellSession from "../shellSession";
 
-// PersistentSessionCommand is the in-cell command that turns the persistent
-// shell session on or off for one cell, e.g. `# [>].persistentSession(true)`.
-export const PersistentSessionCommand = ".persistentSession";
-
 export class Cell implements codebook.ExecutableCell {
   innerScope: string;
   executableCode: string;
@@ -142,20 +138,6 @@ export class SessionCommand implements codebook.Executable {
   }
 }
 
-/**
- * parsePersistentSessionCommand reads `[>].persistentSession(true|false)` from a
- * cell's commands; returns undefined when the cell doesn't set it.
- */
-export function parsePersistentSessionCommand(commands: string[]): boolean | undefined {
-  for (const command of commands) {
-    const match = command.match(/^\.persistentSession\(\s*(true|false)?\s*\)/);
-    if (match) {
-      return match[1] !== 'false';
-    }
-  }
-  return undefined;
-}
-
 export class Config {
   contentConfig: codebook.CodeBlockConfig;
   execPath: string;
@@ -164,10 +146,9 @@ export class Config {
   constructor(bashConfig: WorkspaceConfiguration | undefined, notebookCell: NotebookCell | undefined) {
     this.contentConfig = new codebook.CodeBlockConfig(notebookCell, workspace.getConfiguration('codebook-md.bash.output'), "#");
 
-    // Least to most specific: setting -> config modal -> [>] command in the cell
+    // The per-cell value saved by the config modal wins over the setting
     this.persistentSession = codebook.resolveSetting<boolean>(
       this.contentConfig.cellConfig, bashConfig, 'persistentSession', false) === true;
-    this.persistentSession = parsePersistentSessionCommand(this.contentConfig.commands) ?? this.persistentSession;
 
     // Use config.getExecPath() which properly handles execution path resolution
     // This respects the codebook-md.execPath setting and rootPath configuration

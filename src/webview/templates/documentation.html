@@ -755,19 +755,17 @@ echo "Hello from Bash!"
         <h5 id="shell-session">Persistent Shell Sessions</h5>
         <p>By default every shell cell runs in a fresh process, so a <code>cd</code> or <code>export</code> in one cell is gone by the next. Turn on a persistent session and shell cells run in one long-lived shell per notebook instead - like typing into a terminal:</p>
         <pre><code>```bash
-# [>].persistentSession(true)
 cd ./services/api
 export API_URL=http://localhost:8080
 ```
 
 ```bash
-# [>].persistentSession(true)
 pwd            # still in ./services/api
 curl "$API_URL/health"
 ```</code></pre>
         <ul>
           <li><span class="feature-highlight">Turn it on everywhere:</span> set <code>codebook-md.bash.persistentSession</code> to <code>true</code> (default: <code>false</code>)</li>
-          <li><span class="feature-highlight">Per cell:</span> <code># [>].persistentSession(true)</code> or <code>(false)</code>, or the <strong>persistentSession</strong> option in the configuration modal. The cell command wins over the modal, which wins over the setting.</li>
+          <li><span class="feature-highlight">Per cell:</span> click the gear below a shell cell and use the <strong>persistentSession</strong> option. A value saved there wins over the setting.</li>
           <li><span class="feature-highlight">What carries over:</span> the working directory, exported and plain variables, functions and aliases</li>
           <li><span class="feature-highlight">Errors:</span> like a terminal, a failing command doesn't stop the rest of the cell, and the cell reports the exit code of its last command. Chain with <code>&amp;&amp;</code> to stop on the first failure. Don't use <code>set -e</code> in a session cell - it would end the session on the first error.</li>
           <li><span class="feature-highlight">Stopping a cell:</span> the notebook's stop button interrupts the running command and skips the rest of the cell; the session and its state are kept</li>

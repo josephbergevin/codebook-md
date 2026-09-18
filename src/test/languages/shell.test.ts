@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Cell, SessionCommand, parsePersistentSessionCommand } from '../../languages/shell';
+import { Cell, SessionCommand } from '../../languages/shell';
 
 // Mock the fs module to prevent actual file operations
 jest.mock('fs', () => ({
@@ -242,8 +242,8 @@ describe('Shell Language Support', () => {
       expect(cell.config.persistentSession).toBe(false);
     });
 
-    it('runs in the notebook session when the cell asks for it', () => {
-      mockCellConfig(['.persistentSession(true)']);
+    it('runs in the notebook session when the cell config turns it on', () => {
+      mockCellConfig([], { persistentSession: true });
       const cell = new Cell(createMockNotebookCell('export A=1'));
 
       expect(cell.mainExecutable).toBeInstanceOf(SessionCommand);
@@ -254,30 +254,27 @@ describe('Shell Language Support', () => {
       expect(command.cwd).toBe('/test/path');
     });
 
-    it('uses the config modal value, and lets the cell command override it', () => {
-      mockCellConfig([], { persistentSession: true });
-      expect(new Cell(createMockNotebookCell('echo hi')).mainExecutable).toBeInstanceOf(SessionCommand);
-
-      mockCellConfig(['.persistentSession(false)'], { persistentSession: true });
-      expect(new Cell(createMockNotebookCell('echo hi')).mainExecutable).not.toBeInstanceOf(SessionCommand);
+    it('lets the cell config turn the session off when the setting is on', () => {
+      const vscodeMock = jest.requireMock('vscode');
+      const original = vscodeMock.workspace.getConfiguration.getMockImplementation();
+      vscodeMock.workspace.getConfiguration.mockImplementation((section: string) =>
+        section === 'codebook-md.bash'
+          ? { get: (key: string) => (key === 'persistentSession' ? true : undefined) }
+          : original(section));
+      try {
+        expect(new Cell(createMockNotebookCell('echo hi')).mainExecutable).toBeInstanceOf(SessionCommand);
+        mockCellConfig([], { persistentSession: false });
+        expect(new Cell(createMockNotebookCell('echo hi')).mainExecutable).not.toBeInstanceOf(SessionCommand);
+      } finally {
+        vscodeMock.workspace.getConfiguration.mockImplementation(original);
+      }
     });
 
     it('turns [>].execPath into a cd at the start of the session script', () => {
-      mockCellConfig(['.persistentSession(true)'], {}, './scratch');
+      mockCellConfig([], { persistentSession: true }, './scratch');
       const command = new Cell(createMockNotebookCell('ls')).mainExecutable as SessionCommand;
       expect(command.script).toBe(`cd '/test/path/scratch' || return\nls`);
     });
   });
 });
 
-describe('parsePersistentSessionCommand', () => {
-  it('reads true, false and the bare form', () => {
-    expect(parsePersistentSessionCommand(['.persistentSession(true)'])).toBe(true);
-    expect(parsePersistentSessionCommand(['.persistentSession(false)'])).toBe(false);
-    expect(parsePersistentSessionCommand(['.persistentSession()'])).toBe(true);
-  });
-
-  it('returns undefined when the cell does not set it', () => {
-    expect(parsePersistentSessionCommand(['.execPath("./x")'])).toBeUndefined();
-  });
-});
