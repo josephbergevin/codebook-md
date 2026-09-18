@@ -1,7 +1,7 @@
 import {
   languages, commands, window, notebooks, workspace, env,
   ExtensionContext, StatusBarAlignment, NotebookCell,
-  NotebookSerializer, NotebookData, NotebookCellData, NotebookDocument,
+  NotebookSerializer, NotebookData, NotebookDocument,
   CancellationToken, Uri, chat, ChatRequestHandler,
 } from 'vscode';
 import * as folders from './folders';
@@ -307,21 +307,6 @@ async function refreshNotebooksView(): Promise<void> {
   }
 }
 
-export function rawToNotebookCellData(data: codebook.RawNotebookCell): NotebookCellData {
-  return <NotebookCellData>{
-    kind: data.kind,
-    languageId: data.language,
-    metadata: {
-      leadingWhitespace: data.leadingWhitespace,
-      trailingWhitespace: data.trailingWhitespace,
-      indentation: data.indentation,
-      [codebook.frontMatterCellMetadataKey]: data.isFrontMatter === true
-    },
-    outputs: data.outputs || [],
-    value: data.content,
-  };
-}
-
 class MarkdownProvider implements NotebookSerializer {
   deserializeNotebook(data: Uint8Array, token: CancellationToken): NotebookData | Thenable<NotebookData> {
     if (token.isCancellationRequested) {
@@ -329,7 +314,7 @@ class MarkdownProvider implements NotebookSerializer {
     }
     const content = Buffer.from(data).toString('utf8');
     const cellRawData = codebook.parseMarkdown(content);
-    const cells = cellRawData.map(rawToNotebookCellData);
+    const cells = cellRawData.map(codebook.rawToNotebookCellData);
     const notebookData: NotebookData = { cells };
 
     // When Front Matter is hidden from the notebook it isn't represented by any cell,
