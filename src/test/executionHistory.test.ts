@@ -1,432 +1,167 @@
-import { Uri } from 'vscode';
-import {
-  addHistoryEntry,
-  getHistoryForCell,
-  clearHistoryForCell,
-  clearAllHistory,
-  getAllHistory,
-  getExecutionHistoryConfig
-} from '../cellConfig';
-import { ExecutionHistoryEntry, ExecutionStatus } from '../types/executionHistory';
 import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { NotebookCell } from 'vscode';
 
-// Mock VS Code API
+let mockConfigDir = '';
+let mockHistorySettings = { enabled: true, historyLimit: 10 };
+
 jest.mock('vscode', () => ({
-  Uri: {
-    parse: (uriString: string) => ({
-      fsPath: uriString.replace('file://', ''),
-      toString: () => uriString
-    }),
-    file: (filePath: string) => ({
-      fsPath: filePath,
-      toString: () => `file://${filePath}`
-    })
-  },
   workspace: {
-    getConfiguration: jest.fn((section?: string) => {
-      if (section === 'codebook-md.executionHistory') {
-        return {
-          get: jest.fn((key: string, defaultValue?: unknown) => {
-            if (key === 'enabled') return true;
-            if (key === 'historyLimit') return 10;
-            return defaultValue;
-          })
-        };
-      }
-      return {
-        get: jest.fn((key: string, defaultValue?: unknown) => defaultValue)
-      };
-    })
-  }
-}));
-
-// Mock fs module
-jest.mock('fs');
-jest.mock('../io', () => ({
-  writeDirAndFileSyncSafe: jest.fn(() => {
-    // Mock implementation - just track that it was called
-  })
-}));
-
-describe('Execution History', () => {
-  const testNotebookUri = Uri.parse('file:///test/notebook.md');
-
-  beforeEach(() => {
-    // Clear all mocks before each test
-    jest.clearAllMocks();
-
-    // Mock fs.existsSync to return false by default
-    (fs.existsSync as jest.Mock).mockReturnValue(false);
-
-    // Mock fs.readFileSync to return empty config
-    (fs.readFileSync as jest.Mock).mockReturnValue('{}');
-  });
-
-  describe('getExecutionHistoryConfig', () => {
-    it('should return default configuration', () => {
-      const config = getExecutionHistoryConfig();
-      expect(config.enabled).toBe(true);
-      expect(config.historyLimit).toBe(10);
-    });
-  });
-
-  describe('addHistoryEntry', () => {
-    it('should add a history entry for a cell', () => {
-      const entry: ExecutionHistoryEntry = {
-        id: '123',
-        cellIndex: 0,
-        languageId: 'javascript',
-        code: 'console.log("Hello");',
-        output: 'Hello',
-        status: ExecutionStatus.Success,
-        timestamp: new Date().toISOString()
-      };
-
-      // Mock loadNotebookConfig to return empty config
-      (fs.existsSync as jest.Mock).mockReturnValue(false);
-
-      const result = addHistoryEntry(testNotebookUri, entry);
-
-      expect(result).toBe(true);
-    });
-
-    it('should respect history limit', () => {
-      // Create 20 entries (more than the limit of 10)
-      const entries: ExecutionHistoryEntry[] = [];
-      for (let i = 0; i < 20; i++) {
-        entries.push({
-          id: `entry-${i}`,
-          cellIndex: 0,
-          languageId: 'javascript',
-          code: `console.log("Test ${i}");`,
-          output: `Test ${i}`,
-          status: ExecutionStatus.Success,
-          timestamp: new Date(Date.now() + i * 1000).toISOString()
-        });
-      }
-
-      // Mock config with some existing entries
-      const mockConfig = {
-        '0': {
-          config: {
-            executionHistory: entries.slice(0, 8) // Start with 8 entries
-          }
-        }
-      };
-
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify(mockConfig));
-
-      // Add 5 more entries - should trigger limit
-      for (let i = 8; i < 13; i++) {
-        addHistoryEntry(testNotebookUri, entries[i]);
-      }
-
-      // The history should be limited to 10 entries
-      const history = getHistoryForCell(testNotebookUri, 0);
-      expect(history.length).toBeLessThanOrEqual(10);
-    });
-
-    it('should not add entry when history is disabled', () => {
-      // Mock disabled configuration
-      const vscode = jest.requireMock('vscode');
-      vscode.workspace.getConfiguration = jest.fn((section?: string) => {
+    getConfiguration: jest.fn((section?: string) => ({
+      get: (key: string, fallback?: unknown) => {
         if (section === 'codebook-md.executionHistory') {
-          return {
-            get: jest.fn((key: string) => {
-              if (key === 'enabled') return false;
-              if (key === 'historyLimit') return 10;
-            })
-          };
+          return (mockHistorySettings as Record<string, unknown>)[key] ?? fallback;
         }
-        return {
-          get: jest.fn((key: string, defaultValue?: unknown) => defaultValue)
-        };
-      });
+        return key === 'notebookConfigPath' ? mockConfigDir : fallback;
+      },
+    })),
+  },
+  NotebookCellKind: { Markup: 1, Code: 2 },
+}));
 
-      const entry: ExecutionHistoryEntry = {
-        id: '456',
-        cellIndex: 0,
-        languageId: 'python',
-        code: 'print("Test")',
-        output: 'Test',
-        status: ExecutionStatus.Success,
-        timestamp: new Date().toISOString()
-      };
+jest.mock('../io', () => ({
+  writeDirAndFileSyncSafe: (dir: string, file: string, contents: string) => {
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(file, contents);
+  },
+}));
 
-      const result = addHistoryEntry(testNotebookUri, entry);
+import {
+  addHistoryEntry, clearHistoryForCell, deleteHistoryEntry, getExecutionHistoryConfig, getHistoryForCell,
+} from '../cellConfig';
+import { __test__ as storeTest } from '../cellStore';
+import { ExecutionHistoryEntry, ExecutionStatus } from '../types/executionHistory';
 
-      // Should return false when disabled
-      expect(result).toBe(false);
-    });
+// A notebook with a markdown cell and two shell cells; cells keep their
+// document URI when they move, as in VS Code
+function makeNotebook() {
+  const notebook = {
+    uri: { toString: () => 'file:///test/notebook.md', fsPath: '/test/notebook.md' },
+    cells: [] as NotebookCell[],
+    getCells() { return this.cells; },
+    move(from: number, to: number) {
+      const [cell] = this.cells.splice(from, 1);
+      this.cells.splice(to, 0, cell);
+      this.cells.forEach((c, i) => { (c as { index: number; }).index = i; });
+    },
+  };
+  notebook.cells = ['# Title', 'echo one', 'echo two'].map((code, index) => ({
+    index,
+    kind: index === 0 ? 1 : 2,
+    notebook,
+    document: { uri: { toString: () => `cell-${index}` }, languageId: index === 0 ? 'markdown' : 'shellscript', getText: () => code },
+  }) as unknown as NotebookCell);
+  return notebook;
+}
+
+let entryCount = 0;
+function entry(overrides: Partial<ExecutionHistoryEntry> = {}): ExecutionHistoryEntry {
+  entryCount++;
+  return {
+    id: `e${entryCount}`,
+    cellIndex: 1,
+    languageId: 'shellscript',
+    code: 'echo one',
+    output: 'one',
+    status: ExecutionStatus.Success,
+    timestamp: new Date(2026, 0, 1, 0, 0, entryCount).toISOString(),
+    ...overrides,
+  };
+}
+
+let notebook: ReturnType<typeof makeNotebook>;
+
+beforeEach(() => {
+  mockConfigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'history-'));
+  mockHistorySettings = { enabled: true, historyLimit: 10 };
+  storeTest.resetState();
+  notebook = makeNotebook();
+});
+
+afterEach(() => {
+  fs.rmSync(mockConfigDir, { recursive: true, force: true });
+});
+
+describe('getExecutionHistoryConfig', () => {
+  it('reads the history settings', () => {
+    mockHistorySettings = { enabled: false, historyLimit: 3 };
+    expect(getExecutionHistoryConfig()).toEqual({ enabled: false, historyLimit: 3 });
+  });
+});
+
+describe('addHistoryEntry / getHistoryForCell', () => {
+  it('records runs per cell, newest first', () => {
+    const [, one, two] = notebook.cells;
+    const first = entry();
+    const second = entry();
+    expect(addHistoryEntry(one, first)).toBe(true);
+    expect(addHistoryEntry(one, second)).toBe(true);
+    expect(addHistoryEntry(two, entry({ code: 'echo two' }))).toBe(true);
+
+    expect(getHistoryForCell(one).map(e => e.id)).toEqual([second.id, first.id]);
+    expect(getHistoryForCell(two)).toHaveLength(1);
+    expect(getHistoryForCell(notebook.cells[0])).toEqual([]);
   });
 
-  describe('getHistoryForCell', () => {
-    it('should return history for a specific cell', () => {
-      const mockHistory: ExecutionHistoryEntry[] = [
-        {
-          id: '1',
-          cellIndex: 0,
-          languageId: 'javascript',
-          code: 'console.log("Test 1");',
-          output: 'Test 1',
-          status: ExecutionStatus.Success,
-          timestamp: new Date().toISOString()
-        },
-        {
-          id: '2',
-          cellIndex: 0,
-          languageId: 'javascript',
-          code: 'console.log("Test 2");',
-          output: 'Test 2',
-          status: ExecutionStatus.Success,
-          timestamp: new Date().toISOString()
-        }
-      ];
+  it('keeps at most historyLimit entries, or all of them for 0', () => {
+    const one = notebook.cells[1];
+    mockHistorySettings.historyLimit = 2;
+    for (let i = 0; i < 4; i++) {
+      addHistoryEntry(one, entry());
+    }
+    expect(getHistoryForCell(one)).toHaveLength(2);
 
-      const mockConfig = {
-        '0': {
-          config: {
-            executionHistory: mockHistory
-          }
-        }
-      };
-
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify(mockConfig));
-
-      const history = getHistoryForCell(testNotebookUri, 0);
-
-      expect(history).toHaveLength(2);
-      expect(history[0].id).toBe('1');
-      expect(history[1].id).toBe('2');
-    });
-
-    it('should return empty array for cell without history', () => {
-      (fs.existsSync as jest.Mock).mockReturnValue(false);
-
-      const history = getHistoryForCell(testNotebookUri, 0);
-
-      expect(history).toEqual([]);
-    });
+    mockHistorySettings.historyLimit = 0;
+    for (let i = 0; i < 4; i++) {
+      addHistoryEntry(one, entry());
+    }
+    expect(getHistoryForCell(one)).toHaveLength(6);
   });
 
-  describe('getAllHistory', () => {
-    it('should return history for all cells', () => {
-      const mockConfig = {
-        '0': {
-          config: {
-            executionHistory: [
-              {
-                id: '1',
-                cellIndex: 0,
-                languageId: 'javascript',
-                code: 'console.log("Cell 0");',
-                output: 'Cell 0',
-                status: ExecutionStatus.Success,
-                timestamp: new Date().toISOString()
-              }
-            ]
-          }
-        },
-        '1': {
-          config: {
-            executionHistory: [
-              {
-                id: '2',
-                cellIndex: 1,
-                languageId: 'python',
-                code: 'print("Cell 1")',
-                output: 'Cell 1',
-                status: ExecutionStatus.Success,
-                timestamp: new Date().toISOString()
-              }
-            ]
-          }
-        }
-      };
-
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify(mockConfig));
-
-      const allHistory = getAllHistory(testNotebookUri);
-
-      expect(Object.keys(allHistory)).toHaveLength(2);
-      expect(allHistory['0']).toHaveLength(1);
-      expect(allHistory['1']).toHaveLength(1);
-    });
+  it('records nothing when history is disabled', () => {
+    mockHistorySettings.enabled = false;
+    expect(addHistoryEntry(notebook.cells[1], entry())).toBe(false);
+    expect(getHistoryForCell(notebook.cells[1])).toEqual([]);
   });
 
-  describe('clearHistoryForCell', () => {
-    it('should clear history for a specific cell', () => {
-      const mockConfig = {
-        '0': {
-          config: {
-            executionHistory: [
-              {
-                id: '1',
-                cellIndex: 0,
-                languageId: 'javascript',
-                code: 'console.log("Test");',
-                output: 'Test',
-                status: ExecutionStatus.Success,
-                timestamp: new Date().toISOString()
-              }
-            ]
-          }
-        }
-      };
-
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify(mockConfig));
-
-      const result = clearHistoryForCell(testNotebookUri, 0);
-
-      expect(result).toBe(true);
-    });
-
-    it('should return true when clearing non-existent history', () => {
-      (fs.existsSync as jest.Mock).mockReturnValue(false);
-
-      const result = clearHistoryForCell(testNotebookUri, 0);
-
-      expect(result).toBe(true);
-    });
+  it('keeps optional fields', () => {
+    const failed = entry({ status: ExecutionStatus.Failure, errorMessage: 'boom', exitCode: 2, duration: 40 });
+    addHistoryEntry(notebook.cells[1], failed);
+    expect(getHistoryForCell(notebook.cells[1])[0]).toEqual(failed);
   });
 
-  describe('clearAllHistory', () => {
-    it('should clear history for all cells', () => {
-      const mockConfig = {
-        '0': {
-          config: {
-            executionHistory: [
-              {
-                id: '1',
-                cellIndex: 0,
-                languageId: 'javascript',
-                code: 'console.log("Cell 0");',
-                output: 'Cell 0',
-                status: ExecutionStatus.Success,
-                timestamp: new Date().toISOString()
-              }
-            ]
-          }
-        },
-        '1': {
-          config: {
-            executionHistory: [
-              {
-                id: '2',
-                cellIndex: 1,
-                languageId: 'python',
-                code: 'print("Cell 1")',
-                output: 'Cell 1',
-                status: ExecutionStatus.Success,
-                timestamp: new Date().toISOString()
-              }
-            ]
-          }
-        }
-      };
+  it('follows a cell when it moves', () => {
+    const one = notebook.cells[1];
+    addHistoryEntry(one, entry());
+    notebook.move(1, 2);
+    expect(getHistoryForCell(notebook.cells[2])).toHaveLength(1);
+    expect(getHistoryForCell(notebook.cells[1])).toEqual([]);
+  });
+});
 
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
-      (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify(mockConfig));
-
-      const result = clearAllHistory(testNotebookUri);
-
-      expect(result).toBe(true);
-    });
+describe('clearHistoryForCell / deleteHistoryEntry', () => {
+  it("clears one cell's history and leaves the others", () => {
+    const [, one, two] = notebook.cells;
+    addHistoryEntry(one, entry());
+    addHistoryEntry(two, entry());
+    expect(clearHistoryForCell(one)).toBe(true);
+    expect(getHistoryForCell(one)).toEqual([]);
+    expect(getHistoryForCell(two)).toHaveLength(1);
   });
 
-  describe('History entry structure', () => {
-    it('should create valid history entry with all required fields', () => {
-      const entry: ExecutionHistoryEntry = {
-        id: 'test-id',
-        cellIndex: 5,
-        languageId: 'typescript',
-        code: 'const x = 10;',
-        output: 'undefined',
-        status: ExecutionStatus.Success,
-        timestamp: '2024-01-01T00:00:00.000Z'
-      };
-
-      expect(entry.id).toBe('test-id');
-      expect(entry.cellIndex).toBe(5);
-      expect(entry.languageId).toBe('typescript');
-      expect(entry.code).toBe('const x = 10;');
-      expect(entry.output).toBe('undefined');
-      expect(entry.status).toBe(ExecutionStatus.Success);
-      expect(entry.timestamp).toBe('2024-01-01T00:00:00.000Z');
-    });
-
-    it('should support optional fields', () => {
-      const entry: ExecutionHistoryEntry = {
-        id: 'test-id',
-        cellIndex: 0,
-        languageId: 'go',
-        code: 'package main',
-        output: '',
-        status: ExecutionStatus.Failure,
-        timestamp: new Date().toISOString(),
-        errorMessage: 'Compilation failed',
-        exitCode: 1
-      };
-
-      expect(entry.errorMessage).toBe('Compilation failed');
-      expect(entry.exitCode).toBe(1);
-    });
+  it('succeeds when there is nothing to clear', () => {
+    expect(clearHistoryForCell(notebook.cells[1])).toBe(true);
   });
 
-  describe('History ordering', () => {
-    it('should maintain history in newest-first order', () => {
-      const now = Date.now();
-      const entries: ExecutionHistoryEntry[] = [
-        {
-          id: '1',
-          cellIndex: 0,
-          languageId: 'javascript',
-          code: 'console.log(1);',
-          output: '1',
-          status: ExecutionStatus.Success,
-          timestamp: new Date(now).toISOString()
-        },
-        {
-          id: '2',
-          cellIndex: 0,
-          languageId: 'javascript',
-          code: 'console.log(2);',
-          output: '2',
-          status: ExecutionStatus.Success,
-          timestamp: new Date(now + 1000).toISOString()
-        },
-        {
-          id: '3',
-          cellIndex: 0,
-          languageId: 'javascript',
-          code: 'console.log(3);',
-          output: '3',
-          status: ExecutionStatus.Success,
-          timestamp: new Date(now + 2000).toISOString()
-        }
-      ];
-
-      // Add entries in order
-      (fs.existsSync as jest.Mock).mockReturnValue(false);
-
-      entries.forEach(entry => {
-        addHistoryEntry(testNotebookUri, entry);
-      });
-
-      // Verify newest entry is first
-      const history = getHistoryForCell(testNotebookUri, 0);
-
-      // Note: In the actual implementation, entries are added with unshift()
-      // so the newest entry should be at index 0
-      if (history.length > 0) {
-        expect(new Date(history[0].timestamp).getTime()).toBeGreaterThanOrEqual(
-          new Date(history[history.length - 1].timestamp).getTime()
-        );
-      }
-    });
+  it('deletes a single entry', () => {
+    const one = notebook.cells[1];
+    const keep = entry();
+    const drop = entry();
+    addHistoryEntry(one, keep);
+    addHistoryEntry(one, drop);
+    expect(deleteHistoryEntry(one, drop.id)).toBe(true);
+    expect(getHistoryForCell(one)).toEqual([keep]);
+    expect(deleteHistoryEntry(one, 'missing')).toBe(false);
   });
 });

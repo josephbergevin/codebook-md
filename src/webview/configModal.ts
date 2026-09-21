@@ -411,15 +411,14 @@ async function handleHistoryMessage(message: Record<string, unknown>): Promise<v
   if (!cell) {
     return;
   }
-  const uri = cell.notebook.uri;
   const post = (data: Record<string, unknown>) => currentPanel?.webview.postMessage(data);
 
   switch (message.command) {
     case 'loadHistory':
-      post({ command: 'historyLoaded', history: getHistoryForCell(uri, cell.index) });
+      post({ command: 'historyLoaded', history: getHistoryForCell(cell) });
       return;
     case 'loadHistoryCount':
-      post({ command: 'historyCountLoaded', count: getHistoryForCell(uri, cell.index).length });
+      post({ command: 'historyCountLoaded', count: getHistoryForCell(cell).length });
       return;
     case 'clearHistory': {
       // Webviews can't show confirm() dialogs, so confirm here
@@ -428,7 +427,7 @@ async function handleHistoryMessage(message: Record<string, unknown>): Promise<v
       if (choice !== 'Clear') {
         return;
       }
-      if (clearHistoryForCell(uri, cell.index)) {
+      if (clearHistoryForCell(cell)) {
         post({ command: 'historyCleared' });
       } else {
         window.showErrorMessage('Codebook: failed to clear the execution history.');
@@ -439,8 +438,8 @@ async function handleHistoryMessage(message: Record<string, unknown>): Promise<v
       if (typeof message.entryId !== 'string') {
         return;
       }
-      if (deleteHistoryEntry(uri, cell.index, message.entryId)) {
-        post({ command: 'historyLoaded', history: getHistoryForCell(uri, cell.index) });
+      if (deleteHistoryEntry(cell, message.entryId)) {
+        post({ command: 'historyLoaded', history: getHistoryForCell(cell) });
       } else {
         window.showErrorMessage('Codebook: failed to delete the history entry.');
       }

@@ -936,42 +936,39 @@ Authorization: Bearer {{YOUR_TOKEN}}
         <h3>Configuration File Structure</h3>
         <p>Configuration files are named <code>&lt;notebook-name&gt;.config.json</code> and contain cell-specific configurations:</p>
         <pre><code>{
-  "0": {
-    "config": {
-      "output": {
-        "showExecutableCodeInOutput": true,
-        "replaceOutputCell": false,
-        "showTimestamp": true,
-        "timestampTimezone": "America/New_York"
-      },
-      "execType": "run",
-      "execCmd": "python3"
-    }
-  },
-  "2": {
-    "config": {
-      "output": {
-        "showTimestamp": false
+  "version": 2,
+  "cells": {
+    "c-7f3a91d2": {
+      "index": 1,
+      "fingerprint": "python:9b2e41c07a5d",
+      "occurrence": 0,
+      "config": {
+        "output": {
+          "showTimestamp": true,
+          "timestampTimezone": "America/New_York"
+        },
+        "execCmd": "python3"
       }
     }
   }
 }</code></pre>
-        
+
         <h4>Configuration Structure</h4>
         <ul>
-          <li><strong>Cell Index Keys:</strong> Each top-level key corresponds to a cell's index in the notebook (0-based)</li>
-          <li><strong>Config Object:</strong> Contains all configuration options for that specific cell</li>
-          <li><strong>Output Settings:</strong> Control how execution results are displayed</li>
-          <li><strong>Language-Specific Options:</strong> Include settings specific to the cell's programming language</li>
+          <li><strong>Cell IDs:</strong> each configured cell has a stable ID, so its settings and history stay with it when cells are added, removed or moved</li>
+          <li><strong>index, fingerprint, occurrence:</strong> where the cell was, and a hash of its language and code, when the notebook was last saved. They let CodebookMD find the cell again after the markdown is edited outside the notebook (in the text editor, or through git). Your markdown files are never changed.</li>
+          <li><strong>config:</strong> the options saved for that cell - only the ones that differ from your settings - and its execution history</li>
+          <li><strong>unmatched:</strong> set on an entry whose cell can no longer be found (for example, its code was changed <em>and</em> it was moved outside the notebook). The entry is kept, and re-attaches if the cell comes back.</li>
         </ul>
-        
+        <p>Files written by earlier versions (keyed by cell index) are upgraded automatically.</p>
+
         <h3>Using Custom CellConfig</h3>
         <h4>Automatic Configuration</h4>
         <p>Configuration files are created and managed automatically:</p>
         <ol>
           <li>Open any code block's configuration modal by clicking <strong>Configure</strong> below the cell</li>
           <li>Adjust your settings using the intuitive interface</li>
-          <li>Click "Save Configuration" to apply changes</li>
+          <li>Click <strong>Save</strong> to apply changes</li>
           <li>Settings are automatically saved to the appropriate JSON file</li>
         </ol>
         
@@ -980,8 +977,8 @@ Authorization: Bearer {{YOUR_TOKEN}}
         <ol>
           <li>Navigate to your configured <code>notebookConfigPath</code> directory</li>
           <li>Open the <code>&lt;notebook-name&gt;.config.json</code> file</li>
-          <li>Edit the JSON structure to add or modify cell configurations</li>
-          <li>Save the file - changes will be automatically applied</li>
+          <li>Edit the <code>config</code> of an existing entry - use the configuration panel to create new ones, since it assigns the ID and fingerprint</li>
+          <li>Save the file - changes are applied the next time the cell runs</li>
         </ol>
         
         <h3>Configuration Options by Language</h3>
@@ -1143,39 +1140,32 @@ Authorization: Bearer {{YOUR_TOKEN}}
         <p><strong>Note:</strong> When the limit is reached, the oldest entries are automatically removed to make room for new ones.</p>
         
         <h3>Storage and File Structure</h3>
-        <p>Execution history is stored in the same <code>.md.config.json</code> file as your other cell configurations. The structure looks like this:</p>
+        <p>Execution history is stored in the same <code>.md.config.json</code> file as your other cell configurations, inside the cell's <code>config</code>. It stays with the cell when cells are added, removed or moved:</p>
         <pre><code>{
-  "0": {
-    "config": {
-      "output": {
-        "showTimestamp": true
+  "version": 2,
+  "cells": {
+    "c-7f3a91d2": {
+      "index": 1,
+      "fingerprint": "javascript:3c1f0e9a8b27",
+      "occurrence": 0,
+      "config": {
+        "output": { "showTimestamp": true },
+        "executionHistory": [
+          {
+            "id": "1705330335123-abc",
+            "cellIndex": 1,
+            "languageId": "javascript",
+            "code": "console.log('Hello, world!');",
+            "output": "Hello, world!\n",
+            "status": "success",
+            "timestamp": "2024-01-15T14:32:15.123Z"
+          }
+        ]
       }
-    },
-    "executionHistory": [
-      {
-        "id": "1705330335123-abc",
-        "cellIndex": 0,
-        "languageId": "javascript",
-        "code": "console.log('Hello, world!');",
-        "output": "Hello, world!\n",
-        "status": "Success",
-        "timestamp": "2024-01-15T14:32:15.123Z"
-      },
-      {
-        "id": "1705330202456-def",
-        "cellIndex": 0,
-        "languageId": "javascript",
-        "code": "throw new Error('Test error');",
-        "output": "Error: Test error\n    at ...",
-        "status": "Failure",
-        "timestamp": "2024-01-15T14:30:02.456Z",
-        "errorMessage": "Test error",
-        "exitCode": 1
-      }
-    ]
+    }
   }
 }</code></pre>
-        
+
         <h3>Best Practices</h3>
         <ul>
           <li><strong>Regular Review:</strong> Periodically review execution history to identify patterns or recurring issues</li>

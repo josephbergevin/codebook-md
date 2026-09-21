@@ -1337,30 +1337,14 @@ export class CodeBlockConfig {
 
 // getCellConfig finds the cell configuration for the given cell
 export function getCellConfig(notebookCell: NotebookCell): any {
-  // Check if the notebook property is defined
   if (!notebookCell.notebook) {
     return null;
   }
-
-  const cellIndex = notebookCell.index;
-  const notebookUri = notebookCell.notebook.uri;
-
   try {
-    // Import the loadNotebookConfig function from cellConfig.ts
-    // We need to use require here to avoid circular dependencies
+    // required lazily to avoid a circular import (cellStore -> config -> codebook)
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const cellConfigModule = require('./cellConfig');
-
-    // Load notebook configuration from file
-    const cellConfigs = cellConfigModule.loadNotebookConfig(notebookUri);
-
-    // Look for a configuration for the current cell index
-    if (cellConfigs[cellIndex.toString()]) {
-      return cellConfigs[cellIndex.toString()].config;
-    }
-
-    console.log(`No configuration found for cell index ${cellIndex}`);
-    return null;
+    const cellStore = require('./cellStore');
+    return cellStore.readCellConfig(notebookCell);
   } catch (error) {
     console.error('Error retrieving cell configuration:', error);
     return null;

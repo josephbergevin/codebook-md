@@ -85,9 +85,15 @@ same directive is written `// [>]...` in JavaScript and `# [>]...` in shell.
 `innerScope`, `cellConfig`, `execPath`, `outputConfig`. It handles an
 `undefined` cell by constructing an empty instance — useful in tests.
 
-Persisted per-cell config lives alongside the notebook and is managed by
-`src/cellConfig.ts` (`loadNotebookConfig`, `saveNotebookConfig`,
-`saveCellConfig`, `updateNotebookConfigIndices`, `getNotebookConfigPath`).
+Persisted per-cell config (and execution history) lives alongside the notebook
+in `<notebook>.md.config.json`. `src/cellStore.ts` owns the file: entries are
+keyed by a stable cell ID, tied in memory to the cell's document URI (which
+survives moves) and re-attached across sessions by a fingerprint of the cell's
+language and code, then by position. `onNotebookSaved` refreshes positions and
+fingerprints and prunes deleted cells; version-1 (index-keyed) files migrate on
+read. Callers use the cell-based API in `src/cellConfig.ts` (`saveCellConfig`,
+`addHistoryEntry`, `getHistoryForCell`, `clearHistoryForCell`,
+`deleteHistoryEntry`) or `codebook.getCellConfig(cell)` - never a cell index.
 
 ## Path resolution
 

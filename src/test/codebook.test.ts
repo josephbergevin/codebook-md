@@ -90,6 +90,12 @@ jest.mock('fs', () => ({
   existsSync: jest.fn()
 }));
 
+// Cell config is read through the cell store: cell 0 has an output setting
+jest.mock('../cellStore', () => ({
+  readCellConfig: jest.fn((cell: { index: number; }) =>
+    cell.index === 0 ? { output: { showExecutableCodeInOutput: true } } : null),
+}));
+
 // Mock the entire cellConfig module
 jest.mock('../cellConfig', () => ({
   loadNotebookConfig: jest.fn().mockImplementation(() => {
