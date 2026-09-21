@@ -14,7 +14,7 @@ jest.mock('../../io', () => ({
 }));
 
 import * as io from '../../io';
-import * as cellConfigModule from '../../cellConfig';
+import * as cellStore from '../../cellStore';
 import * as sql from '../../languages/sql';
 import * as http from '../../languages/http';
 
@@ -96,8 +96,7 @@ describe('SQL execution', () => {
     installSettings({ 'codebook-md.sql': { execCmd: 'mysql' } });
     const notebookCell = cell('SELECT 1;', 'sql');
     notebookCell.notebook = { uri: { fsPath: '/ws/test.md' } };
-    jest.spyOn(cellConfigModule, 'loadNotebookConfig')
-      .mockReturnValue({ '0': { config: { execCmd: 'psql' } } });
+    jest.spyOn(cellStore, 'readCellConfig').mockReturnValue({ execCmd: 'psql' });
 
     const cellUnderTest = new sql.Cell(notebookCell);
 
@@ -111,8 +110,7 @@ describe('SQL execution', () => {
     installSettings({ 'codebook-md.sql': { execCmd: 'mysql' } });
     const notebookCell = cell('SELECT 1;', 'sql');
     notebookCell.notebook = { uri: { fsPath: '/ws/test.md' } };
-    jest.spyOn(cellConfigModule, 'loadNotebookConfig')
-      .mockReturnValue({ '0': { config: { execOptions: '-h db -u app' } } });
+    jest.spyOn(cellStore, 'readCellConfig').mockReturnValue({ execOptions: '-h db -u app' });
 
     const cellUnderTest = new sql.Cell(notebookCell);
 
@@ -124,8 +122,7 @@ describe('SQL execution', () => {
     installSettings({ 'codebook-md.sql': { execCmd: 'mysql' } });
     const notebookCell = cell('SELECT 1;', 'sql');
     notebookCell.notebook = { uri: { fsPath: '/ws/test.md' } };
-    jest.spyOn(cellConfigModule, 'loadNotebookConfig')
-      .mockReturnValue({ '0': { config: { execPath: '/ws/db' } } });
+    jest.spyOn(cellStore, 'readCellConfig').mockReturnValue({ execPath: '/ws/db' });
 
     const cellUnderTest = new sql.Cell(notebookCell);
 

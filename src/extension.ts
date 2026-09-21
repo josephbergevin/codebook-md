@@ -11,7 +11,7 @@ import * as codebook from './codebook';
 import * as fs from 'fs';
 import * as config from './config';
 import * as path from 'path';
-import { updateNotebookConfigIndices } from './cellConfig';
+import * as cellStore from './cellStore';
 import { NotebooksViewProvider } from './webview/notebooksView';
 import { WelcomeViewProvider } from './webview/welcomeView';
 import { DocumentationViewProvider } from './webview/documentationView';
@@ -452,43 +452,21 @@ export async function activate(context: ExtensionContext) {
   // Add this line at the beginning of your activate function
   console.log("Extension activated");
 
-  // Register notebook document change listener to track cell operations
-  const notebookChangeListener = workspace.onDidChangeNotebookDocument(event => {
-    if (!event.notebook.notebookType.startsWith('codebook-md')) {
-      return; // Only process our notebook types
-    }
-
-    try {
-      // Process cell changes
-      event.contentChanges.forEach(change => {
-        if (change.removedCells.length > 0) {
-          // Handle cell deletion
-          updateNotebookConfigIndices(
-            event.notebook.uri,
-            'delete',
-            change.range.start,
-            change.removedCells.length
-          );
-          console.log(`Updated cell config indices after deletion at index ${change.range.start}, removed ${change.removedCells.length} cells`);
+  // Per-cell config follows cells by a stable ID (see cellStore.ts). Saving a
+  // notebook records where its configured cells now are, so the config can be
+  // re-attached after the markdown is edited outside the notebook.
+  context.subscriptions.push(
+    workspace.onDidSaveNotebookDocument(notebook => {
+      if (notebook.notebookType.startsWith('codebook-md')) {
+        try {
+          cellStore.onNotebookSaved(notebook);
+        } catch (error) {
+          console.error('Error updating cell config after save:', error);
         }
-
-        if (change.addedCells.length > 0) {
-          // Handle cell insertion
-          updateNotebookConfigIndices(
-            event.notebook.uri,
-            'insert',
-            change.range.start,
-            change.addedCells.length
-          );
-          console.log(`Updated cell config indices after insertion at index ${change.range.start}, added ${change.addedCells.length} cells`);
-        }
-      });
-    } catch (error) {
-      console.error('Error handling notebook change:', error);
-    }
-  });
-
-  context.subscriptions.push(notebookChangeListener);
+      }
+    }),
+    workspace.onDidCloseNotebookDocument(notebook => cellStore.forgetNotebook(notebook)),
+  );
 
   // Register notebook selection change listener for config modal updates
   const notebookSelectionChangeListener = window.onDidChangeNotebookEditorSelection(event => {

@@ -177,7 +177,7 @@ export class Kernel {
           duration: duration
         };
 
-        const saved = addHistoryEntry(notebookCell.notebook.uri, historyEntry);
+        const saved = addHistoryEntry(notebookCell, historyEntry);
         if (saved) {
           console.log(`Execution history saved for cell ${notebookCell.index}`);
           // Notify the config modal to refresh the history view

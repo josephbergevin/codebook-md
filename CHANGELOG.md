@@ -59,6 +59,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     below them. Colours follow your theme, and icons ship with the extension
     so they work offline. Controls are real buttons, reachable by keyboard.
   - The cell status bar now shows *Configure* on code cells only.
+- **Cell settings and history got lost or attached to the wrong cell.** They
+  were stored by cell position: moving a cell deleted them, and editing the
+  markdown outside the notebook (text editor, git) shifted them onto other
+  cells. Each configured cell now has a stable ID in the `.md.config.json`
+  file, together with a fingerprint of its code, so settings follow the cell
+  through moves, inserts, deletes and reloads, and are found again after
+  outside edits. Your markdown is not changed. Existing config files are
+  upgraded automatically.
 
 - **Saving a notebook mangled indented and aliased code blocks.** A code
   block indented inside a list item was written back at column 0, breaking

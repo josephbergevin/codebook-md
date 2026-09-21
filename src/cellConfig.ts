@@ -1,62 +1,21 @@
-import { NotebookCell, workspace, Uri } from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
-import { writeDirAndFileSyncSafe } from './io';
-import { DEFAULT_EXEC_PATH } from './config';
-import { ExecutionHistoryEntry, ExecutionHistory } from './types/executionHistory';
+import { NotebookCell, workspace } from 'vscode';
+import { ExecutionHistoryEntry } from './types/executionHistory';
+import { CellConfig, readCellConfig, updateCellConfig } from './cellStore';
 
-interface CellConfig {
-  output?: Record<string, boolean | string>;
-  executionHistory?: ExecutionHistoryEntry[];
-  [key: string]: unknown;
-}
+export { CellConfig, getNotebookConfigPath } from './cellStore';
 
 /**
- * Save cell configuration to a separate JSON file instead of notebook metadata
- * 
+ * saveCellConfig replaces a cell's stored configuration.
+ *
  * @param notebookCell The notebook cell to save configuration for
- * @param config The configuration to save
+ * @param config The configuration to save; an empty object removes it
  * @returns Promise that resolves to true if successful, false otherwise
  */
 export async function saveCellConfig(notebookCell: NotebookCell, config: CellConfig): Promise<boolean> {
   try {
-    if (!notebookCell.notebook) {
-      console.error('Notebook not found');
-      return false;
-    }
-
-    const cellIndex = notebookCell.index;
-    const languageId = notebookCell.document.languageId;
-
-    console.log(`Saving cell config for cell ${cellIndex} with language ${languageId}`);
-    console.log(`Config data: ${JSON.stringify(config)}`);
-
-    // Get the notebook URI
-    const notebookUri = notebookCell.notebook.uri;
-
-    // Load existing config from file (if any)
-    const existingConfig = loadNotebookConfig(notebookUri);
-
-    // Update with new config for this cell
-    const cellKey = cellIndex.toString();
-    existingConfig[cellKey] = { config };
-
-    // Save the updated config to the file
-    const saveSuccess = saveNotebookConfig(notebookUri, existingConfig);
-    if (!saveSuccess) {
-      console.error(`Failed to save configuration for cell ${cellIndex} with language ${languageId}`);
-      return false;
-    }
-
-    console.log(`Successfully saved configuration for cell ${cellIndex} to config file`);
-    return true;
+    return updateCellConfig(notebookCell, () => config);
   } catch (error: unknown) {
     console.error('Error saving cell configuration:', error);
-    console.log('Failed operation details:', {
-      cellIndex: notebookCell.index,
-      languageId: notebookCell.document.languageId,
-      notebook: notebookCell.notebook ? 'present' : 'missing'
-    });
     return false;
   }
 }
@@ -260,155 +219,6 @@ export function getExecutionHistoryConfigOptions(): ConfigOptions {
 }
 
 /**
- * Get the notebook configuration file path for a given notebook
- * 
- * @param notebookUri The URI of the notebook
- * @returns The path to the notebook configuration file
- */
-export function getNotebookConfigPath(notebookUri: Uri): string {
-  // Get the configuration settings
-  const config = workspace.getConfiguration('codebook-md');
-
-  // Get notebookConfigPath setting, but if not explicitly set, use execPath as default
-  let notebookConfigDir = config.get<string>('notebookConfigPath');
-
-  // If notebookConfigPath is not set, fall back to execPath
-  if (!notebookConfigDir) {
-    notebookConfigDir = config.get<string>('execPath', DEFAULT_EXEC_PATH);
-  }
-
-  // Get the notebook filename and create config filename
-  const notebookPath = notebookUri.fsPath;
-  const notebookFilename = path.basename(notebookPath);
-  const configFilename = `${notebookFilename}.config.json`;
-
-  // Resolve the config directory path properly
-  let resolvedConfigDir: string;
-  if (path.isAbsolute(notebookConfigDir)) {
-    resolvedConfigDir = notebookConfigDir;
-  } else {
-    // For relative paths, resolve relative to the notebook's directory
-    const notebookDir = path.dirname(notebookPath);
-    resolvedConfigDir = path.resolve(notebookDir, notebookConfigDir);
-  }
-
-  // Combine the directory and filename
-  const configPath = path.join(resolvedConfigDir, configFilename);
-
-  return configPath;
-}
-
-/**
- * Load notebook configuration from the configuration file
- * 
- * @param notebookUri The URI of the notebook
- * @returns The notebook configuration or an empty object if no configuration exists
- */
-export function loadNotebookConfig(notebookUri: Uri): Record<string, { config: CellConfig; }> {
-  const configPath = getNotebookConfigPath(notebookUri);
-
-  try {
-    if (fs.existsSync(configPath)) {
-      const configContent = fs.readFileSync(configPath, 'utf8');
-      return JSON.parse(configContent);
-    }
-  } catch (error) {
-    console.error(`Error loading notebook config from ${configPath}:`, error);
-  }
-
-  return {};
-}
-
-/**
- * Save notebook configuration to the configuration file
- * 
- * @param notebookUri The URI of the notebook
- * @param config The notebook configuration to save
- * @returns True if successful, false otherwise
- */
-export function saveNotebookConfig(notebookUri: Uri, config: Record<string, { config: CellConfig; }>): boolean {
-  try {
-    const configPath = getNotebookConfigPath(notebookUri);
-    const configDir = path.dirname(configPath);
-
-    writeDirAndFileSyncSafe(configDir, configPath, JSON.stringify(config, null, 2));
-    return true;
-  } catch (error) {
-    console.error('Error saving notebook config:', error);
-    return false;
-  }
-}
-
-/**
- * Updates notebook configuration indices when cells are added or removed
- *
- * @param notebookUri The URI of the notebook
- * @param changeType 'insert' or 'delete'
- * @param startIndex The index where the change occurred
- * @param count The number of cells affected
- * @returns True if the update was successful, false otherwise
- */
-export function updateNotebookConfigIndices(
-  notebookUri: Uri,
-  changeType: 'insert' | 'delete',
-  startIndex: number,
-  count: number
-): boolean {
-  try {
-    // Load existing configuration
-    const existingConfig = loadNotebookConfig(notebookUri);
-
-    if (Object.keys(existingConfig).length === 0) {
-      // No configuration to update
-      return true;
-    }
-
-    // Create a new configuration object
-    const newConfig: Record<string, { config: CellConfig; }> = {};
-
-    // Process each configuration entry
-    Object.entries(existingConfig).forEach(([indexStr, value]) => {
-      const cellIndex = parseInt(indexStr, 10);
-
-      if (isNaN(cellIndex)) {
-        // Keep non-numeric keys unchanged
-        newConfig[indexStr] = value;
-        return;
-      }
-
-      if (changeType === 'insert') {
-        // For insertion, shift indices after the insertion point
-        if (cellIndex >= startIndex) {
-          newConfig[(cellIndex + count).toString()] = value;
-        } else {
-          newConfig[indexStr] = value;
-        }
-      } else if (changeType === 'delete') {
-        // For deletion, shift indices and remove deleted cells
-        if (cellIndex < startIndex) {
-          // Before deletion point - keep the same
-          newConfig[indexStr] = value;
-        } else if (cellIndex >= startIndex + count) {
-          // After deletion point - shift backward
-          newConfig[(cellIndex - count).toString()] = value;
-        }
-        // Cells in the deletion range are omitted
-      }
-    });
-
-    // Save the updated configuration
-    return saveNotebookConfig(notebookUri, newConfig);
-  } catch (error) {
-    console.error('Error updating notebook configuration indices:', error);
-    return false;
-  }
-}
-
-// ========================================================================
-// Execution History Functions
-// ========================================================================
-
-/**
  * Get execution history configuration from workspace settings
  * @returns Execution history configuration
  */
@@ -421,47 +231,26 @@ export function getExecutionHistoryConfig(): { enabled: boolean; historyLimit: n
 }
 
 /**
- * Add an execution history entry for a specific cell
- * 
- * @param notebookUri The URI of the notebook
- * @param entry The execution history entry to add
- * @returns True if successful, false otherwise
+ * addHistoryEntry records a run of a cell, newest first, keeping at most the
+ * configured number of entries.
+ *
+ * @returns True if the entry was saved, false otherwise (including when history is disabled)
  */
-export function addHistoryEntry(notebookUri: Uri, entry: ExecutionHistoryEntry): boolean {
+export function addHistoryEntry(notebookCell: NotebookCell, entry: ExecutionHistoryEntry): boolean {
   try {
-    // Check if history is enabled
     const historyConfig = getExecutionHistoryConfig();
     if (!historyConfig.enabled) {
-      console.log('Execution history is disabled');
       return false;
     }
-
-    // Load existing configuration
-    const config = loadNotebookConfig(notebookUri);
-
-    // Get the cell's configuration or create a new one
-    const cellKey = entry.cellIndex.toString();
-    if (!config[cellKey]) {
-      config[cellKey] = { config: {} };
-    }
-
-    // Initialize history array if it doesn't exist or if it's not an array
-    if (!config[cellKey].config.executionHistory || !Array.isArray(config[cellKey].config.executionHistory)) {
-      config[cellKey].config.executionHistory = [];
-    }
-
-    const history = config[cellKey].config.executionHistory as ExecutionHistoryEntry[];
-
-    // Add the new entry at the beginning (newest first)
-    history.unshift(entry);
-
-    // Respect the history limit if set (0 means unlimited)
-    if (historyConfig.historyLimit > 0 && history.length > historyConfig.historyLimit) {
-      history.splice(historyConfig.historyLimit);
-    }
-
-    // Save the updated configuration
-    return saveNotebookConfig(notebookUri, config);
+    return updateCellConfig(notebookCell, config => {
+      const history = Array.isArray(config.executionHistory) ? [...config.executionHistory] : [];
+      history.unshift(entry);
+      // 0 means unlimited
+      if (historyConfig.historyLimit > 0 && history.length > historyConfig.historyLimit) {
+        history.splice(historyConfig.historyLimit);
+      }
+      return { ...config, executionHistory: history };
+    });
   } catch (error) {
     console.error('Error adding history entry:', error);
     return false;
@@ -469,77 +258,35 @@ export function addHistoryEntry(notebookUri: Uri, entry: ExecutionHistoryEntry):
 }
 
 /**
- * Get execution history for a specific cell
- * 
- * @param notebookUri The URI of the notebook
- * @param cellIndex The index of the cell
- * @returns Array of execution history entries (newest first), or empty array if none exists
+ * getHistoryForCell returns a cell's execution history, newest first.
  */
-export function getHistoryForCell(notebookUri: Uri, cellIndex: number): ExecutionHistoryEntry[] {
+export function getHistoryForCell(notebookCell: NotebookCell): ExecutionHistoryEntry[] {
   try {
-    const config = loadNotebookConfig(notebookUri);
-    const cellKey = cellIndex.toString();
-
-    if (!config[cellKey] || !config[cellKey].config.executionHistory) {
-      return [];
-    }
-
-    const history = config[cellKey].config.executionHistory;
-
-    // Ensure it's an array before returning
-    if (!Array.isArray(history)) {
-      return [];
-    }
-
-    return history as ExecutionHistoryEntry[];
+    const history = readCellConfig(notebookCell)?.executionHistory;
+    return Array.isArray(history) ? history : [];
   } catch (error) {
     console.error('Error getting history for cell:', error);
     return [];
   }
 }
 
-/**
- * Get execution history for all cells in a notebook
- * 
- * @param notebookUri The URI of the notebook
- * @returns ExecutionHistory object mapping cell indices to their history entries
- */
-export function getAllHistory(notebookUri: Uri): ExecutionHistory {
-  try {
-    const config = loadNotebookConfig(notebookUri);
-    const history: ExecutionHistory = {};
-
-    Object.entries(config).forEach(([cellKey, value]) => {
-      if (value.config.executionHistory) {
-        history[cellKey] = value.config.executionHistory as ExecutionHistoryEntry[];
-      }
-    });
-
-    return history;
-  } catch (error) {
-    console.error('Error getting all history:', error);
-    return {};
+// withHistory returns a config with its history replaced (or removed when empty)
+function withHistory(config: CellConfig, history: ExecutionHistoryEntry[]): CellConfig {
+  const next = { ...config };
+  if (history.length > 0) {
+    next.executionHistory = history;
+  } else {
+    delete next.executionHistory;
   }
+  return next;
 }
 
 /**
- * Clear execution history for a specific cell
- * 
- * @param notebookUri The URI of the notebook
- * @param cellIndex The index of the cell
- * @returns True if successful, false otherwise
+ * clearHistoryForCell removes all of a cell's execution history.
  */
-export function clearHistoryForCell(notebookUri: Uri, cellIndex: number): boolean {
+export function clearHistoryForCell(notebookCell: NotebookCell): boolean {
   try {
-    const config = loadNotebookConfig(notebookUri);
-    const cellKey = cellIndex.toString();
-
-    if (config[cellKey] && config[cellKey].config.executionHistory) {
-      delete config[cellKey].config.executionHistory;
-      return saveNotebookConfig(notebookUri, config);
-    }
-
-    return true; // Nothing to clear
+    return updateCellConfig(notebookCell, config => withHistory(config, []));
   } catch (error) {
     console.error('Error clearing history for cell:', error);
     return false;
@@ -547,57 +294,20 @@ export function clearHistoryForCell(notebookUri: Uri, cellIndex: number): boolea
 }
 
 /**
- * Delete a specific execution history entry for a cell
- * 
- * @param notebookUri The URI of the notebook
- * @param cellIndex The index of the cell
- * @param entryId The ID of the history entry to delete
- * @returns True if successful, false otherwise
+ * deleteHistoryEntry removes one entry from a cell's execution history.
+ *
+ * @returns True if the entry was found and removed
  */
-export function deleteHistoryEntry(notebookUri: Uri, cellIndex: number, entryId: string): boolean {
+export function deleteHistoryEntry(notebookCell: NotebookCell, entryId: string): boolean {
   try {
-    const config = loadNotebookConfig(notebookUri);
-    const cellKey = cellIndex.toString();
-
-    if (config[cellKey] && config[cellKey].config.executionHistory) {
-      const history = config[cellKey].config.executionHistory;
-
-      // Filter out the entry with the specified ID
-      if (Array.isArray(history)) {
-        config[cellKey].config.executionHistory = history.filter((entry: ExecutionHistoryEntry) => entry.id !== entryId);
-        return saveNotebookConfig(notebookUri, config);
-      }
+    const history = getHistoryForCell(notebookCell);
+    if (!history.some(entry => entry.id === entryId)) {
+      return false;
     }
-
-    return false; // Entry not found
+    return updateCellConfig(notebookCell, config =>
+      withHistory(config, history.filter(entry => entry.id !== entryId)));
   } catch (error) {
     console.error('Error deleting history entry:', error);
     return false;
   }
 }
-
-/**
- * Clear execution history for all cells in a notebook
- * 
- * @param notebookUri The URI of the notebook
- * @returns True if successful, false otherwise
- */
-export function clearAllHistory(notebookUri: Uri): boolean {
-  try {
-    const config = loadNotebookConfig(notebookUri);
-
-    // Remove executionHistory from all cells
-    Object.keys(config).forEach(cellKey => {
-      if (config[cellKey].config.executionHistory) {
-        delete config[cellKey].config.executionHistory;
-      }
-    });
-
-    return saveNotebookConfig(notebookUri, config);
-  } catch (error) {
-    console.error('Error clearing all history:', error);
-    return false;
-  }
-}
-
-// Functions are exported individually

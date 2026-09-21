@@ -124,7 +124,7 @@ describe('history messages', () => {
 
     (vscode.window.showWarningMessage as jest.Mock).mockResolvedValueOnce('Clear');
     await __test__.handleMessage({ command: 'clearHistory', notebookUri, cellUri: 'cell-b' });
-    expect(cellConfig.clearHistoryForCell).toHaveBeenCalledWith(expect.anything(), 1);
+    expect(cellConfig.clearHistoryForCell).toHaveBeenCalledWith(cells[1]);
   });
 });
 
