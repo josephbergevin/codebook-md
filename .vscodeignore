@@ -35,3 +35,6 @@ extension/src/img/**
 !extension/src/img/logo_3_128x128.png
 !extension/src/img/logo_3_800x800.png
 !extension/src/img/icon_logo_v1.svg
+
+# The README demo animation is served from the repository, not the package
+extension/src/img/demo.gif
