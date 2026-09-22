@@ -141,7 +141,7 @@ GET https://example.com
 ```
 
 ```python
-print("hello world")
+print("Hello, Python!")
 ```
 
 ```shellscript
