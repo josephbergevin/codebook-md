@@ -32,7 +32,6 @@ export class Cell implements codebook.ExecutableCell {
         const target = path.resolve(this.config.execPath, this.config.contentConfig.execPath);
         this.executableCode = `cd ${shellSession.shellQuote(target)} || return\n${this.executableCode}`;
       }
-      io.mkdirIfNotExistsSafe(this.config.execPath);
       this.mainExecutable = new SessionCommand(
         notebookCell.notebook.uri.toString(), this.executableCode, this.config.execPath, this.innerScope.trim());
       return;
@@ -52,9 +51,6 @@ export class Cell implements codebook.ExecutableCell {
       this.mainExecutable = new codebook.Command("echo", ["No commands found in cell"], ".");
       return;
     }
-
-    // Ensure the execution directory exists
-    io.mkdirIfNotExistsSafe(this.config.execPath);
 
     // Build the script from the cell contents verbatim. The script is handed to
     // `bash -c`, so bash does its own parsing - pipes, redirects, globs, quoting,
@@ -83,6 +79,11 @@ export class Cell implements codebook.ExecutableCell {
 
   allowKeepOutput(): boolean {
     return this.commandCount === 1;
+  }
+
+
+  executionPath(): string {
+    return this.config.execPath;
   }
 
   codeBlockConfig(): codebook.CodeBlockConfig {
@@ -124,6 +125,7 @@ export class SessionCommand implements codebook.Executable {
   ) { }
 
   execute(): ChildProcessWithoutNullStreams {
+    io.mkdirIfNotExistsSafe(this.cwd);
     const session = shellSession.getSession(this.sessionKey, this.cwd, io.getMergedEnvironmentVariables());
     // CellRun provides the parts of the ChildProcess interface the kernel uses
     return session.run(this.script) as unknown as ChildProcessWithoutNullStreams;

@@ -199,6 +199,12 @@ describe('Shell Language Support', () => {
       expect(cell.commandCount).toBe(1);
     });
 
+    it('reports the directory the cell runs in', () => {
+      const cell = new Cell(createMockNotebookCell('echo "hello"'));
+      expect(cell.executionPath()).toBe(cell.config.execPath);
+      expect(cell.executionPath()).toBe('/test/path');
+    });
+
     it('uses "#" as the comment prefix', () => {
       const cell = new Cell(createMockNotebookCell('echo "hello"'));
 

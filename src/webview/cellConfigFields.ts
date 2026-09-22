@@ -142,6 +142,7 @@ export function buildConfigFields(
   languageId: string,
   cellConfig: Record<string, unknown> | null | undefined,
   getConfiguration: GetConfiguration = defaultGetConfiguration,
+  options: { inheritedExecPath?: string; } = {},
 ): ConfigField[] {
   const section = settingsSection(languageId);
   const languageConfig = getConfiguration(`codebook-md.${section}`);
@@ -152,10 +153,10 @@ export function buildConfigFields(
       id: 'execPath',
       group: 'execution',
       label: 'Execution path',
-      description: 'Directory this cell runs in. Leave empty to use the codebook-md.execPath setting.',
+      description: 'Directory this cell runs in, relative to the workspace folder. Clear it to follow the codebook-md.execPath setting.',
       type: 'string',
       settingId: 'codebook-md.execPath',
-      inheritedValue: '',
+      inheritedValue: options.inheritedExecPath ?? '',
       inheritedSource: explicitSetting(getConfiguration('codebook-md'), 'execPath') !== undefined ? 'setting' : 'default',
     });
   }
@@ -250,6 +251,9 @@ export function coerceFieldValue(field: ConfigField, raw: unknown): unknown {
     }
     case 'select':
       return field.options?.includes(String(raw)) ? String(raw) : undefined;
+    case 'string':
+      // An empty path means "follow the setting", not "run in the root"
+      return field.id === 'execPath' && String(raw).trim() === '' ? undefined : String(raw);
     default:
       return raw === undefined || raw === null ? undefined : String(raw);
   }

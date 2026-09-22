@@ -24,6 +24,10 @@ function params(overrides: Partial<ModalRenderParams> = {}): ModalRenderParams {
     cellCommands: ['# [>].execPath("./scratch")'],
     availableCommands: ['# [>].output.timestampTimezone("UTC")'],
     history: { enabled: true, historyLimit: 10, target: 'workspace' },
+    execPathChoices: [
+      { label: 'Workspace folder', value: '.', title: '/ws' },
+      { label: 'Current folder', value: 'docs/notes', title: '/ws/docs/notes' },
+    ],
     ...overrides,
   };
 }
@@ -113,6 +117,21 @@ describe('renderConfigModalHtml', () => {
     const html = renderConfigModalHtml(params());
     expect(html.indexOf('id="configForm"')).toBeLessThan(html.indexOf('id="frontMatter"'));
     expect(html).toMatch(/<details class="form-section notebook-section" >/);
+  });
+
+  it('offers the execution path shortcuts under that field', () => {
+    const html = renderConfigModalHtml(params({
+      fields: [{
+        id: 'execPath', group: 'execution', label: 'Execution path', description: 'Where it runs.',
+        type: 'string', settingId: 'codebook-md.execPath', inheritedValue: 'codebook-md', inheritedSource: 'default',
+      }],
+    }));
+    const start = html.indexOf('data-field-row="execPath"');
+    const row = html.slice(start, html.indexOf('field-meta', start)).replace(/\s+/g, ' ');
+    expect(row).toContain('data-action="set-field" data-field="execPath" data-value="."');
+    expect(row).toContain('>Workspace folder</button>');
+    expect(row).toContain('data-field="execPath" data-value="docs/notes"');
+    expect(row).toContain('title="/ws/docs/notes"');
   });
 
   it('shows only the notebook settings when there is no cell', () => {

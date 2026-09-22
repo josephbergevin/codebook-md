@@ -29,6 +29,8 @@ export interface ModalRenderParams {
   // [>] commands found in the cell, and ones the user could add - with comment prefix
   cellCommands: string[];
   availableCommands: string[];
+  // Shortcuts offered under the execution path field
+  execPathChoices?: Array<{ label: string; value: string; title?: string; }>;
   history: { enabled: boolean; historyLimit: number; target: 'workspace' | 'user'; };
 }
 
@@ -111,7 +113,20 @@ function renderControl(field: ConfigField): string {
   }
 }
 
-function renderField(field: ConfigField): string {
+function renderExecPathChoices(params: ModalRenderParams): string {
+  const choices = params.execPathChoices ?? [];
+  if (choices.length === 0) {
+    return '';
+  }
+  return `
+        <div class="field-choices">
+          ${choices.map(choice => `<button type="button" class="secondary-button choice-button" data-action="set-field"
+            data-field="execPath" data-value="${escapeHtml(choice.value)}"
+            title="${escapeHtml(choice.title ?? choice.value)}">${escapeHtml(choice.label)}</button>`).join('')}
+        </div>`;
+}
+
+function renderField(field: ConfigField, params?: ModalRenderParams): string {
   const showWhen = field.showWhen
     ? `data-show-when="${escapeHtml(field.showWhen.field)}" data-show-equals="${escapeHtml(field.showWhen.equals)}"`
     : '';
@@ -128,6 +143,7 @@ function renderField(field: ConfigField): string {
           ${renderSettingButton(field)}
         </div>
         ${field.type === 'boolean' ? '' : renderControl(field)}
+        ${field.id === 'execPath' && params ? renderExecPathChoices(params) : ''}
         <div class="field-meta">
           <span class="field-source" data-source-for="${escapeHtml(field.id)}"></span>
           <button type="button" class="link-button" data-action="reset-field" data-field="${escapeHtml(field.id)}">Reset to inherited</button>
@@ -136,17 +152,17 @@ function renderField(field: ConfigField): string {
       </div>`;
 }
 
-function renderFieldGroups(fields: ConfigField[]): string {
+function renderFieldGroups(params: ModalRenderParams): string {
   return (['execution', 'language', 'output'] as const)
     .map(group => {
-      const groupFields = fields.filter(f => f.group === group);
+      const groupFields = params.fields.filter(f => f.group === group);
       if (groupFields.length === 0) {
         return '';
       }
       return `
       <div class="form-section">
         <h3>${groupTitles[group]}</h3>
-        ${groupFields.map(renderField).join('')}
+        ${groupFields.map(field => renderField(field, params)).join('')}
       </div>`;
     })
     .join('');
@@ -188,7 +204,7 @@ function renderCellSection(params: ModalRenderParams, cell: ModalCell): string {
 
         <form id="configForm" autocomplete="off">
           <div class="config-section">
-            ${renderFieldGroups(params.fields)}
+            ${renderFieldGroups(params)}
           </div>
         </form>
 
@@ -363,6 +379,8 @@ function pageScript(pageData: unknown): string {
         function readControl(field, el) {
           if (field.type === 'boolean') { return el.checked; }
           if (field.type === 'number') { return el.value === '' ? field.inheritedValue : Number(el.value); }
+          // An empty execution path means "follow the setting"
+          if (field.id === 'execPath' && el.value.trim() === '') { return field.inheritedValue; }
           return el.value;
         }
 
@@ -552,6 +570,14 @@ function pageScript(pageData: unknown): string {
           'discard': () => vscode.postMessage({ command: 'discardChanges' }),
           'reset-all': () => { Object.keys(overrides).forEach(resetField); },
           'reset-field': el => resetField(el.getAttribute('data-field')),
+          'set-field': el => {
+            const id = el.getAttribute('data-field');
+            const target = control(id);
+            if (target) {
+              writeControl(fieldsById.get(id), target, el.getAttribute('data-value'));
+              onFieldChanged(target);
+            }
+          },
           'open-setting': el => vscode.postMessage({ command: 'openSpecificSetting', settingId: el.getAttribute('data-setting') }),
           'open-docs': el => vscode.postMessage({ command: 'openDocumentation', section: el.getAttribute('data-section') }),
           'open-settings': () => vscode.postMessage({ command: 'openSettings' }),
@@ -1189,6 +1215,18 @@ const modalStyles = `        body {
         .intro {
           color: var(--vscode-descriptionForeground);
           margin: 0 0 8px 0;
+        }
+        .field-choices {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 6px;
+        }
+        .choice-button {
+          padding: 2px 10px;
+          margin: 0;
+          width: auto;
+          font-size: 0.95em;
         }
         .field-meta {
           display: flex;

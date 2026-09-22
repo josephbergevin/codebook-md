@@ -157,6 +157,11 @@ export class Cell implements codebook.ExecutableCell {
     return { curlCommand: curlCmd, body };
   }
 
+
+  executionPath(): string {
+    return this.config.execPath;
+  }
+
   codeBlockConfig(): codebook.CodeBlockConfig {
     return this.config.contentConfig;
   }

@@ -95,6 +95,11 @@ export class Cell implements codebook.ExecutableCell {
       + `\necho "${codebook.EndOutput}"`;
   }
 
+
+  executionPath(): string {
+    return this.config.execPath;
+  }
+
   codeBlockConfig(): codebook.CodeBlockConfig {
     return this.config.contentConfig;
   }

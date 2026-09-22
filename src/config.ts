@@ -170,6 +170,52 @@ export function isCodeLensEnabled(): boolean {
   return workspace.getConfiguration('codebook-md.codeLens').get<boolean>('enabled', true);
 }
 
+/**
+ * workspaceRoot returns the folder that per-cell execution paths are relative
+ * to, or undefined when no workspace is open.
+ */
+export function workspaceRoot(): string | undefined {
+  try {
+    return getWorkspaceFolder();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * resolveExecPath turns a per-cell execution path into an absolute one. A
+ * relative path is taken as relative to the workspace root, which is how the
+ * config modal presents it. An empty value means "not set".
+ */
+export function resolveExecPath(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed === '') {
+    return '';
+  }
+  if (path.isAbsolute(trimmed)) {
+    return path.normalize(trimmed);
+  }
+  const root = workspaceRoot();
+  return root ? path.resolve(root, trimmed) : path.normalize(trimmed);
+}
+
+/**
+ * workspaceRelativePath renders an absolute path for display: relative to the
+ * workspace root ('.' for the root itself), or the absolute path when it sits
+ * outside the workspace.
+ */
+export function workspaceRelativePath(absolutePath: string): string {
+  const root = workspaceRoot();
+  if (!root || !absolutePath) {
+    return absolutePath;
+  }
+  const relative = path.relative(root, absolutePath);
+  if (relative === '') {
+    return '.';
+  }
+  return relative.startsWith('..') ? absolutePath : relative;
+}
+
 // getWorkspaceFolder returns the actual workspace folder path
 export function getWorkspaceFolder(): string {
   const rootPathSetting = codebookConfig.get<string>('rootPath', '');
