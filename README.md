@@ -10,27 +10,22 @@ VS Code. Every fenced code block gets a ▶ button; output lands right under the
 block. The file stays plain markdown, so it still renders on GitHub and diffs
 cleanly in review.
 
-<!--
-  DEMO GIF: record a 5-10s clip (open a .md -> Open With codebook-md -> run a
-  Go, shell and HTTP cell -> output appears), save it as
-  extension/src/img/demo.gif, then replace this comment with:
-  <img src="extension/src/img/demo.gif" alt="Running code blocks in a markdown notebook" width="800" />
--->
+<img src="extension/src/img/demo.gif" alt="Running Go, Python and shell code blocks in a markdown notebook" width="900" />
 
 ## Why CodebookMD
 
 - **Go is a first-class citizen.** Run a Go block as a standalone `main.go`, or
-  *inside your package* as a `_test.go` file with access to its unexported code.
+  _inside your package_ as a `_test.go` file with access to its unexported code.
 - **Your whole backend workflow in one doc.** Shell, Go, Python, JavaScript,
   TypeScript, SQL (through `psql`, `mysql`, `mycli`, …) and HTTP requests — no
   extra extensions required.
-- **Find the right doc fast.** The *My Notebooks* sidebar shows the markdown
+- **Find the right doc fast.** The _My Notebooks_ sidebar shows the markdown
   files relevant to whatever you're editing, plus virtual folders you can commit
   and share with your team.
 - **Configure a cell from inside the cell.** A comment like
   `# [>].execPath("./scratch")` changes how that one block runs.
-- **Ask about your notebook.** `@codebook` in VS Code chat, plus *Start Chat
-  with Cell / Section / Notebook* to hand context straight to the assistant.
+- **Ask about your notebook.** `@codebook` in VS Code chat, plus _Start Chat
+  with Cell / Section / Notebook_ to hand context straight to the assistant.
 - **Runs locally.** Code executes on your machine with your own toolchain and
   environment variables — no cloud service or account required.
 
@@ -41,15 +36,15 @@ cleanly in review.
    **codebook-md** (or run **New CodebookMD Notebook** from the Command Palette).
 3. Press ▶ on a code block:
 
-   ```bash
+```shellscript
    echo "Hello from $(uname -s)"
-   ```
+```
 
-   ```http
+```http
    GET https://jsonplaceholder.typicode.com/todos/1
-   ```
+```
 
-**Want every markdown file to open as a notebook?** Add this to your settings:
+**Want every markdown file to open as a CodebookMD notebook?** Add this to your settings:
 
 ```jsonc
 "workbench.editorAssociations": {
@@ -57,22 +52,22 @@ cleanly in review.
 }
 ```
 
-> CodebookMD registers as an *optional* editor for `.md` rather than the
+> CodebookMD registers as an _optional_ editor for `.md` rather than the
 > default, so it doesn't collide with other markdown-notebook extensions (VS Code
 > allows only one default notebook type per file). The association above opts
 > you in; note it routes markdown away from other notebook/preview extensions.
 
 ## Supported languages
 
-| Language | Fence | How it runs |
-| --- | --- | --- |
-| Go | `go`, `golang` | As a `main.go`, or as a `_test.go` inside a package |
-| Shell | `bash`, `sh`, `zsh`, `shell` | As a `.sh` script |
-| Python | `python`, `py` | As a `.py` file with your configured interpreter |
-| JavaScript | `javascript`, `js` | As a `.js` file with Node |
-| TypeScript | `typescript`, `ts` | As a `.ts` file with `ts-node` |
-| SQL | `sql`, `mysql`, `postgres` | Through a CLI client you choose (`psql`, `mysql`, `mycli`, …) |
-| HTTP | `http` | Converted to a `curl` command |
+| Language   | Fence                        | How it runs                                                   |
+| ---------- | ---------------------------- | ------------------------------------------------------------- |
+| Go         | `go`, `golang`               | As a `main.go`, or as a `_test.go` inside a package           |
+| Shell      | `bash`, `sh`, `zsh`, `shell` | As a `.sh` script                                             |
+| Python     | `python`, `py`               | As a `.py` file with your configured interpreter              |
+| JavaScript | `javascript`, `js`           | As a `.js` file with Node                                     |
+| TypeScript | `typescript`, `ts`           | As a `.ts` file with `ts-node`                                |
+| SQL        | `sql`, `mysql`, `postgres`   | Through a CLI client you choose (`psql`, `mysql`, `mycli`, …) |
+| HTTP       | `http`                       | Converted to a `curl` command                                 |
 
 SQL and HTTP blocks can also be run through a SQL extension that provides
 CodeLens actions, or through the REST Client extension.
@@ -102,8 +97,15 @@ You can customize the dynamic folder group through VS Code settings (`settings.j
   "codebook-md.dynamicFolderGroup.enabled": true,
   "codebook-md.dynamicFolderGroup.name": "Relevant Docs",
   "codebook-md.dynamicFolderGroup.description": "Relevant docs for the current file",
-  "codebook-md.dynamicFolderGroup.subFolderInclusions": [".github", ".vscode"],
-  "codebook-md.dynamicFolderGroup.exclusions": ["node_modules", "out", "dist"]
+  "codebook-md.dynamicFolderGroup.subFolderInclusions": [
+    ".github",
+    ".vscode"
+  ],
+  "codebook-md.dynamicFolderGroup.exclusions": [
+    "node_modules",
+    "out",
+    "dist"
+  ]
 }
 ```
 
@@ -130,7 +132,6 @@ The Codebook MD extension allows you to create user-defined virtual folders in t
 The configuration for user-defined virtual folders is stored in a JSON file located at `.vscode/codebook-md.json` in your workspace. This file contains the structure and organization of your virtual folders, including their names, descriptions, and the markdown files they contain. All changes made through the Tree View UI are automatically saved to this file.
 
 - Folders:
-
   - `name`: Display name for the folder
   - `folderPath`: Hierarchical path (using dots as separators)
   - `icon`: Optional path to a custom icon for the folder
@@ -138,12 +139,10 @@ The configuration for user-defined virtual folders is stored in a JSON file loca
   - `files`: Array of file entries in this folder
 
 - Files:
-
   - `name`: Display name for the file
   - `path`: Path to the markdown file (absolute or relative to workspace root)
 
 - Config Tips:
-
   - Use descriptive display names to make your documents easier to find
   - Create a logical folder hierarchy based on your projects or document types
   - Regularly refresh the Tree View if you make changes to files outside VS Code
@@ -335,20 +334,20 @@ comment in the cell's own language (`#` for shell/python/http, `//` for
 go/js/ts, `--` for sql). These take precedence over both the language settings
 and anything saved through the configuration modal.
 
-```bash
+```shellscript
 # [>].output.showTimestamp(false)
 # [>].output.timestampTimezone("America/Denver")
 # [>].execPath("./scratch")
 echo "hello"
 ```
 
-| Command | Effect |
-| --- | --- |
-| `[>].output.showExecutableCodeInOutput(true\|false)` | Print the cell's code above its output |
-| `[>].output.replaceOutputCell(true\|false)` | Replace the output on each run, or append to it |
-| `[>].output.showTimestamp(true\|false)` | Prepend a timestamp to the output |
-| `[>].output.timestampTimezone("UTC")` | Timezone for that timestamp |
-| `[>].execPath("./dir")` | Directory the cell executes from |
+| Command                                              | Effect                                          |
+| ---------------------------------------------------- | ----------------------------------------------- |
+| `[>].output.showExecutableCodeInOutput(true\|false)` | Print the cell's code above its output          |
+| `[>].output.replaceOutputCell(true\|false)`          | Replace the output on each run, or append to it |
+| `[>].output.showTimestamp(true\|false)`              | Prepend a timestamp to the output               |
+| `[>].output.timestampTimezone("UTC")`                | Timezone for that timestamp                     |
+| `[>].execPath("./dir")`                              | Directory the cell executes from                |
 
 Go cells also accept `[>].execTypeRunFilename("main.go")`,
 `[>].execTypeTestFilename("codebook_md_exec_test.go")`,
@@ -358,7 +357,7 @@ Go cells also accept `[>].execTypeRunFilename("main.go")`,
 Settings resolve from least to most specific: global settings
 (`codebook-md.output.*`) → language settings (`codebook-md.go.output.*`) → the
 cell configuration saved by the modal → the `[>]` commands in the cell. Any
-layer can turn a setting on *or* off.
+layer can turn a setting on _or_ off.
 
 The full list for the current cell is available in the configuration modal —
 click the gear icon in the status bar below the code block. Unrecognised
