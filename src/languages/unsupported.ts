@@ -28,6 +28,11 @@ export class Cell implements codebook.ExecutableCell {
     this.mainExecutable = new codebook.Command(`echo "Unsupported language '${this.language}'"`, [], config.getExecPath());
   }
 
+
+  executionPath(): string {
+    return config.getExecPath();
+  }
+
   codeBlockConfig(): codebook.CodeBlockConfig {
     return this.config.contentConfig;
   };

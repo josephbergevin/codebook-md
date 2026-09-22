@@ -227,6 +227,11 @@ export class Cell implements codebook.ExecutableCell {
     return this.executables().length <= 1;
   }
 
+
+  executionPath(): string {
+    return this.config.execPath;
+  }
+
   codeBlockConfig(): codebook.CodeBlockConfig {
     return this.config.contentConfig;
   }

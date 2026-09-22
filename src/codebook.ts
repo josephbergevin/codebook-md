@@ -58,6 +58,8 @@ export const frontMatterNotebookMetadataKey = 'codebookFrontMatter';
 // Cell is an interface that defines the methods that a cell must implement
 export interface ExecutableCell {
   execute(): ChildProcessWithoutNullStreams;
+  // executionPath is the absolute directory the cell runs in
+  executionPath(): string;
   executables(): Executable[];
   allowKeepOutput(): boolean;
   codeBlockConfig(): CodeBlockConfig;
@@ -1233,9 +1235,10 @@ export class CodeBlockConfig {
 
     // get the cell configuration from the cell
     this.cellConfig = getCellConfig(notebookCell);
-    // an in-cell [>].execPath command wins over the path saved by the config modal
+    // an in-cell [>].execPath command wins over the path saved by the config modal.
+    // Both are relative to the workspace root unless they are absolute.
     const savedExecPath = typeof this.cellConfig?.execPath === 'string' ? this.cellConfig.execPath.trim() : '';
-    this.execPath = parseExecPathCommand(this.commands) || savedExecPath;
+    this.execPath = config.resolveExecPath(parseExecPathCommand(this.commands) || savedExecPath);
     this.outputConfig = new OutputConfig(languageOutputConfig, this.commands, this.cellConfig);
     this.warnOnUnknownCommands();
   }

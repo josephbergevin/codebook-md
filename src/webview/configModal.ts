@@ -4,6 +4,8 @@ import {
 } from 'vscode';
 import { randomBytes } from 'crypto';
 import * as fs from 'fs';
+import * as path from 'path';
+import * as config from '../config';
 import * as codebook from '../codebook';
 import { getCellConfig } from '../codebook';
 import { saveCellConfig, getHistoryForCell, clearHistoryForCell, deleteHistoryEntry } from '../cellConfig';
@@ -224,7 +226,10 @@ function render(target: ModalTarget, options: { justSaved?: boolean; } = {}): vo
     const blockConfig = target.execCell.codeBlockConfig();
     const commentPrefix = target.execCell.defaultCommentPrefix() || '//';
     params.cell = { uri: cell.document.uri.toString(), index: cell.index, languageId: cell.document.languageId };
-    params.fields = buildConfigFields(cell.document.languageId, getCellConfig(cell));
+    params.fields = buildConfigFields(cell.document.languageId, getCellConfig(cell), undefined, {
+      inheritedExecPath: defaultExecPath(),
+    });
+    params.execPathChoices = execPathChoices(cell.notebook.uri.fsPath);
     params.cellCommands = blockConfig.commands.map(cmd => `${commentPrefix} [>]${cmd}`);
     params.availableCommands = blockConfig.availableCommands().map(cmd => `${commentPrefix} [>]${cmd}`);
     panel.title = `Cell ${cell.index + 1} Config (${cell.document.languageId})`;
@@ -233,6 +238,30 @@ function render(target: ModalTarget, options: { justSaved?: boolean; } = {}): vo
   }
 
   panel.webview.html = renderConfigModalHtml(params);
+}
+
+/**
+ * defaultExecPath is where a cell runs when it has no execution path of its own,
+ * shown the way the modal expects it: relative to the workspace folder.
+ */
+function defaultExecPath(): string {
+  try {
+    return config.workspaceRelativePath(config.getExecPath());
+  } catch (error) {
+    console.error('Could not resolve the default execution path:', error);
+    return '';
+  }
+}
+
+/** execPathChoices are the shortcuts offered under the execution path field. */
+function execPathChoices(notebookPath: string): Array<{ label: string; value: string; title?: string; }> {
+  const root = config.workspaceRoot();
+  const notebookDir = path.dirname(notebookPath);
+  const choices = [{ label: 'Current folder', value: config.workspaceRelativePath(notebookDir), title: notebookDir }];
+  if (root) {
+    choices.unshift({ label: 'Workspace folder', value: '.', title: root });
+  }
+  return choices;
 }
 
 // settingsTarget is where the history controls write: the workspace when one is

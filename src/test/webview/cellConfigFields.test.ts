@@ -121,6 +121,15 @@ describe('buildConfigFields', () => {
     expect(buildConfigFields('python', null, fakeSettings()).map(f => f.id)).toContain('execPath');
     expect(buildConfigFields('http', null, fakeSettings()).map(f => f.id)).not.toContain('execPath');
   });
+
+  it('shows where the cell runs when it has no execution path of its own', () => {
+    const fields = buildConfigFields('shellscript', null, fakeSettings(), { inheritedExecPath: 'codebook-md' });
+    expect(field(fields, 'execPath').inheritedValue).toBe('codebook-md');
+    expect(field(fields, 'execPath').cellValue).toBeUndefined();
+
+    const overridden = buildConfigFields('shellscript', { execPath: 'scripts' }, fakeSettings(), { inheritedExecPath: 'codebook-md' });
+    expect(field(overridden, 'execPath').cellValue).toBe('scripts');
+  });
 });
 
 describe('coerceFieldValue', () => {
@@ -140,6 +149,13 @@ describe('coerceFieldValue', () => {
   it('rejects a select value that is not an option', () => {
     expect(coerceFieldValue(make('select', ['run', 'test']), 'test')).toBe('test');
     expect(coerceFieldValue(make('select', ['run', 'test']), 'bogus')).toBeUndefined();
+  });
+
+  it('treats an empty execution path as "follow the setting"', () => {
+    const execPath = { id: 'execPath', type: 'string' } as unknown as ConfigField;
+    expect(coerceFieldValue(execPath, '  ')).toBeUndefined();
+    expect(coerceFieldValue(execPath, 'scripts')).toBe('scripts');
+    expect(coerceFieldValue({ id: 'execCmd', type: 'string' } as unknown as ConfigField, '')).toBe('');
   });
 
   it('stores numbers as numbers', () => {

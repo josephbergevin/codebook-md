@@ -87,6 +87,7 @@
         <li><a href="#dynamic-folders">Dynamic Folders (Current Context)</a></li>
         <li><a href="#executable-code">Executable Code Blocks</a></li>
         <li><a href="#run-from-text-editor">Running Blocks from the Text Editor</a></li>
+        <li><a href="#exec-path">Where a Cell Runs</a></li>
         <li><a href="#codeblock-config">CodeBlock Configuration</a></li>
         <li><a href="#shell-session">Persistent Shell Sessions</a></li>
         <li><a href="#custom-cellconfig">Custom CellConfig JSON Files</a></li>
@@ -471,7 +472,7 @@ echo "Hello from CodebookMD!"
 
         <h4>Configuration Sections</h4>
         <ul>
-          <li><strong>Execution:</strong> the directory the cell runs in (shell, Python, JavaScript, TypeScript and SQL cells). Leave it empty to use <code>codebook-md.execPath</code></li>
+          <li><strong>Execution:</strong> the directory the cell runs in (shell, Python, JavaScript, TypeScript and SQL cells). The field always shows the directory that will be used, relative to your workspace folder, whether it comes from this cell or from <code>codebook-md.execPath</code>. Two buttons below it fill in the <strong>workspace folder</strong> or the <strong>current folder</strong> (the one holding the markdown file), and clearing the field goes back to following the setting. The same path is shown at the left of the cell's status bar, below the code - click it to change it.</li>
           <li><strong>Language-specific Configuration:</strong> options for the cell's language, such as the command used to run it or the persistent shell session for shell cells</li>
           <li><strong>Output Configuration:</strong> show the code in the output, replace or append output on each run, and the execution timestamp and its timezone</li>
           <li><strong>Execution History:</strong> past runs of this cell. The two history options here change your workspace settings for every notebook</li>
@@ -745,6 +746,10 @@ echo "Hello from Bash!"
           <li><strong>Execution Path:</strong> Set the directory where code will be executed</li>
           <li><strong>persistentSession:</strong> Run the cell in the notebook's persistent shell session (see below)</li>
         </ul>
+
+        <h5 id="exec-path">Where a cell runs</h5>
+        <p>Every code cell runs in a directory. By default that is the <code>codebook-md.execPath</code> setting (<code>./codebook-md/</code>, resolved next to the markdown file), and it is shown at the left of the cell's status bar, below the code.</p>
+        <p>To change it for one cell, click that path (or <strong>Configure</strong>) and set <strong>Execution path</strong>. A relative path is taken from your workspace folder, so <code>scripts/db</code> means the same thing on every machine; an absolute path is used as it is. Clear the field to follow the setting again.</p>
 
         <h5 id="shell-session">Persistent Shell Sessions</h5>
         <p>By default every shell cell runs in a fresh process, so a <code>cd</code> or <code>export</code> in one cell is gone by the next. Turn on a persistent session and shell cells run in one long-lived shell per notebook instead - like typing into a terminal:</p>

@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Each cell shows where it runs.** The cell's status bar now has the
+  execution directory on the left, relative to your workspace folder; click it
+  to change it. In the cell's configuration, *Execution path* always shows the
+  directory that will be used - whether it comes from the cell or from the
+  `codebook-md.execPath` setting - and has *Workspace folder* and *Current
+  folder* buttons under it. Clearing the field follows the setting again.
+
 - **Run code blocks from the plain text editor.** Markdown files open in the
   normal text editor now show *Open as CodebookMD Notebook* at the top and
   *Run in CodebookMD* above each runnable code block (CodeLens). Run opens the
@@ -59,6 +66,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     below them. Colours follow your theme, and icons ship with the extension
     so they work offline. Controls are real buttons, reachable by keyboard.
   - The cell status bar now shows *Configure* on code cells only.
+- **A relative execution path for a cell now means the same thing everywhere.**
+  A per-cell `execPath` (from the configuration panel or `[>].execPath(...)`)
+  is resolved against the workspace folder rather than against whatever
+  directory the extension host happened to start in. Absolute paths are
+  unchanged.
+
 - **Cell settings and history got lost or attached to the wrong cell.** They
   were stored by cell position: moving a cell deleted them, and editing the
   markdown outside the notebook (text editor, git) shifted them onto other

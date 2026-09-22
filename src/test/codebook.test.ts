@@ -46,6 +46,10 @@ import * as config from '../config';
 
 // Mock the config.ts module
 jest.mock('../config', () => ({
+  // relative cell paths resolve against the workspace root
+  resolveExecPath: jest.fn((value: string) => (value ? `/ws/${value.replace(/^\.\//, '')}` : '')),
+  workspaceRelativePath: jest.fn((value: string) => value.replace('/ws/', '')),
+  workspaceRoot: jest.fn(() => '/ws'),
   getExecPath: jest.fn().mockReturnValue('./codebook-md/'),
   getLanguageExecPath: jest.fn().mockReturnValue('./codebook-md/'),
   getCodebookMDExecPath: jest.fn().mockReturnValue('./codebook-md/'),

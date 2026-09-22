@@ -157,14 +157,25 @@ describe('availableCommands round-trip', () => {
 });
 
 describe('CodeBlockConfig execPath', () => {
-  it('resolves the canonical quoted form', () => {
-    const config = new CodeBlockConfig(cell('# [>].execPath("./sub")\necho hi'), undefined, '#');
-    expect(config.execPath).toBe('./sub');
+  // A cell's execPath is resolved against the workspace root, so it means the
+  // same thing wherever the extension host happens to be running
+  beforeEach(() => {
+    (vscode.workspace as unknown as { workspaceFolders: unknown; }).workspaceFolders = [{ uri: { fsPath: '/ws' } }];
   });
 
-  it('resolves the legacy colon form', () => {
+  it('resolves the canonical quoted form against the workspace root', () => {
+    const config = new CodeBlockConfig(cell('# [>].execPath("./sub")\necho hi'), undefined, '#');
+    expect(config.execPath).toBe('/ws/sub');
+  });
+
+  it('resolves the legacy colon form against the workspace root', () => {
     const config = new CodeBlockConfig(cell('# [>].execPath: ./sub\necho hi'), undefined, '#');
-    expect(config.execPath).toBe('./sub');
+    expect(config.execPath).toBe('/ws/sub');
+  });
+
+  it('keeps an absolute path as it is', () => {
+    const config = new CodeBlockConfig(cell('# [>].execPath("/tmp/scratch")\necho hi'), undefined, '#');
+    expect(config.execPath).toBe('/tmp/scratch');
   });
 
   it('treats the empty placeholder as unset', () => {

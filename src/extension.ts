@@ -1,6 +1,7 @@
 import {
   languages, commands, window, notebooks, workspace, env,
   ExtensionContext, StatusBarAlignment, NotebookCell, NotebookCellKind, NotebookCellStatusBarAlignment,
+  NotebookCellStatusBarItem,
   NotebookSerializer, NotebookData, NotebookDocument,
   CancellationToken, Uri, chat, ChatRequestHandler,
 } from 'vscode';
@@ -608,7 +609,29 @@ export async function activate(context: ExtensionContext) {
         if (cell.kind !== NotebookCellKind.Code) {
           return [];
         }
-        return [{
+        const items: NotebookCellStatusBarItem[] = [];
+
+        // Where this cell runs, relative to the workspace folder
+        try {
+          const execCell = codebook.NewExecutableCell(cell);
+          const execPath = execCell?.executionPath();
+          if (execPath) {
+            items.push({
+              text: `$(folder) ${config.workspaceRelativePath(execPath)}`,
+              tooltip: `This cell runs in ${execPath}\nClick to change it`,
+              command: {
+                title: 'Configure Code Block',
+                command: 'codebook-md.openCodeBlockConfig',
+                arguments: [cell]
+              },
+              alignment: NotebookCellStatusBarAlignment.Left,
+            });
+          }
+        } catch (error) {
+          console.error('Could not resolve the execution path for the cell status bar:', error);
+        }
+
+        items.push({
           text: '$(gear) Configure',
           tooltip: 'Configure how this code block runs and shows its output',
           command: {
@@ -617,7 +640,8 @@ export async function activate(context: ExtensionContext) {
             arguments: [cell]
           },
           alignment: NotebookCellStatusBarAlignment.Right,
-        }];
+        });
+        return items;
       }
     }
   );
