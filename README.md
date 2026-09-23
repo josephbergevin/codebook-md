@@ -44,6 +44,11 @@ cleanly in review.
    GET https://jsonplaceholder.typicode.com/todos/1
 ```
 
+**Already have a markdown file open in the text editor?** Look for **Open as
+CodebookMD Notebook** at the top of the file and **▶ Run in CodebookMD** above
+each runnable code block. Run opens the file as a notebook, scrolls to that
+block and runs it. Hide these links with `codebook-md.codeLens.enabled: false`.
+
 **Want every markdown file to open as a CodebookMD notebook?** Add this to your settings:
 
 ```jsonc
@@ -258,21 +263,55 @@ To use the CodebookMD chat assistant:
 
 The chat assistant provides instant help and guidance for all CodebookMD features, making it easier to get started and discover new functionality.
 
+### Where a cell runs
+
+Every code cell runs in a directory, shown on the left of the cell's status bar,
+below the code. By default that is the `codebook-md.execPath` setting
+(`./codebook-md/`, resolved next to the markdown file).
+
+Click that path — or **Configure** — to set an **Execution path** for one cell.
+A relative path is taken from your workspace folder, so `scripts/db` means the
+same thing on every machine; an absolute path is used as-is. Buttons under the
+field fill in the workspace folder or the folder holding the markdown file, and
+clearing the field goes back to following the setting.
+
+### Persistent shell sessions
+
+By default each shell cell runs in a fresh process, so a `cd` or `export` in one
+cell is gone by the next. Turn on a persistent session and shell cells run in
+one long-lived shell per notebook instead — like typing into a terminal:
+
+```jsonc
+"codebook-md.bash.persistentSession": true
+```
+
+- The working directory, exported and plain variables, functions and aliases all
+  carry over between cells.
+- Turn it on for a single cell instead from that cell's configuration.
+- Like a terminal, a failing command doesn't stop the rest of the cell, and the
+  cell reports the exit code of its last command. Chain with `&&` to stop at the
+  first failure; don't use `set -e`, which would end the session.
+- Stopping a cell interrupts the running command and keeps the session. Run
+  **CodebookMD: Restart Shell Session** to start over with a fresh shell.
+
 ### Custom Settings
 
 Support for workspace, user, and folder-level configurations
 
 ### Enhanced Configuration UI
 
-CodebookMD features an enhanced configuration UI with direct settings integration:
+Click **Configure** in the status bar below a code cell to set how that one cell
+runs and shows its output.
 
-- **Settings Integration**: Configure code block behavior through an intuitive UI
-- **Quick Settings Access**: Settings wheel icons provide direct access to VS Code settings
-- **Contextual Configuration**: Easily modify settings specific to languages, output formats, and more
-- **Visual Feedback**: Improved alignment and styling in configuration forms for better usability
-- **Simplified Workflow**: Configure your notebooks without leaving your coding environment
-
-When working with code blocks, you can access the configuration UI through the code block menu. The configuration modal provides all available options with settings wheel icons that open the corresponding VS Code settings when clicked.
+- Every option shows where its value comes from: **Default**, **From your
+  settings**, or **Set for this cell**. The gear next to it opens the matching
+  VS Code setting.
+- Only the options you change are saved for the cell, so everything else keeps
+  following your settings when you change them later. **Reset to inherited**
+  clears one option, **Reset all** clears them all.
+- Cell settings and execution history are stored next to the notebook in
+  `<notebook>.md.config.json`, and follow the cell when cells are added, removed
+  or moved — your markdown files are never modified.
 
 ### Execution History
 
