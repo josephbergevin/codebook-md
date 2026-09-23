@@ -4,7 +4,7 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.22.0] - 2026-09-23
 
 ### Added
 
@@ -80,6 +80,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   through moves, inserts, deletes and reloads, and are found again after
   outside edits. Your markdown is not changed. Existing config files are
   upgraded automatically.
+
+- **The published package carried repo-only files.** `go.mod`, the generated
+  `codebook_md_exec*` scratch files, `example.md`, `AUDIT.md` and
+  `PUBLISHING.md` were shipped inside the extension; they are excluded now.
 
 - **Saving a notebook mangled indented and aliased code blocks.** A code
   block indented inside a list item was written back at column 0, breaking
