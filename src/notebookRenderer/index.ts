@@ -9,8 +9,9 @@
  */
 import type MarkdownIt from 'markdown-it';
 import { taskListPlugin } from './taskLists';
-import { interactiveCheckboxStyles, markdownCellStyles } from './styles';
+import { interactiveCheckboxStyles, PREVIEW_STYLING_PROPERTY, previewStyles, taskListStyles } from './styles';
 import { ToggleTaskMessage } from './taskToggle';
+import { isSettingsMessage, RendererSettings, RequestSettingsMessage } from './protocol';
 
 /**
  * The parts of the renderer context this module uses. The full type lives
@@ -20,6 +21,8 @@ interface RendererContext {
   getRenderer(id: string): Promise<MarkdownItRendererApi | undefined>;
   /** Present only when VS Code can deliver messages to the extension host */
   postMessage?(message: unknown): void;
+  /** Present only when VS Code can deliver messages from the extension host */
+  onDidReceiveMessage?(listener: (message: unknown) => void): unknown;
 }
 
 interface MarkdownItRendererApi {
@@ -104,6 +107,15 @@ function registerToggleHandlers(postMessage: (message: unknown) => void): void {
 }
 
 /**
+ * Applies settings from the extension. Preview styling is switched with a
+ * custom property on the root element rather than by adding or removing
+ * styles, because cells copy their styles once, on first render.
+ */
+export function applySettings(settings: RendererSettings, root: HTMLElement = document.documentElement): void {
+  root.style.setProperty(PREVIEW_STYLING_PROPERTY, settings.previewStyling ? 'on' : 'off');
+}
+
+/**
  * Renderer entry point, called by VS Code when the first markdown cell of a
  * CodebookMD notebook renders.
  */
@@ -113,7 +125,22 @@ export async function activate(ctx: RendererContext): Promise<void> {
     throw new Error("Could not load 'vscode.markdown-it-renderer'");
   }
 
-  injectStyles(markdownCellStyles);
+  // Preview styling defaults to on (the setting's default) until the
+  // extension says otherwise
+  applySettings({ previewStyling: true });
+  injectStyles(previewStyles);
+  injectStyles(taskListStyles);
+
+  if (ctx.onDidReceiveMessage && ctx.postMessage) {
+    ctx.onDidReceiveMessage((message) => {
+      if (isSettingsMessage(message)) {
+        applySettings(message.settings);
+      }
+    });
+    const request: RequestSettingsMessage = { type: 'requestSettings' };
+    ctx.postMessage(request);
+  }
+
   // Without messaging (e.g. some read-only views) a click can't reach the
   // extension, so the checkboxes stay display-only
   if (ctx.postMessage) {

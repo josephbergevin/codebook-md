@@ -20,7 +20,7 @@ import * as configModal from './webview/configModal';
 import * as codeLens from './codeLens';
 import * as shellSession from './shellSession';
 import { createNewNotebook, createNotebookFromSelection } from './createNotebook';
-import { registerTaskListToggle } from './taskListToggle';
+import { registerNotebookRendererMessaging } from './notebookRendererMessaging';
 
 const kernel = new Kernel();
 
@@ -594,8 +594,8 @@ export async function activate(context: ExtensionContext) {
 
   context.subscriptions.push(workspace.registerNotebookSerializer('codebook-md', new MarkdownProvider(), notebookSettings));
 
-  // Clicking a task list checkbox in a markdown cell toggles it in the source
-  registerTaskListToggle(context);
+  // Markdown cell renderer: task list checkbox clicks and renderer settings
+  registerNotebookRendererMessaging(context);
 
   // Create an instance of a notebook editor provider, for setting up toolbar icons
   const notebookCellStatusBarItemProvider = notebooks.registerNotebookCellStatusBarItemProvider(

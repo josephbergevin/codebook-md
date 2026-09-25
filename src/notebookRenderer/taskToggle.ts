@@ -4,9 +4,6 @@
  * or touch the DOM, since both sides bundle this file.
  */
 
-/** Id of the CodebookMD notebook renderer, as declared in package.json. */
-export const MARKDOWN_RENDERER_ID = 'codebook-md.markdown-extensions';
-
 /**
  * Message the renderer posts when a task list checkbox is clicked.
  */

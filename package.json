@@ -410,6 +410,12 @@
           "default": true,
           "description": "Show \"Open as CodebookMD Notebook\" and \"Run in CodebookMD\" links above code blocks when a markdown file is open in the text editor.",
           "scope": "window"
+        },
+        "codebook-md.markdown.previewStyling": {
+          "type": "boolean",
+          "default": true,
+          "description": "Style markdown cells like the Markdown Preview: bold headings with rules under the top two levels, tables with striped rows, and preview-style blockquotes and code blocks. VS Code shares one markdown renderer across notebook types, so this also affects markdown cells in other notebooks, such as Jupyter. Task list checkboxes are shown either way.",
+          "scope": "window"
         }
       }
     },

@@ -440,6 +440,10 @@ all work. Because VS Code shares one markdown renderer across notebook types,
 the styles also apply to markdown cells in other notebooks (such as Jupyter
 `.ipynb`) while CodebookMD is installed.
 
+To go back to VS Code's plainer notebook styling, turn off
+`codebook-md.markdown.previewStyling` (default `true`). The change applies to
+open notebooks right away. Task list checkboxes are shown either way.
+
 ### Math, diagrams and other markdown extensions
 
 Markdown cells are drawn by VS Code's notebook markdown renderer, so an

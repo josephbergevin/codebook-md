@@ -1,11 +1,5 @@
 import * as vscode from 'vscode';
-import {
-  MARKDOWN_RENDERER_ID,
-  ToggleTaskMessage,
-  findTaskMarker,
-  hashCellText,
-  isToggleTaskMessage,
-} from './notebookRenderer/taskToggle';
+import { ToggleTaskMessage, findTaskMarker, hashCellText } from './notebookRenderer/taskToggle';
 
 /**
  * Applies a checkbox click from the notebook renderer: finds the markdown
@@ -49,26 +43,4 @@ export async function toggleTaskInNotebook(
     marker.checked ? ' ' : 'x'
   );
   return vscode.workspace.applyEdit(edit);
-}
-
-/**
- * Listens for checkbox clicks from the CodebookMD notebook renderer.
- * The renderer extends VS Code's shared markdown renderer, so this also
- * handles clicks in markdown cells of other notebook types.
- */
-export function registerTaskListToggle(context: vscode.ExtensionContext): void {
-  const messaging = vscode.notebooks.createRendererMessaging(MARKDOWN_RENDERER_ID);
-  context.subscriptions.push(
-    messaging.onDidReceiveMessage(async ({ editor, message }) => {
-      if (!isToggleTaskMessage(message)) {
-        return;
-      }
-      try {
-        await toggleTaskInNotebook(editor.notebook, message);
-      } catch (error) {
-        console.log('codebook-md: failed to toggle task list item', error);
-        vscode.window.showErrorMessage(`CodebookMD: couldn't update the checkbox: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    })
-  );
 }
