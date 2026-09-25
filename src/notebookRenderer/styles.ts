@@ -1,4 +1,16 @@
 /**
+ * Styles that always apply, injected before the others so the preview
+ * styles can override them.
+ */
+export const baseStyles = `
+  /* The front matter table only shows while preview styling is on;
+     otherwise the YAML source is shown */
+  .frontmatter-table {
+    display: none;
+  }
+`;
+
+/**
  * Custom property that switches the preview-like styles on and off. The
  * renderer sets it on the webview's root element; custom properties inherit
  * into each cell's shadow root, so flipping it restyles every rendered cell
@@ -96,6 +108,43 @@ export const previewStyles = `
       background-color: var(--vscode-textCodeBlock-background);
       border: 1px solid var(--vscode-widget-border, transparent);
     }
+
+    /* Front matter as a key/value table, like the preview */
+    table.frontmatter-table {
+      display: table;
+      margin-bottom: 16px;
+    }
+
+    table.frontmatter-table + .frontmatter-source {
+      display: none;
+    }
+
+    table.frontmatter-table > tbody > tr > th,
+    table.frontmatter-table > tbody > tr > td {
+      padding: 6px 13px;
+      border: 1px solid var(--vscode-contrastBorder, var(--vscode-widget-border, rgba(127, 127, 127, 0.35)));
+      text-align: left;
+      vertical-align: top;
+    }
+
+    table.frontmatter-table > tbody > tr > th {
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    table.frontmatter-table > tbody > tr:nth-child(2n) {
+      background-color: transparent;
+    }
+
+    table.frontmatter-table td > ul {
+      margin: 0;
+      padding-left: 1.2em;
+    }
+
+    /* The copy button's other styles are in interactiveStyles */
+    pre > .code-block-copy-button {
+      display: flex;
+    }
   }
 `;
 
@@ -140,10 +189,11 @@ export const taskListStyles = `
 `;
 
 /**
- * Extra checkbox styles, added only when the renderer can message the
- * extension (i.e. when clicking a checkbox actually toggles it).
+ * Styles for the interactive controls - clickable checkboxes and the
+ * code block copy button - added only when the renderer can message the
+ * extension, which is what makes those controls work.
  */
-export const interactiveCheckboxStyles = `
+export const interactiveStyles = `
   .task-list-item-checkbox {
     cursor: pointer;
   }
@@ -155,5 +205,58 @@ export const interactiveCheckboxStyles = `
   .task-list-item-checkbox:focus-visible {
     outline: 1px solid var(--vscode-focusBorder);
     outline-offset: 1px;
+  }
+
+  /* Copy button in the corner of code blocks, like the preview's */
+  pre {
+    position: relative;
+  }
+
+  /* Shown only with preview styling (see previewStyles): without it code
+     blocks have no padding for the button to sit in */
+  .code-block-copy-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    box-sizing: border-box;
+    border: 1px solid var(--vscode-widget-border, rgba(127, 127, 127, 0.35));
+    border-radius: 4px;
+    background-color: var(--vscode-textCodeBlock-background, var(--vscode-editor-background));
+    color: var(--vscode-editor-foreground);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  pre:hover > .code-block-copy-button,
+  .code-block-copy-button:focus-visible {
+    opacity: 1;
+  }
+
+  .code-block-copy-button:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+  }
+
+  .code-block-copy-button:hover {
+    background-color: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+  }
+
+  .code-block-copy-button .check-icon,
+  .code-block-copy-button.copied .copy-icon {
+    display: none;
+  }
+
+  .code-block-copy-button.copied .check-icon {
+    display: block;
+  }
+
+  .code-block-copy-button.copied {
+    color: var(--vscode-testing-iconPassed, #73c991);
+    opacity: 1;
   }
 `;

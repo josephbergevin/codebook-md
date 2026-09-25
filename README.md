@@ -434,6 +434,10 @@ Markdown Preview, so a file looks familiar whichever way you open it:
 - **Tables** - horizontal rules between rows and a shaded background on
   every other row
 - **Headings** - bold, with a rule under `#` and `##` headings
+- **Code blocks** inside markdown - a copy button in the corner
+- **Front matter** (with `codebook-md.frontMatter.showInNotebook` on) - a
+  key/value table, like the preview; front matter that doesn't fit a table,
+  such as nested values, is shown as YAML
 
 Colors come from your VS Code theme, so light, dark and high-contrast themes
 all work. Because VS Code shares one markdown renderer across notebook types,

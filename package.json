@@ -414,7 +414,7 @@
         "codebook-md.markdown.previewStyling": {
           "type": "boolean",
           "default": true,
-          "description": "Style markdown cells like the Markdown Preview: bold headings with rules under the top two levels, tables with striped rows, and preview-style blockquotes and code blocks. VS Code shares one markdown renderer across notebook types, so this also affects markdown cells in other notebooks, such as Jupyter. Task list checkboxes are shown either way.",
+          "description": "Style markdown cells like the Markdown Preview: bold headings with rules under the top two levels, tables with striped rows, preview-style blockquotes and code blocks with a copy button, and front matter shown as a table. VS Code shares one markdown renderer across notebook types, so this also affects markdown cells in other notebooks, such as Jupyter. Task list checkboxes are shown either way.",
           "scope": "window"
         }
       }

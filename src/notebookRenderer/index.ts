@@ -9,9 +9,11 @@
  */
 import type MarkdownIt from 'markdown-it';
 import { TaskListOptions, taskListPlugin } from './taskLists';
-import { interactiveCheckboxStyles, PREVIEW_STYLING_PROPERTY, previewStyles, taskListStyles } from './styles';
+import { baseStyles, interactiveStyles, PREVIEW_STYLING_PROPERTY, previewStyles, taskListStyles } from './styles';
+import { copyButtonPlugin } from './copyButton';
+import { frontMatterPlugin } from './frontMatter';
 import { ToggleTaskMessage } from './taskToggle';
-import { isSettingsMessage, RendererSettings, RequestSettingsMessage } from './protocol';
+import { CopyTextMessage, isSettingsMessage, RendererSettings, RequestSettingsMessage } from './protocol';
 
 /**
  * The parts of the renderer context this module uses. The full type lives
@@ -45,14 +47,19 @@ function injectStyles(css: string): void {
 }
 
 /**
- * Returns the task list checkbox an event targeted, if any. Cells render in
- * shadow roots, so the event's own target is retargeted to the cell's host
- * element; the composed path still starts at the element actually hit.
+ * Returns the element with the given class that an event targeted, if any.
+ * Cells render in shadow roots, so the event's own target is retargeted to
+ * the cell's host element; the composed path still starts at the element
+ * actually hit (which may be an SVG icon inside the control).
  */
-function checkboxFromEvent(event: Event): HTMLElement | undefined {
-  const target = event.composedPath()[0];
-  if (target instanceof HTMLElement && target.classList.contains('task-list-item-checkbox')) {
-    return target;
+function controlFromEvent(event: Event, className: string): HTMLElement | undefined {
+  for (const node of event.composedPath()) {
+    if (node instanceof ShadowRoot) {
+      return undefined;
+    }
+    if (node instanceof HTMLElement && node.classList.contains(className)) {
+      return node;
+    }
   }
   return undefined;
 }
@@ -73,35 +80,72 @@ function toggle(checkbox: HTMLElement, postMessage: (message: unknown) => void):
   checkbox.setAttribute('aria-checked', String(checkbox.getAttribute('aria-checked') !== 'true'));
 }
 
+/** How long the copy button shows its check mark after copying */
+const COPIED_FEEDBACK_MS = 1500;
+
 /**
- * Makes checkboxes clickable and keyboard operable. Listeners run in the
- * capture phase on window, ahead of the notebook's own cell handlers, so a
- * click on a checkbox doesn't also select the cell or (on double click)
- * open it for editing.
+ * Asks the extension to copy the code block a copy button belongs to, and
+ * briefly swaps the button's icon for a check mark.
  */
-function registerToggleHandlers(postMessage: (message: unknown) => void): void {
+function copy(button: HTMLElement, postMessage: (message: unknown) => void): void {
+  const code = button.closest('pre')?.querySelector('code');
+  if (!code) {
+    return;
+  }
+
+  const message: CopyTextMessage = { type: 'copyText', text: code.textContent ?? '' };
+  postMessage(message);
+  button.classList.add('copied');
+  setTimeout(() => button.classList.remove('copied'), COPIED_FEEDBACK_MS);
+}
+
+/**
+ * Finds the interactive control an event is for and the action to run.
+ */
+function actionFor(event: Event, postMessage: (message: unknown) => void): (() => void) | undefined {
+  const checkbox = controlFromEvent(event, 'task-list-item-checkbox');
+  if (checkbox) {
+    return () => toggle(checkbox, postMessage);
+  }
+  const copyButton = controlFromEvent(event, 'code-block-copy-button');
+  if (copyButton) {
+    return () => copy(copyButton, postMessage);
+  }
+  return undefined;
+}
+
+/**
+ * Makes checkboxes and copy buttons clickable and keyboard operable.
+ * Listeners run in the capture phase on window, ahead of the notebook's own
+ * cell handlers, so using a control doesn't also select the cell or (on
+ * double click) open it for editing.
+ */
+function registerInteractionHandlers(postMessage: (message: unknown) => void): void {
   window.addEventListener('click', (event) => {
-    const checkbox = checkboxFromEvent(event);
-    if (checkbox) {
+    const action = actionFor(event, postMessage);
+    if (action) {
       event.preventDefault();
       event.stopPropagation();
-      toggle(checkbox, postMessage);
+      action();
     }
   }, true);
 
   window.addEventListener('dblclick', (event) => {
-    if (checkboxFromEvent(event)) {
+    if (actionFor(event, postMessage)) {
       event.preventDefault();
       event.stopPropagation();
     }
   }, true);
 
   window.addEventListener('keydown', (event) => {
-    const checkbox = checkboxFromEvent(event);
-    if (checkbox && (event.key === ' ' || event.key === 'Enter')) {
+    if (event.key !== ' ' && event.key !== 'Enter') {
+      return;
+    }
+    const action = actionFor(event, postMessage);
+    if (action) {
       event.preventDefault();
       event.stopPropagation();
-      toggle(checkbox, postMessage);
+      action();
     }
   }, true);
 }
@@ -128,6 +172,7 @@ export async function activate(ctx: RendererContext): Promise<void> {
   // Preview styling defaults to on (the setting's default) until the
   // extension says otherwise
   applySettings({ previewStyling: true });
+  injectStyles(baseStyles);
   injectStyles(previewStyles);
   injectStyles(taskListStyles);
 
@@ -142,15 +187,22 @@ export async function activate(ctx: RendererContext): Promise<void> {
   }
 
   // Without messaging (e.g. some read-only views) a click can't reach the
-  // extension, so the checkboxes stay display-only
+  // extension, so checkboxes stay display-only and code blocks get no copy
+  // button
+  const interactive = !!ctx.postMessage;
   if (ctx.postMessage) {
     const postMessage = ctx.postMessage.bind(ctx);
-    injectStyles(interactiveCheckboxStyles);
-    registerToggleHandlers(postMessage);
+    injectStyles(interactiveStyles);
+    registerInteractionHandlers(postMessage);
   }
 
-  const options: TaskListOptions = { interactive: !!ctx.postMessage };
+  const options: TaskListOptions = { interactive };
   markdownItRenderer.extendMarkdownIt((md) => {
     md.use(taskListPlugin, options);
+    if (interactive) {
+      md.use(copyButtonPlugin);
+    }
+    // After the copy button, so the front matter wrapper contains it
+    md.use(frontMatterPlugin);
   });
 }

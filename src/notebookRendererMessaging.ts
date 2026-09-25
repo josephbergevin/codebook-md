@@ -4,6 +4,7 @@ import {
   MARKDOWN_RENDERER_ID,
   RendererSettings,
   SettingsMessage,
+  isCopyTextMessage,
   isRequestSettingsMessage,
 } from './notebookRenderer/protocol';
 import { isToggleTaskMessage } from './notebookRenderer/taskToggle';
@@ -36,6 +37,11 @@ export async function handleRendererMessage(
     return;
   }
 
+  if (isCopyTextMessage(message)) {
+    await vscode.env.clipboard.writeText(message.text);
+    return;
+  }
+
   if (isToggleTaskMessage(message)) {
     try {
       await toggleTaskInNotebook(editor.notebook, message);
@@ -48,8 +54,9 @@ export async function handleRendererMessage(
 
 /**
  * Connects the extension to the CodebookMD notebook renderer: applies
- * task list checkbox clicks, answers settings requests, and pushes new
- * settings to every open notebook when they change.
+ * task list checkbox clicks, copies code blocks to the clipboard, answers
+ * settings requests, and pushes new settings to every open notebook when
+ * they change.
  *
  * The renderer extends VS Code's shared markdown renderer, so this also
  * serves markdown cells in other notebook types.

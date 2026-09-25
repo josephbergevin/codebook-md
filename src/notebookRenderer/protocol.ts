@@ -33,6 +33,25 @@ export interface SettingsMessage {
 }
 
 /**
+ * Renderer -> extension: put text on the clipboard (a code block's copy
+ * button). The extension does the copying because clipboard access from
+ * the notebook webview isn't guaranteed.
+ */
+export interface CopyTextMessage {
+  type: 'copyText';
+  text: string;
+}
+
+/**
+ * Checks that a message is a well-formed `copyText` request.
+ */
+export function isCopyTextMessage(message: unknown): message is CopyTextMessage {
+  return !!message && typeof message === 'object'
+    && (message as Record<string, unknown>).type === 'copyText'
+    && typeof (message as Record<string, unknown>).text === 'string';
+}
+
+/**
  * Checks that a message is a `requestSettings` request.
  */
 export function isRequestSettingsMessage(message: unknown): message is RequestSettingsMessage {
