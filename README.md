@@ -49,6 +49,13 @@ CodebookMD Notebook** at the top of the file and **▶ Run in CodebookMD** above
 each runnable code block. Run opens the file as a notebook, scrolls to that
 block and runs it. Hide these links with `codebook-md.codeLens.enabled: false`.
 
+**Switching back and forth.** The first button in the editor's title bar
+(top right) flips between the two views in the same tab: a notebook icon in
+the text editor, a text icon in the notebook. The notebook's toolbar also has
+a **Text** button, and *CodebookMD: Toggle Text / Notebook View* in the
+Command Palette does the same from either side - bind it to a key in Keyboard
+Shortcuts if you switch often.
+
 **Want every markdown file to open as a CodebookMD notebook?** Add this to your settings:
 
 ```jsonc

@@ -15,6 +15,14 @@ const vscode = {
       dispose: jestMock.fn(),
     })),
     showTextDocument: jestMock.fn(),
+    showWarningMessage: jestMock.fn(),
+    activeNotebookEditor: undefined,
+    activeTextEditor: undefined,
+    tabGroups: {
+      activeTabGroup: { viewColumn: 1, tabs: [] },
+      all: [],
+      close: jestMock.fn(async () => true),
+    },
   },
   workspace: {
     getConfiguration: jestMock.fn((section) => {
@@ -93,6 +101,11 @@ const vscode = {
     One: 1,
     Two: 2,
     Three: 3,
+  },
+  TabInputText: class {
+    constructor(uri) {
+      this.uri = uri;
+    }
   },
   QuickPickItem: class {},
   QuickInputButton: class {},

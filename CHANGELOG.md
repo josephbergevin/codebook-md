@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Turn it off to go back to VS Code's plainer notebook styling for
   markdown cells; open notebooks update right away. Task list
   checkboxes are shown either way.
+- **Switch between text and notebook in one click.** The editor title
+  bar now has the switch in the same spot in both views - a notebook
+  icon in the text editor, a text icon in the notebook - and
+  *CodebookMD: Toggle Text / Notebook View* in the Command Palette
+  flips either way (no default shortcut; bind your own). Switching
+  stays in the same tab.
 
 ### Changed
 
