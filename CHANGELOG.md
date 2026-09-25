@@ -4,6 +4,23 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Markdown cells look like the Markdown Preview.** Task lists
+  (`- [ ]` / `- [x]`) render as checkboxes, tables get horizontal rules
+  and striped rows, and headings, blockquotes and code blocks match the
+  preview's styling. Colors follow your VS Code theme. The styles also
+  apply to markdown cells in other notebook types, since VS Code shares
+  one markdown renderer between them.
+
+### Fixed
+
+- CodebookMD's `extendMarkdownIt` hook now returns the Markdown
+  Preview's own markdown-it instance instead of replacing it with a
+  separate engine.
+
 ## [0.22.0] - 2026-09-23
 
 ### Added

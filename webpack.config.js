@@ -73,4 +73,51 @@ const extensionConfig = {
   },
 };
 
-module.exports = [extensionConfig];
+/**
+ * Notebook renderer that extends VS Code's built-in markdown cell renderer.
+ * It runs in the notebook webview, so it targets the browser and must be
+ * emitted as an ES module (VS Code imports it and calls `activate`).
+ * @type WebpackConfig
+ */
+const notebookRendererConfig = {
+  target: 'web',
+  mode: 'none',
+  entry: './src/notebookRenderer/index.ts',
+  experiments: {
+    outputModule: true
+  },
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'notebookMarkdown.js',
+    library: {
+      type: 'module'
+    }
+  },
+  resolve: {
+    extensions: ['.ts', '.js']
+  },
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: 'ts-loader',
+            options: {
+              // Only type-check this bundle's files, not the whole project
+              onlyCompileBundledFiles: true,
+              compilerOptions: {
+                // Keep ES module syntax so webpack can emit a module library
+                module: 'es2020'
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  devtool: 'source-map'
+};
+
+module.exports = [extensionConfig, notebookRendererConfig];
