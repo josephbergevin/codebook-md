@@ -500,6 +500,11 @@
         "icon": "$(file-text)"
       },
       {
+        "command": "codebook-md.toggleView",
+        "title": "Toggle Text / Notebook View",
+        "category": "CodebookMD"
+      },
+      {
         "command": "codebook-md.chatWithCell",
         "title": "Start Chat with Cell",
         "shortTitle": "Chat Cell",
@@ -640,7 +645,12 @@
         {
           "command": "codebook-md.openAsNotebook",
           "when": "resourceLangId == markdown && resourceScheme == file && activeEditor == workbench.editors.files.textFileEditor",
-          "group": "navigation"
+          "group": "navigation@-10"
+        },
+        {
+          "command": "codebook-md.reopenWithTextEditor",
+          "when": "activeEditor == workbench.editor.notebook && notebookType == codebook-md",
+          "group": "navigation@-10"
         }
       ],
       "editor/context": [
@@ -675,6 +685,14 @@
         {
           "command": "codebook-md.runCodeBlockInNotebook",
           "when": "false"
+        },
+        {
+          "command": "codebook-md.toggleView",
+          "when": "resourceLangId == markdown || notebookType == codebook-md"
+        },
+        {
+          "command": "codebook-md.reopenWithTextEditor",
+          "when": "notebookType == codebook-md"
         },
         {
           "command": "codebook-md.renameFolderInMyNotebooks",

@@ -20,6 +20,7 @@ import * as configModal from './webview/configModal';
 import * as codeLens from './codeLens';
 import * as shellSession from './shellSession';
 import { createNewNotebook, createNotebookFromSelection } from './createNotebook';
+import * as viewToggle from './viewToggle';
 import { registerNotebookRendererMessaging } from './notebookRendererMessaging';
 
 const kernel = new Kernel();
@@ -693,22 +694,22 @@ export async function activate(context: ExtensionContext) {
 
   context.subscriptions.push(disposable);
 
-  // Register command to reopen notebook with text editor
-  disposable = commands.registerCommand('codebook-md.reopenWithTextEditor', async () => {
-    console.log('Reopening notebook with text editor');
-
-    // Get the active notebook
-    const activeNotebook = window.activeNotebookEditor?.notebook;
-    if (!activeNotebook) {
-      window.showWarningMessage('No active notebook found.');
-      return;
-    }
-
-    // Use VS Code's built-in command to reopen with text editor
-    await commands.executeCommand('workbench.action.reopenTextEditor');
-  });
-
-  context.subscriptions.push(disposable);
+  // Switching between the notebook and the plain text editor, in the same tab
+  context.subscriptions.push(
+    commands.registerCommand('codebook-md.reopenWithTextEditor', async () => {
+      if (!await viewToggle.switchToText()) {
+        window.showWarningMessage('No active CodebookMD notebook found.');
+      }
+    }),
+    commands.registerCommand('codebook-md.toggleView', async () => {
+      try {
+        await viewToggle.toggleView();
+      } catch (error) {
+        console.error('toggleView failed:', error);
+        window.showErrorMessage(`Codebook: could not switch views - ${error}`);
+      }
+    })
+  );
 
   // CodeLens links ("Open as CodebookMD Notebook", "Run in CodebookMD") above code
   // blocks when a markdown file is open in the plain text editor
@@ -723,7 +724,9 @@ export async function activate(context: ExtensionContext) {
     }),
     commands.registerCommand('codebook-md.openAsNotebook', async (uri?: Uri) => {
       try {
-        await codeLens.openAsNotebook(uri);
+        if (!await viewToggle.switchToNotebook(uri)) {
+          window.showWarningMessage('Codebook: open a markdown file first.');
+        }
       } catch (error) {
         console.error('openAsNotebook failed:', error);
         window.showErrorMessage(`Codebook: could not open the file as a notebook - ${error}`);

@@ -87,6 +87,7 @@
         <li><a href="#dynamic-folders">Dynamic Folders (Current Context)</a></li>
         <li><a href="#executable-code">Executable Code Blocks</a></li>
         <li><a href="#run-from-text-editor">Running Blocks from the Text Editor</a></li>
+        <li><a href="#switch-views">Switching Between Text and Notebook</a></li>
         <li><a href="#exec-path">Where a Cell Runs</a></li>
         <li><a href="#codeblock-config">CodeBlock Configuration</a></li>
         <li><a href="#shell-session">Persistent Shell Sessions</a></li>
@@ -436,6 +437,10 @@ echo "Hello from CodebookMD!"
         </ul>
         <p>Unsaved changes in the text editor are saved first, since the notebook is loaded from the file on disk. Blocks in languages CodebookMD can't run (for example <code>json</code> or <code>mermaid</code>) don't get a Run link.</p>
         <p>To hide the links, turn off <code>codebook-md.codeLens.enabled</code> (default: <code>true</code>).</p>
+
+        <h4 id="switch-views">Switching Between Text and Notebook</h4>
+        <p>The first button in the editor's title bar (top right) flips between the two views in the same tab: a notebook icon in the text editor, a text icon in the notebook. The notebook's toolbar also has a <strong>Text</strong> button.</p>
+        <p><em>CodebookMD: Toggle Text / Notebook View</em> in the Command Palette does the same from either side. It has no default keyboard shortcut; bind one in Keyboard Shortcuts if you switch often.</p>
 
         <h3>Supported Languages</h3>
         <p>CodebookMD supports executing code in multiple languages:</p>
