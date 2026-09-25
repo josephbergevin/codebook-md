@@ -1,4 +1,18 @@
-import { isRequestSettingsMessage, isSettingsMessage } from '../../notebookRenderer/protocol';
+import { isCopyTextMessage, isRequestSettingsMessage, isSettingsMessage } from '../../notebookRenderer/protocol';
+
+describe('isCopyTextMessage', () => {
+  test('accepts a copyText message', () => {
+    expect(isCopyTextMessage({ type: 'copyText', text: 'echo hi' })).toBe(true);
+  });
+
+  test('accepts empty text', () => {
+    expect(isCopyTextMessage({ type: 'copyText', text: '' })).toBe(true);
+  });
+
+  test('rejects non-string text', () => {
+    expect(isCopyTextMessage({ type: 'copyText', text: 42 })).toBe(false);
+  });
+});
 
 describe('isRequestSettingsMessage', () => {
   test('accepts a requestSettings message', () => {

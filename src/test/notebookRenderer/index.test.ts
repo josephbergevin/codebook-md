@@ -19,7 +19,7 @@ class FakeMarkdownRenderer {
     fn(this.md);
   }
 
-  renderCell(text: string): { host: HTMLElement; root: ShadowRoot } {
+  renderCell(text: string, mime = 'text/markdown'): { host: HTMLElement; root: ShadowRoot } {
     const host = document.createElement('div');
     document.body.appendChild(host);
     const root = host.attachShadow({ mode: 'open' });
@@ -28,13 +28,15 @@ class FakeMarkdownRenderer {
     }
     const preview = document.createElement('div');
     preview.id = 'preview';
-    preview.innerHTML = this.md.render(text);
+    // Like the real renderer: text/x-<lang> cells are wrapped in a fence
+    const source = mime.startsWith('text/x-') ? '```' + mime.slice(7) + '\n' + text + '\n```' : text;
+    preview.innerHTML = this.md.render(source, { outputItem: { mime } });
     root.appendChild(preview);
     return { host, root };
   }
 }
 
-const CELL = 'Todo:\n\n- [ ] first\n- [x] second';
+const CELL = 'Todo:\n\n- [ ] first\n- [x] second\n\n  ```sh\n  echo hi\n  ```';
 
 // activate() adds listeners to the shared jsdom window; record them so each
 // test can remove them and not see earlier tests' handlers
@@ -75,7 +77,8 @@ async function setup(options: { messaging: boolean }) {
 
   const { host, root } = renderer.renderCell(CELL);
   const checkboxes = Array.from(root.querySelectorAll<HTMLElement>('.task-list-item-checkbox'));
-  return { host, root, checkboxes, posted, send: (m: unknown) => sendToRenderer?.(m) };
+  const copyButton = root.querySelector<HTMLElement>('.code-block-copy-button');
+  return { renderer, host, root, checkboxes, copyButton, posted, send: (m: unknown) => sendToRenderer?.(m) };
 }
 
 describe('notebook renderer activate', () => {
@@ -152,6 +155,47 @@ describe('notebook renderer activate', () => {
       expect(posted).toEqual([{ type: 'requestSettings' }]);
     });
 
+    describe('copy button', () => {
+      afterEach(() => {
+        jest.useRealTimers();
+      });
+
+      test('posts the code block\'s text', async () => {
+        const { copyButton, posted } = await setup({ messaging: true });
+        copyButton!.click();
+        expect(posted).toContainEqual({ type: 'copyText', text: 'echo hi\n' });
+      });
+
+      test('works when the click lands on its icon', async () => {
+        const { copyButton, posted } = await setup({ messaging: true });
+        copyButton!.querySelector('svg path')!.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+        expect(posted).toContainEqual({ type: 'copyText', text: 'echo hi\n' });
+      });
+
+      test('shows a check mark briefly after copying', async () => {
+        jest.useFakeTimers();
+        const { copyButton } = await setup({ messaging: true });
+        copyButton!.click();
+        expect(copyButton!.classList.contains('copied')).toBe(true);
+        jest.advanceTimersByTime(2000);
+        expect(copyButton!.classList.contains('copied')).toBe(false);
+      });
+
+      test('does not reach the notebook\'s own click handlers', async () => {
+        const { host, copyButton } = await setup({ messaging: true });
+        const cellClick = jest.fn();
+        host.addEventListener('click', cellClick);
+        copyButton!.click();
+        expect(cellClick).not.toHaveBeenCalled();
+      });
+    });
+
+    test('renders the front matter cell as a table', async () => {
+      const { renderer } = await setup({ messaging: true });
+      const { root } = renderer.renderCell('title: Hello\ntags: [a, b]', 'text/x-yaml');
+      expect(root.querySelectorAll('table.frontmatter-table th').length).toBe(2);
+    });
+
     test('applies settings sent by the extension', async () => {
       const { send } = await setup({ messaging: true });
       send({ type: 'settings', settings: { previewStyling: false } });
@@ -175,6 +219,11 @@ describe('notebook renderer activate', () => {
       const { checkboxes } = await setup({ messaging: false });
       expect(checkboxes[0].hasAttribute('tabindex')).toBe(false);
       expect(checkboxes[0].getAttribute('aria-disabled')).toBe('true');
+    });
+
+    test('adds no copy button to code blocks', async () => {
+      const { copyButton } = await setup({ messaging: false });
+      expect(copyButton).toBeNull();
     });
 
     test('leaves checkboxes display-only', async () => {

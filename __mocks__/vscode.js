@@ -42,6 +42,11 @@ const vscode = {
     onDidChangeConfiguration: jestMock.fn(() => ({ dispose: jestMock.fn() })),
     workspaceFolders: [],
   },
+  env: {
+    clipboard: {
+      writeText: jestMock.fn(async () => undefined),
+    },
+  },
   commands: {
     registerCommand: jestMock.fn(),
     executeCommand: jestMock.fn(),

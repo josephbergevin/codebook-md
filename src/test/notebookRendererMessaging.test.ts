@@ -60,6 +60,13 @@ describe('handleRendererMessage', () => {
     });
   });
 
+  describe('copyText', () => {
+    test('puts the text on the clipboard', async () => {
+      await handleRendererMessage(fakeMessaging(), editor, { type: 'copyText', text: 'echo hi' });
+      expect(vscode.env.clipboard.writeText).toHaveBeenCalledWith('echo hi');
+    });
+  });
+
   test('ignores unknown messages', async () => {
     const messaging = fakeMessaging();
     await handleRendererMessage(messaging, editor, { type: 'somethingElse' });

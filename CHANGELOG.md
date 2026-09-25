@@ -10,11 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Markdown cells look like the Markdown Preview.** Task lists
   (`- [ ]` / `- [x]`) render as checkboxes you can click to check or
-  uncheck, which edits the markdown source. Tables get horizontal rules
-  and striped rows, and headings, blockquotes and code blocks match the
-  preview's styling. Colors follow your VS Code theme. The styles also
-  apply to markdown cells in other notebook types, since VS Code shares
-  one markdown renderer between them.
+  uncheck, which edits the markdown source. Tables get horizontal
+  rules and striped rows; headings, blockquotes and code blocks match
+  the preview's styling; code blocks get a copy button; and front
+  matter shows as a key/value table. Colors follow your VS Code theme.
+  The styles also apply to markdown cells in other notebook types,
+  since VS Code shares one markdown renderer between them.
 - **`codebook-md.markdown.previewStyling` setting** (default `true`).
   Turn it off to go back to VS Code's plainer notebook styling for
   markdown cells; open notebooks update right away. Task list
