@@ -20,7 +20,6 @@ import * as configModal from './webview/configModal';
 import * as codeLens from './codeLens';
 import * as shellSession from './shellSession';
 import { createNewNotebook, createNotebookFromSelection } from './createNotebook';
-import { getMarkdownRenderingService } from './markdownRenderer';
 import { registerTaskListToggle } from './taskListToggle';
 
 const kernel = new Kernel();
@@ -594,12 +593,6 @@ export async function activate(context: ExtensionContext) {
   };
 
   context.subscriptions.push(workspace.registerNotebookSerializer('codebook-md', new MarkdownProvider(), notebookSettings));
-
-  // Initialize markdown contribution points integration
-  console.log('Initializing markdown contribution points integration...');
-  const markdownService = getMarkdownRenderingService();
-  await markdownService.initialize();
-  console.log('Markdown contribution points integration initialized.');
 
   // Clicking a task list checkbox in a markdown cell toggles it in the source
   registerTaskListToggle(context);
@@ -1436,14 +1429,6 @@ export async function activate(context: ExtensionContext) {
 // This method is called when your extension is deactivated
 export function deactivate() {
   shellSession.disposeAllSessions();
-}
-
-// Export markdown contribution function for VS Code's markdown preview.
-// VS Code passes in the preview's own markdown-it instance and uses whatever
-// we return, so it must be that same instance: returning a different engine
-// would drop the preview's built-in rules and other extensions' plugins.
-export function extendMarkdownIt(md: unknown): unknown {
-  return md;
 }
 
 // Export helper functions

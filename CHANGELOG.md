@@ -16,11 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   apply to markdown cells in other notebook types, since VS Code shares
   one markdown renderer between them.
 
-### Fixed
+### Changed
 
-- CodebookMD's `extendMarkdownIt` hook now returns the Markdown
-  Preview's own markdown-it instance instead of replacing it with a
-  separate engine.
+- **Faster startup.** CodebookMD no longer activates every installed
+  extension that contributes to the Markdown Preview when it starts.
+  It collected their markdown-it plugins for a rendering engine that
+  notebook cells never used. Math and Mermaid still render in
+  notebooks, through VS Code's own notebook renderers.
+- The docs now describe which markdown extensions work in notebooks:
+  those that ship a notebook renderer, not preview-only styles or
+  plugins.
 
 ## [0.22.0] - 2026-09-23
 

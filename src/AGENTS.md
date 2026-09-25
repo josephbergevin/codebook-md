@@ -16,9 +16,9 @@ Extension source. See the root [AGENTS.md](../AGENTS.md) for project-wide rules.
 | `folders.ts` | `FolderGroup` system backing the My Notebooks view |
 | `createNotebook.ts` | Notebook creation commands |
 | `prompt.ts` | Chat/prompt construction |
-| `markdownContributions.ts`, `markdownRenderer.ts` | VS Code markdown preview integration |
+| `taskListToggle.ts` | Applies task list checkbox clicks from the notebook renderer to the cell source |
 
-Subdirectories: `languages/`, `webview/`, `test/`, `types/`, `templating/` —
+Subdirectories: `languages/`, `notebookRenderer/`, `webview/`, `test/`, `types/`, `templating/` —
 each with its own `AGENTS.md` where it has one.
 
 ## Rules for this directory
