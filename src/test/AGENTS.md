@@ -6,6 +6,7 @@ Jest tests. See [testing.md](../../.agents/references/testing.md) for detail.
 
 - Jest with `ts-jest`, `testEnvironment: node` (`jest.config.js`)
 - `testMatch: ['**/src/test/**/*.test.ts']`
+- `jest-environment-jsdom` is available for tests that need a DOM
 - `.vscode-test/` and `out/` are ignored to avoid haste module collisions
 - The `vscode` module is mocked at `../../__mocks__/vscode.js` and picked up
   automatically
@@ -18,11 +19,12 @@ the Problems panel.
 Mirror `src/`. `src/languages/go.ts` → `src/test/languages/go.test.ts`.
 Name files `<filename>.test.ts`.
 
-Existing tests: `codebook.test.ts`, `config.test.ts`, `env.test.ts`,
-`executionHistory.test.ts`, `folders.test.ts`, `fmt.test.ts`,
-`markdownRenderer.test.ts`, `prompt.test.ts`, `extension.test.ts` (a stub),
-`languages/go.test.ts`, `languages/http.test.ts`,
-`webview/configModal.test.ts`.
+List the directory for the current set of tests rather than relying on a
+list here; `extension.test.ts` is a stub.
+
+Tests run in `node` by default. Code that runs in a webview and needs a DOM
+(for example `notebookRenderer/index.test.ts`) opts in to jsdom with a
+`/** @jest-environment jsdom */` docblock at the top of the file.
 
 ## Rules for this directory
 

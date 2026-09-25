@@ -8,7 +8,7 @@
  * contribution in package.json.
  */
 import type MarkdownIt from 'markdown-it';
-import { taskListPlugin } from './taskLists';
+import { TaskListOptions, taskListPlugin } from './taskLists';
 import { interactiveCheckboxStyles, PREVIEW_STYLING_PROPERTY, previewStyles, taskListStyles } from './styles';
 import { ToggleTaskMessage } from './taskToggle';
 import { isSettingsMessage, RendererSettings, RequestSettingsMessage } from './protocol';
@@ -149,7 +149,8 @@ export async function activate(ctx: RendererContext): Promise<void> {
     registerToggleHandlers(postMessage);
   }
 
+  const options: TaskListOptions = { interactive: !!ctx.postMessage };
   markdownItRenderer.extendMarkdownIt((md) => {
-    md.use(taskListPlugin);
+    md.use(taskListPlugin, options);
   });
 }
