@@ -16,7 +16,9 @@ export const PREVIEW_STYLING_PROPERTY = '--codebook-md-preview-styling';
  * Each cell renders inside its own shadow root, so the preview's
  * `.vscode-dark` / `.vscode-light` body-class selectors can't reach it.
  * Border and stripe colors are therefore derived from the theme's
- * foreground color with `color-mix`, which works in every theme.
+ * foreground color with `color-mix`, which works in every theme. Borders
+ * prefer `--vscode-contrastBorder`, which only high-contrast themes define,
+ * so rules stay clearly visible there.
  */
 export const previewStyles = `
   @container style(${PREVIEW_STYLING_PROPERTY}: on) {
@@ -31,13 +33,13 @@ export const previewStyles = `
     h1 {
       font-size: 2em;
       padding-bottom: 0.3em;
-      border-bottom: 1px solid color-mix(in srgb, var(--vscode-foreground) 18%, transparent);
+      border-bottom: 1px solid var(--vscode-contrastBorder, color-mix(in srgb, var(--vscode-foreground) 18%, transparent));
     }
 
     h2 {
       font-size: 1.5em;
       padding-bottom: 0.3em;
-      border-bottom: 1px solid color-mix(in srgb, var(--vscode-foreground) 18%, transparent);
+      border-bottom: 1px solid var(--vscode-contrastBorder, color-mix(in srgb, var(--vscode-foreground) 18%, transparent));
     }
 
     h3 { font-size: 1.25em; }
@@ -51,7 +53,7 @@ export const previewStyles = `
 
     hr {
       height: 1px;
-      border-bottom: 1px solid color-mix(in srgb, var(--vscode-foreground) 18%, transparent);
+      border-bottom: 1px solid var(--vscode-contrastBorder, color-mix(in srgb, var(--vscode-foreground) 18%, transparent));
     }
 
     /* Tables: horizontal rules only, like the preview, plus striped rows */
@@ -67,11 +69,11 @@ export const previewStyles = `
 
     table > thead > tr > th {
       font-weight: 600;
-      border-bottom: 1px solid color-mix(in srgb, var(--vscode-foreground) 69%, transparent);
+      border-bottom: 1px solid var(--vscode-contrastBorder, color-mix(in srgb, var(--vscode-foreground) 69%, transparent));
     }
 
     table > tbody > tr + tr > td {
-      border-top: 1px solid color-mix(in srgb, var(--vscode-foreground) 18%, transparent);
+      border-top: 1px solid var(--vscode-contrastBorder, color-mix(in srgb, var(--vscode-foreground) 18%, transparent));
     }
 
     table > tbody > tr:nth-child(2n) {

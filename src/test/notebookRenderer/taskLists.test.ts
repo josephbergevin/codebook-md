@@ -68,6 +68,13 @@ describe('taskListPlugin', () => {
     });
   });
 
+  describe('interactive option', () => {
+    test('renders display-only checkboxes when interactive is false', () => {
+      const md = new MarkdownIt().use(taskListPlugin, { interactive: false });
+      expect(md.render('- [ ] task')).toContain('aria-disabled="true"');
+    });
+  });
+
   describe('mixed and nested lists', () => {
     test('classes only the items that are tasks', () => {
       const html = render('- [ ] task\n- plain');
@@ -89,6 +96,16 @@ describe('taskListPlugin', () => {
 describe('checkboxHtml', () => {
   test('omits data-line when the source line is unknown', () => {
     expect(checkboxHtml(false, undefined)).not.toContain('data-line');
+  });
+
+  test('makes an interactive checkbox focusable', () => {
+    expect(checkboxHtml(false, 0, 'abc', true)).toContain('tabindex="0"');
+  });
+
+  test('marks a non-interactive checkbox disabled instead of focusable', () => {
+    const html = checkboxHtml(false, 0, 'abc', false);
+    expect(html).toContain('aria-disabled="true"');
+    expect(html).not.toContain('tabindex');
   });
 
   test('omits data-cell when the cell hash is unknown', () => {

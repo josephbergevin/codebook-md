@@ -24,11 +24,29 @@ function escapeAttr(value: string): string {
  * `<span role="checkbox">` drawn with CSS. `data-line` (the item's 0-based
  * source line) and `data-cell` (a hash of the cell's text) let a click be
  * mapped back to the markdown source.
+ *
+ * An interactive checkbox is focusable; one that can't be toggled is
+ * marked disabled instead, so keyboard and screen reader users aren't
+ * offered a control that does nothing.
  */
-export function checkboxHtml(checked: boolean, line: number | undefined, cellHash?: string): string {
+export function checkboxHtml(
+  checked: boolean,
+  line: number | undefined,
+  cellHash?: string,
+  interactive = true
+): string {
   const lineAttr = line === undefined ? '' : ` data-line="${escapeAttr(String(line))}"`;
   const cellAttr = cellHash === undefined ? '' : ` data-cell="${escapeAttr(cellHash)}"`;
-  return `<span class="task-list-item-checkbox" role="checkbox" tabindex="0" aria-checked="${checked}"${lineAttr}${cellAttr}></span>`;
+  const stateAttr = interactive ? ' tabindex="0"' : ' aria-disabled="true"';
+  return `<span class="task-list-item-checkbox" role="checkbox"${stateAttr} aria-checked="${checked}"${lineAttr}${cellAttr}></span>`;
+}
+
+/**
+ * Options for taskListPlugin.
+ */
+export interface TaskListOptions {
+  /** Whether checkboxes can be clicked to toggle them (default true) */
+  interactive?: boolean;
 }
 
 /**
@@ -64,7 +82,8 @@ function findParentListOpen(tokens: Token[], itemIndex: number): number {
  * VS Code Markdown Preview uses: `contains-task-list` on the list,
  * `task-list-item` on the item and `task-list-item-checkbox` on the box.
  */
-export function taskListPlugin(md: MarkdownIt): void {
+export function taskListPlugin(md: MarkdownIt, options: TaskListOptions = {}): void {
+  const interactive = options.interactive ?? true;
   md.core.ruler.after('inline', 'codebook_task_lists', (state) => {
     const tokens = state.tokens;
     let cellHash: string | undefined;
@@ -93,7 +112,7 @@ export function taskListPlugin(md: MarkdownIt): void {
       // Hash lazily: most cells have no task items
       cellHash ??= hashCellText(state.src);
       const checkbox = new state.Token('html_inline', '', 0);
-      checkbox.content = checkboxHtml(checked, inline.map?.[0], cellHash);
+      checkbox.content = checkboxHtml(checked, inline.map?.[0], cellHash, interactive);
       inline.children!.unshift(checkbox);
 
       addClass(tokens[i - 2], 'task-list-item');

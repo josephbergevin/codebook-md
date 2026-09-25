@@ -171,6 +171,12 @@ describe('notebook renderer activate', () => {
       expect(document.documentElement.style.getPropertyValue(PREVIEW_STYLING_PROPERTY)).toBe('on');
     });
 
+    test('renders checkboxes that are not keyboard focusable', async () => {
+      const { checkboxes } = await setup({ messaging: false });
+      expect(checkboxes[0].hasAttribute('tabindex')).toBe(false);
+      expect(checkboxes[0].getAttribute('aria-disabled')).toBe('true');
+    });
+
     test('leaves checkboxes display-only', async () => {
       const { checkboxes } = await setup({ messaging: false });
       checkboxes[0].click();
