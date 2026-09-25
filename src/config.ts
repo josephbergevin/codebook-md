@@ -170,6 +170,13 @@ export function isCodeLensEnabled(): boolean {
   return workspace.getConfiguration('codebook-md.codeLens').get<boolean>('enabled', true);
 }
 
+// isMarkdownPreviewStylingEnabled returns whether markdown cells are styled like
+// the Markdown Preview (codebook-md.markdown.previewStyling). Read fresh on every
+// call so a settings change takes effect without reloading the window.
+export function isMarkdownPreviewStylingEnabled(): boolean {
+  return workspace.getConfiguration('codebook-md.markdown').get<boolean>('previewStyling', true);
+}
+
 /**
  * workspaceRoot returns the folder that per-cell execution paths are relative
  * to, or undefined when no workspace is open.

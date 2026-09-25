@@ -39,6 +39,7 @@ const vscode = {
     }),
     openTextDocument: jestMock.fn(),
     applyEdit: jestMock.fn(async () => true),
+    onDidChangeConfiguration: jestMock.fn(() => ({ dispose: jestMock.fn() })),
     workspaceFolders: [],
   },
   commands: {
