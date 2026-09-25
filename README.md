@@ -428,7 +428,9 @@ Accept: application/json
 Markdown cells in a CodebookMD notebook are styled to match VS Code's
 Markdown Preview, so a file looks familiar whichever way you open it:
 
-- **Task lists** - `- [ ] todo` and `- [x] done` render as checkboxes
+- **Task lists** - `- [ ] todo` and `- [x] done` render as checkboxes.
+  Click one (or focus it and press Space) to check or uncheck it; the
+  change is written to the markdown source, ready to save
 - **Tables** - horizontal rules between rows and a shaded background on
   every other row
 - **Headings** - bold, with a rule under `#` and `##` headings

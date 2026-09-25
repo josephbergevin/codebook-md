@@ -21,6 +21,7 @@ import * as codeLens from './codeLens';
 import * as shellSession from './shellSession';
 import { createNewNotebook, createNotebookFromSelection } from './createNotebook';
 import { getMarkdownRenderingService } from './markdownRenderer';
+import { registerTaskListToggle } from './taskListToggle';
 
 const kernel = new Kernel();
 
@@ -599,6 +600,9 @@ export async function activate(context: ExtensionContext) {
   const markdownService = getMarkdownRenderingService();
   await markdownService.initialize();
   console.log('Markdown contribution points integration initialized.');
+
+  // Clicking a task list checkbox in a markdown cell toggles it in the source
+  registerTaskListToggle(context);
 
   // Create an instance of a notebook editor provider, for setting up toolbar icons
   const notebookCellStatusBarItemProvider = notebooks.registerNotebookCellStatusBarItemProvider(
