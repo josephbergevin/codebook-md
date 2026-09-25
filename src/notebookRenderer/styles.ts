@@ -118,3 +118,22 @@ export const markdownCellStyles = `
     transform: rotate(45deg);
   }
 `;
+
+/**
+ * Extra checkbox styles, added only when the renderer can message the
+ * extension (i.e. when clicking a checkbox actually toggles it).
+ */
+export const interactiveCheckboxStyles = `
+  .task-list-item-checkbox {
+    cursor: pointer;
+  }
+
+  .task-list-item-checkbox:hover {
+    border-color: var(--vscode-focusBorder, var(--vscode-foreground));
+  }
+
+  .task-list-item-checkbox:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: 1px;
+  }
+`;

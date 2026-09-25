@@ -758,7 +758,8 @@
         "entrypoint": {
           "extends": "vscode.markdown-it-renderer",
           "path": "./dist/notebookMarkdown.js"
-        }
+        },
+        "requiresMessaging": "optional"
       }
     ],
     "notebooks": [

@@ -38,6 +38,7 @@ const vscode = {
       };
     }),
     openTextDocument: jestMock.fn(),
+    applyEdit: jestMock.fn(async () => true),
     workspaceFolders: [],
   },
   commands: {
@@ -49,7 +50,27 @@ const vscode = {
     parse: jestMock.fn(),
   },
   Position: jestMock.fn((line, character) => ({ line, character })),
-  Range: jestMock.fn((start, end) => ({ start, end })),
+  // Range(start, end) or Range(startLine, startChar, endLine, endChar)
+  Range: jestMock.fn((a, b, c, d) => (d === undefined
+    ? { start: a, end: b }
+    : { start: { line: a, character: b }, end: { line: c, character: d } })),
+  WorkspaceEdit: jestMock.fn(() => {
+    const edits = [];
+    return {
+      edits,
+      replace: jestMock.fn((uri, range, newText) => edits.push({ uri, range, newText })),
+    };
+  }),
+  NotebookCellKind: {
+    Markup: 1,
+    Code: 2,
+  },
+  notebooks: {
+    createRendererMessaging: jestMock.fn(() => ({
+      onDidReceiveMessage: jestMock.fn(() => ({ dispose: jestMock.fn() })),
+      postMessage: jestMock.fn(),
+    })),
+  },
   ThemeIcon: jestMock.fn((id) => ({ id })),
   EventEmitter: jestMock.fn(() => ({
     event: jestMock.fn(),

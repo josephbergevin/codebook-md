@@ -1,4 +1,5 @@
 import type MarkdownIt from 'markdown-it';
+import { hashCellText } from './taskToggle';
 
 type Token = MarkdownIt.Token;
 
@@ -20,13 +21,14 @@ function escapeAttr(value: string): string {
  *
  * In untrusted workspaces the notebook markdown renderer sanitizes its
  * output and strips `<input>` elements, so the checkbox is a
- * `<span role="checkbox">` drawn with CSS. `data-line` is the item's
- * 0-based source line within the cell, which lets a click be mapped back
- * to the markdown source.
+ * `<span role="checkbox">` drawn with CSS. `data-line` (the item's 0-based
+ * source line) and `data-cell` (a hash of the cell's text) let a click be
+ * mapped back to the markdown source.
  */
-export function checkboxHtml(checked: boolean, line: number | undefined): string {
+export function checkboxHtml(checked: boolean, line: number | undefined, cellHash?: string): string {
   const lineAttr = line === undefined ? '' : ` data-line="${escapeAttr(String(line))}"`;
-  return `<span class="task-list-item-checkbox" role="checkbox" aria-checked="${checked}"${lineAttr}></span>`;
+  const cellAttr = cellHash === undefined ? '' : ` data-cell="${escapeAttr(cellHash)}"`;
+  return `<span class="task-list-item-checkbox" role="checkbox" tabindex="0" aria-checked="${checked}"${lineAttr}${cellAttr}></span>`;
 }
 
 /**
@@ -65,6 +67,7 @@ function findParentListOpen(tokens: Token[], itemIndex: number): number {
 export function taskListPlugin(md: MarkdownIt): void {
   md.core.ruler.after('inline', 'codebook_task_lists', (state) => {
     const tokens = state.tokens;
+    let cellHash: string | undefined;
     for (let i = 2; i < tokens.length; i++) {
       const inline = tokens[i];
       // A task item is: list_item_open, paragraph_open, inline(content starts with the marker)
@@ -87,8 +90,10 @@ export function taskListPlugin(md: MarkdownIt): void {
       const checked = match[1] !== ' ';
       firstChild.content = firstChild.content.slice(match[0].length);
 
+      // Hash lazily: most cells have no task items
+      cellHash ??= hashCellText(state.src);
       const checkbox = new state.Token('html_inline', '', 0);
-      checkbox.content = checkboxHtml(checked, inline.map?.[0]);
+      checkbox.content = checkboxHtml(checked, inline.map?.[0], cellHash);
       inline.children!.unshift(checkbox);
 
       addClass(tokens[i - 2], 'task-list-item');

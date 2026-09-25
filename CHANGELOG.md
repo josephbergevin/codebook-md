@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Markdown cells look like the Markdown Preview.** Task lists
-  (`- [ ]` / `- [x]`) render as checkboxes, tables get horizontal rules
+  (`- [ ]` / `- [x]`) render as checkboxes you can click to check or
+  uncheck, which edits the markdown source. Tables get horizontal rules
   and striped rows, and headings, blockquotes and code blocks match the
   preview's styling. Colors follow your VS Code theme. The styles also
   apply to markdown cells in other notebook types, since VS Code shares

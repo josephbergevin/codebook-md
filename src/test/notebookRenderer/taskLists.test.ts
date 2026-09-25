@@ -1,5 +1,6 @@
 import MarkdownIt from 'markdown-it';
 import { checkboxHtml, taskListPlugin } from '../../notebookRenderer/taskLists';
+import { hashCellText } from '../../notebookRenderer/taskToggle';
 
 /**
  * Renders markdown with the same options the notebook renderer uses
@@ -15,7 +16,8 @@ describe('taskListPlugin', () => {
   describe('unchecked item', () => {
     test('renders an unchecked checkbox in place of the marker', () => {
       const html = render('- [ ] write tests');
-      expect(html).toContain('<span class="task-list-item-checkbox" role="checkbox" aria-checked="false" data-line="0"></span>write tests');
+      const hash = hashCellText('- [ ] write tests');
+      expect(html).toContain(`<span class="task-list-item-checkbox" role="checkbox" tabindex="0" aria-checked="false" data-line="0" data-cell="${hash}"></span>write tests`);
     });
 
     test('marks the list item and the list with the preview classes', () => {
@@ -87,5 +89,9 @@ describe('taskListPlugin', () => {
 describe('checkboxHtml', () => {
   test('omits data-line when the source line is unknown', () => {
     expect(checkboxHtml(false, undefined)).not.toContain('data-line');
+  });
+
+  test('omits data-cell when the cell hash is unknown', () => {
+    expect(checkboxHtml(false, 0)).not.toContain('data-cell');
   });
 });
