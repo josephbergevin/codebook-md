@@ -96,6 +96,7 @@
         <li><a href="#output-config">Output Configuration</a></li>
         <li><a href="#file-links">File Links &amp; Hover Preview</a></li>
         <li><a href="#custom-settings">Custom Settings</a></li>
+        <li><a href="#markdown-styling">Markdown Cell Styling</a></li>
         <li><a href="#markdown-contributions">Markdown Contributions</a></li>
         <li><a href="#env-variables">Environment Variables</a></li>
         <li><a href="#codebook-prompts">Codebook Prompts</a></li>
@@ -1429,6 +1430,19 @@ codebook:
           <li>User settings</li>
           <li>Folder-level settings</li>
         </ul>
+      </section>
+
+      <section id="markdown-styling">
+        <h2>Markdown Cell Styling</h2>
+        <p>Markdown cells in a CodebookMD notebook are styled to match VS Code's <span class="feature-highlight">Markdown Preview</span>, so a file looks familiar whichever way you open it.</p>
+        <ul>
+          <li><strong>Task lists:</strong> <code>- [ ] todo</code> and <code>- [x] done</code> render as checkboxes</li>
+          <li><strong>Tables:</strong> horizontal rules between rows and a shaded background on every other row</li>
+          <li><strong>Headings:</strong> bold, with a rule under <code>#</code> and <code>##</code> headings</li>
+          <li><strong>Blockquotes and code blocks:</strong> the same borders and backgrounds as the preview</li>
+        </ul>
+        <p>Colors come from your VS Code theme, so light, dark and high-contrast themes all work.</p>
+        <p>VS Code shares one markdown renderer across notebook types, so these styles also apply to markdown cells in other notebooks (such as Jupyter <code>.ipynb</code>) while CodebookMD is installed.</p>
       </section>
 
       <section id="markdown-contributions">

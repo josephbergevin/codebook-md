@@ -751,6 +751,16 @@
     "markdown": {
       "markdownItPlugins": true
     },
+    "notebookRenderer": [
+      {
+        "id": "codebook-md.markdown-extensions",
+        "displayName": "CodebookMD Markdown Extensions",
+        "entrypoint": {
+          "extends": "vscode.markdown-it-renderer",
+          "path": "./dist/notebookMarkdown.js"
+        }
+      }
+    ],
     "notebooks": [
       {
         "type": "codebook-md",

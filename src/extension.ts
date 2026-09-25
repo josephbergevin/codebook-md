@@ -1434,22 +1434,12 @@ export function deactivate() {
   shellSession.disposeAllSessions();
 }
 
-// Export markdown contribution function for VS Code's markdown preview
+// Export markdown contribution function for VS Code's markdown preview.
+// VS Code passes in the preview's own markdown-it instance and uses whatever
+// we return, so it must be that same instance: returning a different engine
+// would drop the preview's built-in rules and other extensions' plugins.
 export function extendMarkdownIt(md: unknown): unknown {
-  try {
-    const markdownService = getMarkdownRenderingService();
-    // VS Code passes its markdown-it instance to us
-    // We enhance it with our collected plugins from other extensions
-    if (md && typeof md === 'object') {
-      // The markdown service has already collected plugins from other extensions
-      // We just return the enhanced instance
-      return markdownService.getEngine();
-    }
-    return md;
-  } catch (error) {
-    console.error('Error in extendMarkdownIt:', error);
-    return md;
-  }
+  return md;
 }
 
 // Export helper functions

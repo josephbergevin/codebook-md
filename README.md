@@ -423,6 +423,21 @@ Accept: application/json
 }
 ```
 
+### Markdown cells that look like the Markdown Preview
+
+Markdown cells in a CodebookMD notebook are styled to match VS Code's
+Markdown Preview, so a file looks familiar whichever way you open it:
+
+- **Task lists** - `- [ ] todo` and `- [x] done` render as checkboxes
+- **Tables** - horizontal rules between rows and a shaded background on
+  every other row
+- **Headings** - bold, with a rule under `#` and `##` headings
+
+Colors come from your VS Code theme, so light, dark and high-contrast themes
+all work. Because VS Code shares one markdown renderer across notebook types,
+the styles also apply to markdown cells in other notebooks (such as Jupyter
+`.ipynb`) while CodebookMD is installed.
+
 ### Markdown Contributions Integration
 
 CodebookMD automatically integrates with VS Code's markdown extension ecosystem to provide enhanced rendering capabilities:

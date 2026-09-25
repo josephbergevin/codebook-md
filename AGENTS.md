@@ -29,6 +29,7 @@ CodebookMD extension, this project, this workspace, or the CodebookMD codebase.
 | `src/kernel.ts` | Notebook controller — executes cells, streams output |
 | `src/codebook.ts` | Core types (`ExecutableCell`, `Command`, `CodeBlockConfig`), language registry, `NewExecutableCell()` factory |
 | `src/languages/` | One module per executable language ([AGENTS.md](src/languages/AGENTS.md)) |
+| `src/notebookRenderer/` | Webview-side renderer extending VS Code's markdown cell renderer (task lists, preview-like styles); bundled separately to `dist/notebookMarkdown.js` |
 | `src/webview/` | Sidebar view providers + HTML templates ([AGENTS.md](src/webview/AGENTS.md)) |
 | `src/test/` | Jest tests, mirroring `src/` ([AGENTS.md](src/test/AGENTS.md)) |
 | `src/config.ts`, `src/cellConfig.ts` | Settings resolution, per-cell config, execution history |
