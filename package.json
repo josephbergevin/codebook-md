@@ -748,9 +748,6 @@
         ]
       }
     ],
-    "markdown": {
-      "markdownItPlugins": true
-    },
     "notebookRenderer": [
       {
         "id": "codebook-md.markdown-extensions",
@@ -789,9 +786,6 @@
     "test:silent": "jest --silent",
     "publish:ovsx": "ovsx publish"
   },
-  "dependencies": {
-    "markdown-it": "^14.0.0"
-  },
   "devDependencies": {
     "@eslint/js": "^9.6.0",
     "@types/chai": "^4.3.16",
@@ -809,6 +803,7 @@
     "eslint": "^8.56.0",
     "globals": "^15.8.0",
     "jest": "^29.0.0",
+    "markdown-it": "^14.3.2",
     "mocha": "^10.6.0",
     "ovsx": "^0.10.7",
     "ts-jest": "^29.0.0",

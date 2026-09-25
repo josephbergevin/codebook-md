@@ -440,34 +440,13 @@ all work. Because VS Code shares one markdown renderer across notebook types,
 the styles also apply to markdown cells in other notebooks (such as Jupyter
 `.ipynb`) while CodebookMD is installed.
 
-### Markdown Contributions Integration
+### Math, diagrams and other markdown extensions
 
-CodebookMD automatically integrates with VS Code's markdown extension ecosystem to provide enhanced rendering capabilities:
-
-- **Automatic Extension Discovery**: Automatically discovers and integrates with installed VS Code markdown extensions
-- **Zero Configuration**: Works seamlessly with extensions like Markdown All in One, Mermaid, and Markdown+Math
-- **Enhanced Rendering**: Supports markdown-it plugins, custom CSS styles, and JavaScript enhancements from other extensions
-- **Consistent Experience**: Same markdown features available in both VS Code preview and CodebookMD notebooks
-
-#### Supported Extension Types
-
-CodebookMD integrates with extensions that contribute:
-
-- `markdown.markdownItPlugins` - Custom markdown-it plugins for extended syntax
-- `markdown.previewStyles` - Additional CSS styles for enhanced appearance
-- `markdown.previewScripts` - JavaScript for interactive functionality
-
-#### Popular Compatible Extensions
-
-- **Markdown All in One** - Table formatting, math equations, mermaid diagrams
-- **Markdown Preview Enhanced** - Advanced preview features and customizations
-- **Mermaid Markdown Syntax Highlighting** - Diagram rendering support
-- **Markdown+Math** - LaTeX math equation rendering
-- **Any extension** that follows VS Code's markdown contribution guidelines
-
-#### Example Enhanced Features
-
-With compatible extensions installed, you can use enhanced markdown features in your CodebookMD notebooks:
+Markdown cells are drawn by VS Code's notebook markdown renderer, so an
+extension's markdown features show up in CodebookMD notebooks when that
+extension ships a **notebook renderer** - not just Markdown Preview styles or
+plugins. VS Code's built-in Markdown Math and Mermaid support both do, so
+these work out of the box:
 
 **Math Equations:**
 
@@ -483,7 +462,9 @@ graph TD;
     C-->D;
 ```
 
-**Enhanced Tables with auto-formatting and styling from Markdown All in One**
+Extensions that only contribute `markdown.previewStyles`,
+`markdown.previewScripts` or `markdown.markdownItPlugins` change the Markdown
+Preview but not notebooks.
 
 ## Release Notes
 
