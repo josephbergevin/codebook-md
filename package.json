@@ -809,6 +809,7 @@
     "eslint": "^8.56.0",
     "globals": "^15.8.0",
     "jest": "^29.0.0",
+    "jest-environment-jsdom": "^29.7.0",
     "markdown-it": "^14.3.2",
     "mocha": "^10.6.0",
     "ovsx": "^0.10.7",
