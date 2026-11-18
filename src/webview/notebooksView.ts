@@ -13,6 +13,12 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as config from '../config';
 import * as folders from '../folders';
+import * as relatedDocs from '../relatedDocs';
+import { clearDocMetaCache, docTooltip, getDocMeta } from '../docMeta';
+import { isMarkdownFileName } from '../docTypes';
+import {
+  activeRowAttrs, comparablePath, docIconHtml, escapeHtml, hintHtml, plainFileIconHtml, titleAttr,
+} from './notebooksViewHtml';
 
 /**
  * Provider for the My Notebooks webview view.
@@ -24,10 +30,19 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
   private _currentEditorFile?: string; // Tracks the currently opened file
   private _dynamicFolderGroup?: folders.FolderGroup; // Stores the dynamic folder group
   private _isViewVisible: boolean = false; // Tracks if the view is currently visible
+  private _refreshTimer?: ReturnType<typeof setTimeout>; // Debounces refreshes from file changes
+  private _htmlActiveFiles: string[] = []; // The open file's paths as written into the page's HTML
+  private _shownActiveFiles: string[] = []; // The open file's paths as the page marks them now
+  private _redrawIsDue: boolean = false; // A markdown file changed, so the next refresh always redraws
+  private _redrawOnShow: boolean = false; // Files changed while the view was hidden
 
   constructor(private readonly _extensionContext: ExtensionContext) { }
 
   dispose() {
+    if (this._refreshTimer) {
+      clearTimeout(this._refreshTimer);
+      this._refreshTimer = undefined;
+    }
     while (this._disposables.length) {
       const disposable = this._disposables.pop();
       if (disposable) {
@@ -54,8 +69,15 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
     this._updateWebview();
 
     // Listen for active editor changes to update the dynamic folder group
-    const activeEditorListener = window.onDidChangeActiveTextEditor(editor => this._handleActiveEditorChange(editor));
+    const activeEditorListener = window.onDidChangeActiveTextEditor(editor => {
+      this._handleActiveEditorChange(editor);
+      this._syncActiveFile();
+    });
     this._disposables.push(activeEditorListener);
+
+    // A notebook can be the open file without any text editor being active,
+    // so the highlighted row follows notebook editors as well
+    this._disposables.push(window.onDidChangeActiveNotebookEditor(() => this._syncActiveFile()));
 
     // Listen for webview visibility changes
     const viewStateListener = webviewView.onDidChangeVisibility(() => {
@@ -64,6 +86,12 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
       // If the view becomes visible, update it based on the current editor
       if (this._isViewVisible) {
         this._handleActiveEditorChange(window.activeTextEditor);
+        // The page was reloaded from its HTML, which may mark a file that is
+        // no longer the open one
+        this._shownActiveFiles = this._htmlActiveFiles;
+        if (this._redrawOnShow || !this._samePaths(this._activeFilePaths(), this._htmlActiveFiles)) {
+          this._updateWebview();
+        }
       }
     });
     this._disposables.push(viewStateListener);
@@ -92,12 +120,21 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
               return;
             }
 
+            // Markdown opens as a notebook; a skill's scripts and other
+            // files open in whichever editor VS Code picks for them
             const uri = Uri.file(absolutePath);
-            commands.executeCommand('vscode.openWith', uri, 'codebook-md');
+            if (isMarkdownFileName(absolutePath)) {
+              commands.executeCommand('vscode.openWith', uri, 'codebook-md');
+            } else {
+              commands.executeCommand('vscode.open', uri);
+            }
           }
           break;
         }
         case 'refresh': {
+          // A manual refresh re-reads everything from disk
+          relatedDocs.clearRelatedDocsCache();
+          clearDocMetaCache();
           this._updateWebview();
           break;
         }
@@ -186,6 +223,121 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
     settingsWatcher.onDidCreate(() => this._updateWebview());
     settingsWatcher.onDidDelete(() => this._updateWebview());
     this._disposables.push(settingsWatcher);
+
+    // Markdown files coming, going or changing can alter the tree: a new
+    // skill, a renamed file, a front matter name. The scan is cached, so drop
+    // the cache and redraw.
+    const markdownWatcher = workspace.createFileSystemWatcher('**/*.{md,markdown}');
+    markdownWatcher.onDidChange(() => this._refreshAfterFileChange());
+    markdownWatcher.onDidCreate(() => this._refreshAfterFileChange());
+    markdownWatcher.onDidDelete(() => this._refreshAfterFileChange());
+    this._disposables.push(markdownWatcher);
+
+    // Folders and other files coming or going can alter the tree too: a skill
+    // folder deleted or renamed, a script added to a skill. Their names do not
+    // match the markdown watcher, and removing a folder reports the folder
+    // alone, not the files in it. Changes inside files are not needed here.
+    const treeWatcher = workspace.createFileSystemWatcher('**/*', false, true, false);
+    treeWatcher.onDidCreate(uri => this._refreshAfterTreeChange(uri.fsPath));
+    treeWatcher.onDidDelete(uri => this._refreshAfterTreeChange(uri.fsPath));
+    this._disposables.push(treeWatcher);
+
+    // Redraw when the dynamic folder group's settings change
+    this._disposables.push(workspace.onDidChangeConfiguration(event => {
+      if (event.affectsConfiguration('codebook-md.dynamicFolderGroup')) {
+        this._updateWebview();
+      }
+    }));
+  }
+
+  /**
+   * Redraw shortly after markdown files change. Saves and branch switches
+   * arrive in bursts, so the redraw waits for them to settle.
+   */
+  private _refreshAfterFileChange(): void {
+    relatedDocs.clearRelatedDocsCache();
+    this._redrawIsDue = true;
+    this._scheduleRefresh();
+  }
+
+  /**
+   * Redraw shortly after a folder or a non-markdown file is added or removed,
+   * but only when that changed a folder the tree was built from. Build output
+   * and other churn elsewhere in the workspace leaves the view alone.
+   */
+  private _refreshAfterTreeChange(fsPath: string): void {
+    if (isMarkdownFileName(fsPath)) {
+      return; // the markdown watcher has it
+    }
+    this._scheduleRefresh();
+  }
+
+  /**
+   * Waits for a burst of file events to settle, then redraws when the tree on
+   * screen no longer matches the disk.
+   */
+  private _scheduleRefresh(): void {
+    if (this._refreshTimer) {
+      clearTimeout(this._refreshTimer);
+    }
+    this._refreshTimer = setTimeout(() => {
+      this._refreshTimer = undefined;
+      const redrawIsDue = this._redrawIsDue;
+      this._redrawIsDue = false;
+      if (!this._isViewVisible) {
+        this._redrawOnShow = true;
+        return;
+      }
+      // Without a markdown change, only a stale dynamic folder group needs a redraw
+      const treeIsStale = this._currentEditorFile !== undefined
+        && !relatedDocs.isRelatedDocsCurrent(this._currentEditorFile);
+      if (redrawIsDue || treeIsStale) {
+        this._updateWebview();
+      }
+    }, 300);
+  }
+
+  /**
+   * The paths of the file open in the editor, in the form rows are matched
+   * by: as opened, and with symlinks resolved, so that opening CLAUDE.md marks
+   * the AGENTS.md row it links to.
+   */
+  private _activeFilePaths(): string[] {
+    const notebookUri = window.activeNotebookEditor?.notebook.uri;
+    const textUri = window.activeTextEditor?.document.uri;
+    const uri = notebookUri ?? textUri;
+    if (!uri || (uri.scheme !== 'file' && uri.scheme !== 'vscode-notebook-cell')) {
+      return [];
+    }
+    const paths = [comparablePath(uri.fsPath)];
+    try {
+      const real = comparablePath(fs.realpathSync(uri.fsPath));
+      if (!paths.includes(real)) {
+        paths.push(real);
+      }
+    } catch {
+      // Not on disk yet: the path as opened is all there is
+    }
+    return paths;
+  }
+
+  private _samePaths(a: string[], b: string[]): boolean {
+    return a.length === b.length && a.every((value, index) => value === b[index]);
+  }
+
+  /**
+   * Moves the highlight to the open file's row without rebuilding the page.
+   */
+  private _syncActiveFile(): void {
+    if (!this._view || !this._isViewVisible) {
+      return;
+    }
+    const active = this._activeFilePaths();
+    if (this._samePaths(active, this._shownActiveFiles)) {
+      return;
+    }
+    this._shownActiveFiles = active;
+    this._view.webview.postMessage({ command: 'setActiveFile', paths: active });
   }
 
   /**
@@ -216,13 +368,19 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
     // Read the configuration file to get all folder groups
     const codebookConfig = folders.readCodebookConfig(configPath);
 
+    // The open file's row is marked in the HTML itself; later changes are
+    // sent to the page as messages
+    this._htmlActiveFiles = this._activeFilePaths();
+    this._shownActiveFiles = this._htmlActiveFiles;
+    this._redrawOnShow = false;
+
     // Build HTML for the folder groups
     let folderGroupsHtml = '';
 
     // Create and add the dynamic folder group based on current editor
     if (this._currentEditorFile) {
       // Generate the dynamic folder group from the current editor file path
-      this._dynamicFolderGroup = folders.createDynamicFolderGroupFromPath(this._currentEditorFile);
+      this._dynamicFolderGroup = relatedDocs.createDynamicFolderGroupFromPath(this._currentEditorFile);
 
       if (this._dynamicFolderGroup && this._dynamicFolderGroup.folders.length > 0) {
         folderGroupsHtml += `
@@ -340,8 +498,17 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
     const templatePath = path.join(this._extensionContext.extensionPath, 'dist', 'templates', 'notebooks.html');
     let htmlContent = fs.readFileSync(templatePath, 'utf8');
 
-    // Replace placeholder with folders HTML
-    htmlContent = htmlContent.replace('{{folders}}', folderGroupsHtml);
+    // Icons come from the codicon font shipped in dist/codicons
+    const codiconsCssUri = this._view
+      ? this._view.webview.asWebviewUri(
+        Uri.file(path.join(this._extensionContext.extensionPath, 'dist', 'codicons', 'codicon.css'))
+      ).toString()
+      : '';
+    htmlContent = htmlContent.replace('{{codiconsCssUri}}', () => escapeHtml(codiconsCssUri));
+
+    // Replace placeholder with folders HTML. A replacer function keeps `$`
+    // sequences in file names from being read as replacement patterns.
+    htmlContent = htmlContent.replace('{{folders}}', () => folderGroupsHtml);
 
     return htmlContent;
   }
@@ -382,7 +549,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
                 <path d="M3 8v1h10V8H3z"/>
               </svg>
             </button>
-            <button class="action-button" title="Rename" onclick="event.stopPropagation(); renameFolder('${this._escapeHtml(folder.name)}', '${this._escapeHtml(folder.name)}')">
+            <button class="action-button" title="Rename" onclick="event.stopPropagation(); renameFolderRow(this)" data-folder-name="${this._escapeHtml(folder.name)}">
               <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                 <path d="M13.23 1h-1.46L3.52 9.25l-.16.22L1 13.59 2.41 15l4.12-2.36.22-.16L15 4.23V2.77L13.23 1zM2.41 13.59l1.51-3 1.45 1.45-2.96 1.55zm3.83-2.06L4.47 9.76l8-8 1.77 1.77-8 8z"/>
               </svg>
@@ -411,23 +578,28 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
         // Create a unique entity ID for the file that includes the folder index
         const fileEntityId = `${folderIndex}-${fileIndex}`;
 
-        // Check if it's a markdown file
-        const isMarkdownFile = file.path.toLowerCase().endsWith('.md') || file.path.toLowerCase().endsWith('.markdown');
+        // File names and paths reach the page as data attributes only, never
+        // inside a click handler's script: a name with a quote in it would
+        // otherwise end the handler's string early.
 
-        // Always use the markdown icon for markdown files
-        const fileIconSvg = isMarkdownFile ? `
-          <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-            <path d="M14.85 3c.63 0 1.15.52 1.14 1.15v7.7c0 .63-.51 1.15-1.15 1.15H1.15C.52 13 0 12.48 0 11.84V4.15C0 3.52.52 3 1.15 3H14.85zM7 12.75L10.25 8 7 8v4.75zm-1.5 0L2.25 8h3.25v4.75zm6 0L15.75 8h-3.25v4.75z"/>
-          </svg>
-        ` : `
+        // Markdown files get an icon for their type and their description as
+        // hover text; anything else keeps the plain file icon
+        const isMarkdownFile = file.path.toLowerCase().endsWith('.md') || file.path.toLowerCase().endsWith('.markdown');
+        let fileIconHtml = `
           <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
             <path d="M13.71 4.29l-3-3L10 1H4L3 2v12l1 1h9l1-1V5l-.29-.71zM13 14H4V2h5v4h4v8z"/>
           </svg>
         `;
+        let fileTitle = '';
+        if (isMarkdownFile) {
+          const meta = getDocMeta(path.resolve(workspacePath, filePath));
+          fileIconHtml = docIconHtml(meta.type);
+          fileTitle = titleAttr(docTooltip(meta, filePath));
+        }
 
         html += `
-          <div class="file" onclick="openFile('${this._escapeHtml(filePath)}', '${this._escapeHtml(file.path)}')" data-path="${this._escapeHtml(filePath)}" data-item-path="${this._escapeHtml(file.path)}" id="file-${this._escapeHtml(fileEntityId)}">
-            <span class="file-icon">${fileIconSvg}</span>
+          <div class="file" onclick="openRow(this)" data-path="${this._escapeHtml(filePath)}" data-item-path="${this._escapeHtml(file.path)}" id="file-${this._escapeHtml(fileEntityId)}"${fileTitle}${activeRowAttrs(path.resolve(workspacePath, filePath), this._htmlActiveFiles)}>
+            <span class="file-icon">${fileIconHtml}</span>
             <span class="file-name">${this._escapeHtml(file.name)}</span>
             <div class="actions">
               <button class="action-button" title="Move Up" onclick="event.stopPropagation(); return moveItemUp('${this._escapeHtml(fileEntityId)}', event);">
@@ -445,7 +617,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
                   <path d="M3 8v1h10V8H3z"/>
                 </svg>
               </button>
-              <button class="action-button" title="Rename" onclick="event.stopPropagation(); renameFile('${this._escapeHtml(file.name)}', '${this._escapeHtml(file.path)}')">
+              <button class="action-button" title="Rename" onclick="event.stopPropagation(); renameFileRow(this)" data-name="${this._escapeHtml(file.name)}" data-item-path="${this._escapeHtml(file.path)}">
                 <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                   <path d="M13.23 1h-1.46L3.52 9.25l-.16.22L1 13.59 2.41 15l4.12-2.36.22-.16L15 4.23V2.77L13.23 1zM2.41 13.59l1.51-3 1.45 1.45-2.96 1.55zm3.83-2.06L4.47 9.76l8-8 1.77 1.77-8 8z"/>
                 </svg>
@@ -468,12 +640,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
    * Escape HTML to prevent XSS
    */
   private _escapeHtml(unsafe: string): string {
-    return unsafe
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+    return escapeHtml(unsafe);
   }
 
   /**
@@ -589,17 +756,31 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
   private _buildDynamicFolderHtml(folder: folders.FolderGroupFolder, level: number = 0, folderIndex: string): string {
     const workspacePath = config.getWorkspaceFolder();
 
-    let html = `
-      <div class="folder ${level > 0 ? 'subfolder' : ''}">
-        <div class="folder-header" onclick="event.stopPropagation(); toggleFolder(this)">
-          <span class="folder-icon">
-            <svg class="icon-svg icon-folder" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    // A folder that stands for a file - a skill with supporting files - shows
+    // that file's icon, opens it when its name is clicked and starts collapsed
+    const docPath = folder.filePath ? config.getFullPath(folder.filePath, workspacePath) : '';
+    const folderIconHtml = folder.filePath && folder.docType
+      ? docIconHtml(folder.docType)
+      : `<svg class="icon-svg icon-folder" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
               <path d="M14.5 3H7.71l-2-2H1.5l-.5.5v11l.5.5h13l.5-.5v-9l-.5-.5zM14 13H2V4h5.71l2 2H14v7z"/>
-            </svg>
+            </svg>`;
+    const childCount = folder.files.length + folder.folders.length;
+    const folderNameHtml = folder.filePath
+      ? `<span class="folder-name doc-folder-name" onclick="event.stopPropagation(); openRow(this)" data-item-path="${this._escapeHtml(folder.filePath)}">${this._escapeHtml(folder.name)}</span>${hintHtml(childCount > 0 ? `+${childCount}` : undefined)}`
+      : `<span class="folder-name">${this._escapeHtml(folder.name)}</span>`;
+    const folderActiveAttrs = folder.filePath
+      ? activeRowAttrs(path.resolve(workspacePath, docPath), this._htmlActiveFiles)
+      : '';
+
+    let html = `
+      <div class="folder ${level > 0 ? 'subfolder' : ''}${folder.filePath ? ' doc-folder' : ''}">
+        <div class="folder-header" onclick="event.stopPropagation(); toggleFolder(this)"${titleAttr(folder.tooltip)}${folderActiveAttrs}>
+          <span class="folder-icon">
+            ${folderIconHtml}
           </span>
-          <span class="folder-name">${this._escapeHtml(folder.name)}</span>
+          ${folderNameHtml}
         </div>
-        <div class="folder-content">
+        <div class="folder-content${folder.filePath ? ' hidden' : ''}">
     `;
 
     // Add sub-folders
@@ -621,25 +802,15 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
         // Create a unique entity ID for the file that includes the folder index
         const fileEntityId = `${folderIndex}-${fileIndex}`;
 
-        // Check if it's a markdown file
-        const isMarkdownFile = file.path.toLowerCase().endsWith('.md') || file.path.toLowerCase().endsWith('.markdown');
-
-        // Always use the markdown icon for markdown files
-        const fileIconSvg = isMarkdownFile ? `
-          <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-            <path d="M14.85 3c.63 0 1.15.52 1.14 1.15v7.7c0 .63-.51 1.15-1.15 1.15H1.15C.52 13 0 12.48 0 11.84V4.15C0 3.52.52 3 1.15 3H14.85zM7 12.75L10.25 8 7 8v4.75zm-1.5 0L2.25 8h3.25v4.75zm6 0L15.75 8h-3.25v4.75z"/>
-          </svg>
-        ` : `
-          <svg class="icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-            <path d="M13.71 4.29l-3-3L10 1H4L3 2v12l1 1h9l1-1V5l-.29-.71zM13 14H4V2h5v4h4v8z"/>
-          </svg>
-        `;
+        // A skill's scripts and other non-markdown files get a plain file icon
+        const rowIconHtml = isMarkdownFileName(file.path) ? docIconHtml(file.docType ?? 'markdown') : plainFileIconHtml();
 
         // For dynamic files, we don't include the action buttons
         html += `
-          <div class="file" onclick="openFile('${this._escapeHtml(filePath)}', '${this._escapeHtml(file.path)}')" data-path="${this._escapeHtml(filePath)}" data-item-path="${this._escapeHtml(file.path)}" id="file-${this._escapeHtml(fileEntityId)}">
-            <span class="file-icon">${fileIconSvg}</span>
+          <div class="file" onclick="openRow(this)" data-path="${this._escapeHtml(filePath)}" data-item-path="${this._escapeHtml(file.path)}" id="file-${this._escapeHtml(fileEntityId)}"${titleAttr(file.tooltip)}${activeRowAttrs(path.resolve(workspacePath, filePath), this._htmlActiveFiles)}>
+            <span class="file-icon">${rowIconHtml}</span>
             <span class="file-name">${this._escapeHtml(file.name)}</span>
+            ${hintHtml(file.hint)}
           </div>
         `;
       });

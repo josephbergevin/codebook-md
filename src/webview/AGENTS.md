@@ -45,6 +45,10 @@ the template approach for anything new.
   field and check the payload before acting.
 - **Escape user-supplied content** interpolated into HTML. Folder and file
   display names come from `.vscode/codebook-md.json`.
+- **Never put a name or path inside an inline handler.** `onclick="open('${name}')"`
+  breaks on an apostrophe even when the name is HTML-escaped, because the
+  browser decodes the attribute before it runs the script. Put the value in a
+  `data-*` attribute and read it in the handler (`onclick="openRow(this)"`).
 - **`groupIndex` from the webview is 1-based.** Convert to 0-based before
   indexing arrays.
 - **Call `refreshNotebooksView()`** after any structural change to folders or

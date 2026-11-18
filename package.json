@@ -353,7 +353,7 @@
             "type": "string"
           },
           "default": [],
-          "description": "List of sub-folder names to include when searching for markdown files (e.g., ['.github', '.vscode'])",
+          "description": "Sub-folders to include when searching for markdown files. A plain name (e.g. '.github') is matched at every level. An entry with a slash or a wildcard is a pattern relative to each folder in the group (e.g. 'tooling/**' for 'tooling' and everything below it).",
           "scope": "window"
         },
         "codebook-md.dynamicFolderGroup.exclusions": {
@@ -367,6 +367,12 @@
             "dist"
           ],
           "description": "List of patterns to exclude from the Dynamic Folder Group",
+          "scope": "window"
+        },
+        "codebook-md.dynamicFolderGroup.includeAgentDocs": {
+          "type": "boolean",
+          "default": true,
+          "description": "Find agent docs in their standard locations and show them in the Dynamic Folder Group without listing their folders in subFolderInclusions: skills (SKILL.md), instruction files, scoped rules, prompts and agent definitions.",
           "scope": "window"
         },
         "codebook-md.output.showExecutableCodeInOutput": {
