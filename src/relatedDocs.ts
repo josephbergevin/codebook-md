@@ -1,10 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as config from './config';
+import { DirEntries, readDirEntries } from './dirEntries';
+import { docIssues, duplicateSkillIssues, SkillIdentity } from './docHealth';
 import { docDisplayName, docTooltip, getDocMeta } from './docMeta';
 import { readScopePatterns, ruleBaseDir, scopeFolders } from './docScope';
 import {
-  agentDocGroupNames, agentDocLocations, agentDocRoots, isMarkdownFileName, skillFileName, skillRoots,
+  agentDocGroupNames, agentDocLocations, agentDocRoots, skillFileName, skillRoots,
 } from './docTypes';
 import { FolderGroup, FolderGroupFile, FolderGroupFolder, suggestedDisplayName } from './folders';
 import { globLiteralPrefix, globToRegExp, isGlobPattern, toPosix } from './glob';
@@ -26,8 +28,6 @@ import { globLiteralPrefix, globToRegExp, isGlobPattern, toPosix } from './glob'
  * is then moved to that folder, when the folder is one of those shown.
  */
 
-// Never walked, whatever the exclusions say
-const alwaysSkipped = new Set(['node_modules', '.git']);
 // Limits for the open-ended walks (patterns, skill folders, agent doc roots)
 const maxWalkDepth = 6;
 const maxWalkDirs = 2000;
@@ -48,6 +48,8 @@ interface PlacedDoc {
   aliases: string[];
   // The node whose files hold this row
   parent: DirNode;
+  // Problems found with the doc, filled in when the row is labelled
+  issues?: string[];
   // The row is either a file or, for a skill with supporting files, a folder
   file?: FolderGroupFile;
   node?: DirNode;
@@ -108,70 +110,20 @@ function modifiedTime(dirPath: string): number {
   }
 }
 
-/** isExcluded matches a file or folder name against the exclusion list (`*` is a wildcard). */
-export function isExcluded(name: string, exclusions: string[]): boolean {
-  if (!exclusions || exclusions.length === 0) {
-    return false;
-  }
-  return exclusions.some(exclusion => {
-    const pattern = exclusion.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
-    return new RegExp(`^${pattern}$`).test(name);
-  });
-}
-
-interface DirEntries {
-  // Markdown files
-  files: string[];
-  // Every other file, hidden ones left out
-  others: string[];
-  dirs: string[];
-}
-
 /**
  * listDir reads a folder once, following symlinks, and returns its markdown
  * files, its other files and its sub-folders in name order with exclusions
- * already applied.
+ * already applied. The folder is remembered so the cached scan can tell when
+ * it changes.
  */
 function listDir(scan: Scan, dirPath: string): DirEntries {
-  const result: DirEntries = { files: [], others: [], dirs: [] };
   scan.watched.set(dirPath, modifiedTime(dirPath));
-  let entries: fs.Dirent[];
-  try {
-    entries = fs.readdirSync(dirPath, { withFileTypes: true });
-  } catch {
-    return result;
+  const entries = readDirEntries(dirPath, scan.settings.exclusions);
+  if (!entries) {
+    return { files: [], others: [], dirs: [] };
   }
   scan.dirsWalked++;
-
-  for (const entry of entries) {
-    if (isExcluded(entry.name, scan.settings.exclusions)) {
-      continue;
-    }
-    let isDir = entry.isDirectory();
-    let isFile = entry.isFile();
-    if (entry.isSymbolicLink()) {
-      try {
-        const stats = fs.statSync(path.join(dirPath, entry.name));
-        isDir = stats.isDirectory();
-        isFile = stats.isFile();
-      } catch {
-        continue; // a dangling link
-      }
-    }
-    if (isDir && !alwaysSkipped.has(entry.name)) {
-      result.dirs.push(entry.name);
-    } else if (isFile && isMarkdownFileName(entry.name)) {
-      result.files.push(entry.name);
-    } else if (isFile && !entry.name.startsWith('.')) {
-      result.others.push(entry.name);
-    }
-  }
-
-  const byName = (a: string, b: string) => a.toLowerCase().localeCompare(b.toLowerCase()) || a.localeCompare(b);
-  result.files.sort(byName);
-  result.others.sort(byName);
-  result.dirs.sort(byName);
-  return result;
+  return entries;
 }
 
 function realPathOf(filePath: string): string {
@@ -480,14 +432,40 @@ function placeScopedRules(tops: TopFolder[]): void {
   }
 }
 
-/** labelDoc fills in a row's label, type and hover text once every alias is known. */
-function labelDoc(scan: Scan, doc: PlacedDoc): void {
+/**
+ * duplicateSkills finds skills under one top-level folder that share a name
+ * but are separate files, and says for each where its copy is.
+ */
+function duplicateSkills(scan: Scan, top: TopFolder): Map<string, string> {
+  const skills: SkillIdentity[] = [];
+  for (const doc of top.placed.values()) {
+    const meta = getDocMeta(doc.absPath);
+    if (meta.type === 'skill') {
+      const name = meta.name || path.basename(path.dirname(doc.absPath));
+      skills.push({ filePath: doc.absPath, realPath: doc.realPath, name });
+    }
+  }
+  const skillsFolder = (filePath: string) => toPosix(path.relative(scan.workspacePath, path.dirname(path.dirname(filePath))));
+  return duplicateSkillIssues(skills, skillsFolder);
+}
+
+/**
+ * labelDoc fills in a row's label, type, problems and hover text once every
+ * alias is known.
+ * @param duplicate the problem to add when the doc is a copy of another skill
+ */
+function labelDoc(scan: Scan, doc: PlacedDoc, duplicate?: string): void {
   const relative = (target: string) => toPosix(path.relative(scan.workspacePath, target));
   const meta = getDocMeta(doc.absPath);
   const baseName = path.basename(doc.absPath);
   const name = docDisplayName(doc.absPath, meta, suggestedDisplayName(baseName));
   const scope = ruleScope(doc.absPath);
-  const tooltip = docTooltip(meta, relative(doc.absPath), doc.aliases.map(relative), scope?.patterns);
+  const issues = docIssues(doc.absPath, meta);
+  if (duplicate) {
+    issues.push(duplicate);
+  }
+  doc.issues = issues;
+  const tooltip = docTooltip(meta, relative(doc.absPath), { aliases: doc.aliases.map(relative), scope: scope?.patterns, issues });
 
   // Name the other paths in the row itself when their file names differ
   const otherNames = Array.from(new Set(doc.aliases.map(alias => path.basename(alias)))).filter(alias => alias !== baseName);
@@ -499,6 +477,7 @@ function labelDoc(scan: Scan, doc: PlacedDoc): void {
     doc.file.docType = meta.type;
     doc.file.tooltip = tooltip;
     doc.file.hint = hint;
+    doc.file.issues = issues.length > 0 ? issues : undefined;
     if (scope) {
       doc.file.scope = scope.patterns;
       doc.file.scopeBase = relative(scope.baseDir);
@@ -534,7 +513,9 @@ function toFolder(scan: Scan, node: DirNode, entityId: string, isTop: boolean): 
     const relativePath = toPosix(path.relative(scan.workspacePath, node.doc.absPath));
     folder.filePath = relativePath;
     folder.docType = meta.type;
-    folder.tooltip = docTooltip(meta, relativePath, node.doc.aliases.map(alias => toPosix(path.relative(scan.workspacePath, alias))));
+    const aliases = node.doc.aliases.map(alias => toPosix(path.relative(scan.workspacePath, alias)));
+    folder.tooltip = docTooltip(meta, relativePath, { aliases, issues: node.doc.issues });
+    folder.issues = node.doc.issues && node.doc.issues.length > 0 ? node.doc.issues : undefined;
   }
 
   // A folder with nothing to show is left out
@@ -593,7 +574,10 @@ function scanRelatedDocs(filePath: string, scan: Scan): FolderGroup | undefined 
   if (scan.settings.placeRulesByScope) {
     placeScopedRules(tops);
   }
-  tops.forEach(top => top.placed.forEach(doc => labelDoc(scan, doc)));
+  tops.forEach(top => {
+    const duplicates = duplicateSkills(scan, top);
+    top.placed.forEach(doc => labelDoc(scan, doc, duplicates.get(doc.absPath)));
+  });
 
   // Folders with markdown of their own come first, as they always have
   const ordered = [...tops.filter(top => top.hasDirectMarkdown), ...tops.filter(top => !top.hasDirectMarkdown)];
@@ -610,12 +594,14 @@ function scanRelatedDocs(filePath: string, scan: Scan): FolderGroup | undefined 
 
   const group = new FolderGroup(scan.settings.name, '', scan.settings.description, folders);
   group.isDynamic = true;
+  group.basePath = scan.workspacePath;
   return group;
 }
 
-function workspacePathOrEmpty(): string {
+/** The workspace folder the file is in, or an empty string for a loose file. */
+function workspacePathOrEmpty(filePath: string): string {
   try {
-    return config.getWorkspaceFolder() || '';
+    return config.getWorkspaceFolderFor(filePath) || '';
   } catch {
     return '';
   }
@@ -653,7 +639,7 @@ export function createDynamicFolderGroupFromPath(filePath: string): FolderGroup 
   }
 
   try {
-    const workspacePath = workspacePathOrEmpty();
+    const workspacePath = workspacePathOrEmpty(filePath);
     const cacheKey = cacheKeyFor(filePath, workspacePath, settings);
     const cached = scanCache.get(cacheKey);
     if (cached && isStillValid(cached)) {
@@ -698,7 +684,7 @@ export function isRelatedDocsCurrent(filePath: string): boolean {
     if (!settings.enabled) {
       return true;
     }
-    const cached = scanCache.get(cacheKeyFor(filePath, workspacePathOrEmpty(), settings));
+    const cached = scanCache.get(cacheKeyFor(filePath, workspacePathOrEmpty(filePath), settings));
     return cached !== undefined && isStillValid(cached);
   } catch (error) {
     console.log('Could not check the dynamic folder group for changes:', error);

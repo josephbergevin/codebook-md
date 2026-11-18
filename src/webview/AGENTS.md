@@ -12,6 +12,7 @@ procedure.
 | `welcomeView.ts` | `codebook-md-welcome-view` | `templates/welcome.html` |
 | `notebooksView.ts` | `codebook-md-notebooks-view` | `templates/notebooks.html` |
 | `documentationView.ts` | `codebook-md-documentation-view` | `templates/documentation.html` |
+| `aiDocsView.ts` | `codebook-md-ai-docs-view` | `templates/aiDocs.html` |
 | `configModal.ts` | — (modal panel) | generated inline |
 
 All three views live in the `codebook-md-activitybar` container declared in

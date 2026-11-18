@@ -65,6 +65,9 @@ export class FolderGroup {
   icon: string;
   hide: boolean;
   isDynamic?: boolean; // Flag to indicate if this folder group is dynamically generated
+  // The folder a generated group's paths are relative to: the workspace
+  // folder the open file is in. Never written to codebook-md.json.
+  basePath?: string;
   folders: FolderGroupFolder[] = [];
 
   constructor(name: string, source: string, description: string, folders: FolderGroupFolder[]) {
@@ -497,6 +500,8 @@ export class FolderGroupFolder {
   filePath?: string;
   docType?: DocType;
   tooltip?: string;
+  // issues lists problems found with the doc the folder stands for
+  issues?: string[];
 
   constructor(name: string, entityId?: string) {
     this.name = name;
@@ -759,6 +764,8 @@ export class FolderGroupFile {
   tooltip?: string;
   // hint is short dimmed text after the name, e.g. "also CLAUDE.md"
   hint?: string;
+  // issues lists problems found with an agent doc, for its warning mark
+  issues?: string[];
   // scope holds a rule's scope patterns, e.g. ["extractor/**"]
   scope?: string[];
   // scopeBase is the folder those patterns are relative to, itself relative

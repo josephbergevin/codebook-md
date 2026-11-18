@@ -91,3 +91,41 @@ describe('config.ts Test Suite', () => {
     });
   });
 });
+
+describe('getWorkspaceFolderFor', () => {
+  const vscodeMock = jest.requireMock('vscode') as { workspace: { workspaceFolders?: { uri: { fsPath: string; }; }[]; }; };
+  const folder = (fsPath: string) => ({ uri: { fsPath } });
+  const first = path.join(path.sep, 'work', 'app');
+  const second = path.join(path.sep, 'work', 'docs');
+  const nested = path.join(second, 'guides');
+
+  /** What a call returns or throws, so two calls can be compared either way. */
+  const outcome = (call: () => string): string => {
+    try {
+      return `returns ${call()}`;
+    } catch (error) {
+      return `throws ${error}`;
+    }
+  };
+
+  afterEach(() => {
+    delete vscodeMock.workspace.workspaceFolders;
+  });
+
+  it('returns the workspace folder a file in a later folder belongs to', () => {
+    vscodeMock.workspace.workspaceFolders = [folder(first), folder(second)];
+    expect(config.getWorkspaceFolderFor(path.join(second, 'notes', 'a.md'))).toBe(second);
+  });
+
+  it('picks the innermost folder when one workspace folder is inside another', () => {
+    vscodeMock.workspace.workspaceFolders = [folder(first), folder(second), folder(nested)];
+    expect(config.getWorkspaceFolderFor(path.join(nested, 'a.md'))).toBe(nested);
+  });
+
+  it('behaves as getWorkspaceFolder for a file in the first folder, or in none', () => {
+    vscodeMock.workspace.workspaceFolders = [folder(first), folder(second)];
+    const expected = outcome(() => config.getWorkspaceFolder());
+    expect(outcome(() => config.getWorkspaceFolderFor(path.join(first, 'src', 'a.ts')))).toBe(expected);
+    expect(outcome(() => config.getWorkspaceFolderFor(path.join(path.sep, 'elsewhere', 'a.ts')))).toBe(expected);
+  });
+});

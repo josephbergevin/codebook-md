@@ -381,6 +381,31 @@
           "description": "Show an agent rule that is scoped to a folder under that folder in the Dynamic Folder Group, instead of where the rule file is kept. The scope is read from the rule's front matter: applyTo, paths, globs or fileMatchPattern. For example, a rule with applyTo: \"extractor/**\" is listed under the extractor folder.",
           "scope": "window"
         },
+        "codebook-md.aiDocs.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the AI Docs view when the workspace has agent docs: instruction files such as AGENTS.md, skills, rules, prompts and agent definitions, grouped by type.",
+          "scope": "window"
+        },
+        "codebook-md.aiDocs.includeUserDocs": {
+          "type": "boolean",
+          "default": true,
+          "description": "Also list your own agent docs in the AI Docs view: the instruction files, skills, rules, commands and agents kept in your home folder, such as ~/.claude/skills. They are read from disk only and shown in a group of their own.",
+          "scope": "window"
+        },
+        "codebook-md.aiDocs.exclusions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "node_modules",
+            "out",
+            "dist"
+          ],
+          "description": "File and folder names the AI Docs view skips when it looks through the workspace. * is a wildcard.",
+          "scope": "window"
+        },
         "codebook-md.output.showExecutableCodeInOutput": {
           "type": "boolean",
           "default": true,
@@ -440,6 +465,20 @@
       }
     ],
     "commands": [
+      {
+        "command": "codebook-md.newSkill",
+        "title": "Codebook: New Skill",
+        "shortTitle": "New Skill",
+        "category": "Codebook",
+        "icon": "$(add)"
+      },
+      {
+        "command": "codebook-md.refreshAiDocs",
+        "title": "Codebook: Refresh AI Docs",
+        "shortTitle": "Refresh",
+        "category": "Codebook",
+        "icon": "$(refresh)"
+      },
       {
         "command": "codebook-md.createNewNotebook",
         "title": "New CodebookMD Notebook",
@@ -685,7 +724,27 @@
           "when": "workbenchState != empty"
         }
       ],
+      "view/title": [
+        {
+          "command": "codebook-md.newSkill",
+          "when": "view == codebook-md-ai-docs-view",
+          "group": "navigation@1"
+        },
+        {
+          "command": "codebook-md.refreshAiDocs",
+          "when": "view == codebook-md-ai-docs-view",
+          "group": "navigation@2"
+        }
+      ],
       "commandPalette": [
+        {
+          "command": "codebook-md.newSkill",
+          "when": "workbenchState != empty"
+        },
+        {
+          "command": "codebook-md.refreshAiDocs",
+          "when": "codebook-md.hasAgentDocs"
+        },
         {
           "command": "codebook-md.restartShellSession",
           "when": "notebookType == codebook-md"
@@ -766,6 +825,13 @@
           "name": "My Notebooks",
           "icon": "extension/src/img/icon_logo_v1.svg",
           "type": "webview"
+        },
+        {
+          "id": "codebook-md-ai-docs-view",
+          "name": "AI Docs",
+          "icon": "extension/src/img/icon_logo_v1.svg",
+          "type": "webview",
+          "when": "codebook-md.hasAgentDocs"
         },
         {
           "id": "codebook-md-documentation-view",

@@ -4,14 +4,13 @@ import * as path from 'path';
 import * as config from '../config';
 import { clearDocMetaCache } from '../docMeta';
 import { FolderGroup, FolderGroupFolder } from '../folders';
-import {
-  clearRelatedDocsCache, createDynamicFolderGroupFromPath, isExcluded, isRelatedDocsCurrent,
-} from '../relatedDocs';
+import { clearRelatedDocsCache, createDynamicFolderGroupFromPath, isRelatedDocsCurrent } from '../relatedDocs';
 
 jest.mock('../config', () => ({
   ...jest.requireActual('../config'),
   getDynamicFolderGroupConfig: jest.fn(),
   getWorkspaceFolder: jest.fn(),
+  getWorkspaceFolderFor: jest.fn(),
 }));
 
 const mockedConfig = config as jest.Mocked<typeof config>;
@@ -88,6 +87,7 @@ beforeEach(() => {
   write('extractor/apiplayground/debug.md', '# Debug\n\n```bash\necho hi\n```\n');
 
   mockedConfig.getWorkspaceFolder.mockReturnValue(root);
+  mockedConfig.getWorkspaceFolderFor.mockReturnValue(root);
   settings();
   clearRelatedDocsCache();
   clearDocMetaCache();
@@ -123,7 +123,7 @@ describe('createDynamicFolderGroupFromPath', () => {
     });
 
     test('returns nothing for a file outside the workspace', () => {
-      mockedConfig.getWorkspaceFolder.mockReturnValue(path.join(root, 'extractor'));
+      mockedConfig.getWorkspaceFolderFor.mockReturnValue(path.join(root, 'extractor'));
       expect(createDynamicFolderGroupFromPath(path.join(root, 'tooling', 'tooling.md'))).toBeUndefined();
     });
 
@@ -253,7 +253,7 @@ describe('createDynamicFolderGroupFromPath', () => {
         scope: ['extractor/**'],
         scopeBase: '',
       });
-      expect(moved.tooltip).toBe('Scoped rule\nApplies to: extractor/**\n.github/instructions/extractor.instructions.md');
+      expect(moved.tooltip).toBe('Rule\nApplies to: extractor/**\n50 bytes, about 13 tokens\n.github/instructions/extractor.instructions.md');
     });
 
     test('stay where the file is kept when the setting is off', () => {
@@ -306,6 +306,28 @@ describe('createDynamicFolderGroupFromPath', () => {
       const group = groupFor(openFile);
       expect(fileNames(folderAt(group, 'Extractor'))).toContain('Extractor Instructions');
       expect(folderNames(folderAt(group, suggested(root), 'Github'))).toEqual([]);
+    });
+  });
+
+  describe('problems', () => {
+    test('are listed on the row of a doc that has them, and in its hover text', () => {
+      const deploy = folderAt(groupFor(openFile), suggested(root), 'Skills', 'Extractor Deploy');
+      expect(deploy.issues).toEqual(['No name in the front matter', 'No description in the front matter']);
+      expect(deploy.tooltip).toContain('Problem: No name in the front matter');
+    });
+
+    test('are absent from a doc with nothing wrong', () => {
+      const cleanup = folderAt(groupFor(openFile), suggested(root), 'Skills').files[0];
+      expect(cleanup.issues).toBeUndefined();
+    });
+
+    test('flag a skill copied into a second skills folder, on both copies', () => {
+      write('.claude/skills/docker-cleanup/SKILL.md', '---\nname: docker-cleanup\ndescription: An older copy.\n---\n');
+      const skills = folderAt(groupFor(openFile), suggested(root), 'Skills');
+      expect(skills.files.map(file => [file.path, file.issues])).toEqual([
+        ['.agents/skills/docker-cleanup/SKILL.md', ['Same name as the skill in .claude/skills']],
+        ['.claude/skills/docker-cleanup/SKILL.md', ['Same name as the skill in .agents/skills']],
+      ]);
     });
   });
 
@@ -415,22 +437,6 @@ describe('isRelatedDocsCurrent', () => {
   test('is true when the group is turned off, as there is nothing to redraw', () => {
     settings({ enabled: false });
     expect(isRelatedDocsCurrent(openPath())).toBe(true);
-  });
-});
-
-describe('isExcluded', () => {
-  test('matches a whole name', () => {
-    expect(isExcluded('dist', ['dist'])).toBe(true);
-    expect(isExcluded('dist2', ['dist'])).toBe(false);
-  });
-
-  test('treats * as a wildcard and other characters literally', () => {
-    expect(isExcluded('notes.tmp.md', ['*.tmp.md'])).toBe(true);
-    expect(isExcluded('notesxtmpxmd', ['*.tmp.md'])).toBe(false);
-  });
-
-  test('excludes nothing when the list is empty', () => {
-    expect(isExcluded('dist', [])).toBe(false);
   });
 });
 

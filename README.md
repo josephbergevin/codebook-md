@@ -180,6 +180,45 @@ Markdown files in My Notebooks get an icon for what they are: README, changelog,
 
 The row of the file open in the editor is highlighted, in your own folder groups and in Related Docs. A collapsed skill opens to show it.
 
+#### AI Docs View
+
+The **AI Docs** view lists every agent doc in the workspace in one place, grouped by type: Instructions, Rules, Skills, Prompts, Agent Definitions and Agent References. It appears in the CodebookMD side bar, between My Notebooks and Documentation, whenever the workspace has agent docs. Related Docs shows what is around the file you have open; AI Docs shows everything.
+
+- **Finds docs at any depth.** Instruction files such as `AGENTS.md` are found in every folder, and each tool's folders (`.agents`, `.claude`, `.github` and the rest) are read wherever a project has them, so a monorepo's packages are covered.
+- **Tells same-named files apart.** Each instruction file shows the folder it is for beside its name, such as "workspace root" or `src/webview`.
+- **Marks what applies to the open file.** A green dot marks the docs an agent would load for the file you are editing: instruction files in its folder or above it, rules whose scope matches it, and rules with no scope.
+- **Shows context cost.** Hovering an instruction file or rule shows its size and a token estimate, such as "6.3 KB, about 1,600 tokens". The estimate is the file size divided by four, so treat it as a rough guide.
+- **Filter box.** Type to narrow the list by name or description. Escape clears it.
+- **Keyboard.** Arrow keys move between rows and open or close folders, Enter opens a doc, Home and End jump to the ends.
+- **Your own docs.** The docs in your home folder (`~/.claude/CLAUDE.md`, `~/.claude/skills` and similar) are listed in a **User** group. Only those tool folders are read, never the rest of your home folder, and nothing leaves your machine.
+- **Several workspace folders.** Each folder is a group of its own.
+
+```json
+{
+  "codebook-md.aiDocs.enabled": true,
+  "codebook-md.aiDocs.includeUserDocs": true,
+  "codebook-md.aiDocs.exclusions": ["node_modules", "out", "dist"]
+}
+```
+
+##### Health Checks
+
+An agent doc with a problem gets a warning mark, in AI Docs and in Related Docs. Hover the row for the reason. Nothing is blocked; these are things an agent would trip over quietly.
+
+| Check | What it catches |
+| --- | --- |
+| Missing name or description | A skill whose front matter lacks either. Agents choose skills by these two fields. |
+| Name differs from folder | A skill whose `name` is not the name of its folder. |
+| Description too long | A skill description over 1,024 characters. |
+| Front matter never closes | A missing second `---`, which hides the whole block from every tool. |
+| Broken link | A relative link to a file that does not exist. Web links are not checked. |
+| Scope matches nothing | An `applyTo`, `paths`, `globs` or `fileMatchPattern` value that names a missing folder or matches no files. |
+| Copied skill | The same skill name in two skills folders. Both copies are shown, and each says where the other is. Symlinks are one file and are not flagged. |
+
+##### New Skill
+
+**Codebook: New Skill** (the **+** button on the AI Docs view, or the Command Palette) asks for a name and a description, creates `<name>/SKILL.md` with its front matter filled in, and opens it. The skill goes in the skills folder the workspace already uses. If there are several you choose one, and if there is none `.agents/skills` is created.
+
 #### User-Defined Virtual Folders
 
 The Codebook MD extension allows you to create user-defined virtual folders in the activity bar. This feature enables you to organize your markdown files into a hierarchical structure, making it easier to navigate and access your documentation.

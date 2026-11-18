@@ -88,6 +88,9 @@
         <li><a href="#agent-docs">Agent Docs: Skills, Rules and Prompts</a></li>
         <li><a href="#scoped-rules">Scoped Rules</a></li>
         <li><a href="#doc-icons">Document Icons</a></li>
+        <li><a href="#ai-docs">AI Docs View</a></li>
+        <li><a href="#health-checks">Agent Doc Health Checks</a></li>
+        <li><a href="#new-skill">New Skill</a></li>
         <li><a href="#executable-code">Executable Code Blocks</a></li>
         <li><a href="#run-from-text-editor">Running Blocks from the Text Editor</a></li>
         <li><a href="#switch-views">Switching Between Text and Notebook</a></li>
@@ -454,6 +457,44 @@ applyTo: "extractor/**"
           <li><span class="feature-highlight">Filter Irrelevant Content:</span> Exclude unwanted folders and focus on meaningful documentation</li>
         </ul>
         <p>Note: Dynamic folders are temporary and not saved in your configuration file, making them perfect for quick contextual exploration without cluttering your saved folder groups.</p>
+      </section>
+
+      <section id="ai-docs">
+        <h2>AI Docs View</h2>
+        <h3>Overview</h3>
+        <p>The <strong>AI Docs</strong> view lists every agent doc in the workspace in one place, grouped by type: Instructions, Rules, Skills, Prompts, Agent Definitions and Agent References. It appears in the CodebookMD side bar, between My Notebooks and Documentation, whenever the workspace has agent docs. Related Docs shows what is around the file you have open; AI Docs shows everything.</p>
+        <ul>
+          <li><span class="feature-highlight">Finds docs at any depth:</span> instruction files such as <code>AGENTS.md</code> are found in every folder, and each tool's folders (<code>.agents</code>, <code>.claude</code>, <code>.github</code> and the rest) are read wherever a project has them, so a monorepo's packages are covered.</li>
+          <li><span class="feature-highlight">Tells same-named files apart:</span> each instruction file shows the folder it is for beside its name, such as "workspace root" or <code>src/webview</code>.</li>
+          <li><span class="feature-highlight">Marks what applies to the open file:</span> a green dot marks the docs an agent would load for the file you are editing: instruction files in its folder or above it, rules whose scope matches it, and rules with no scope.</li>
+          <li><span class="feature-highlight">Shows context cost:</span> hovering an instruction file or rule shows its size and a token estimate, such as "6.3 KB, about 1,600 tokens". The estimate is the file size divided by four, so treat it as a rough guide.</li>
+          <li><span class="feature-highlight">Filter box:</span> type to narrow the list by name or description. Escape clears it.</li>
+          <li><span class="feature-highlight">Keyboard:</span> arrow keys move between rows and open or close folders, Enter opens a doc, Home and End jump to the ends.</li>
+          <li><span class="feature-highlight">Your own docs:</span> the docs in your home folder (<code>~/.claude/CLAUDE.md</code>, <code>~/.claude/skills</code> and similar) are listed in a <strong>User</strong> group. Only those tool folders are read, never the rest of your home folder, and nothing leaves your machine.</li>
+          <li><span class="feature-highlight">Several workspace folders:</span> each folder is a group of its own.</li>
+        </ul>
+
+        <h3>Settings</h3>
+        <ul>
+          <li><code>codebook-md.aiDocs.enabled</code>: Show the view when the workspace has agent docs (default: <code>true</code>)</li>
+          <li><code>codebook-md.aiDocs.includeUserDocs</code>: Also list the agent docs in your home folder (default: <code>true</code>)</li>
+          <li><code>codebook-md.aiDocs.exclusions</code>: File and folder names the view skips (default: <code>["node_modules", "out", "dist"]</code>)</li>
+        </ul>
+
+        <h3 id="health-checks">Health Checks</h3>
+        <p>An agent doc with a problem gets a warning mark, in AI Docs and in Related Docs. Hover the row for the reason. Nothing is blocked; these are things an agent would trip over quietly.</p>
+        <ul>
+          <li><span class="feature-highlight">Missing name or description:</span> a skill whose front matter lacks either. Agents choose skills by these two fields.</li>
+          <li><span class="feature-highlight">Name differs from folder:</span> a skill whose <code>name</code> is not the name of its folder.</li>
+          <li><span class="feature-highlight">Description too long:</span> a skill description over 1,024 characters.</li>
+          <li><span class="feature-highlight">Front matter never closes:</span> a missing second <code>---</code>, which hides the whole block from every tool.</li>
+          <li><span class="feature-highlight">Broken link:</span> a relative link to a file that does not exist. Web links are not checked.</li>
+          <li><span class="feature-highlight">Scope matches nothing:</span> an <code>applyTo</code>, <code>paths</code>, <code>globs</code> or <code>fileMatchPattern</code> value that names a missing folder or matches no files.</li>
+          <li><span class="feature-highlight">Copied skill:</span> the same skill name in two skills folders. Both copies are shown, and each says where the other is. Symlinks are one file and are not flagged.</li>
+        </ul>
+
+        <h3 id="new-skill">New Skill</h3>
+        <p><strong>Codebook: New Skill</strong> (the <strong>+</strong> button on the AI Docs view, or the Command Palette) asks for a name and a description, creates <code>&lt;name&gt;/SKILL.md</code> with its front matter filled in, and opens it. The skill goes in the skills folder the workspace already uses. If there are several you choose one, and if there is none <code>.agents/skills</code> is created.</p>
       </section>
 
       <section id="executable-code">

@@ -12,6 +12,7 @@ jest.mock('../../config', () => ({
   ...jest.requireActual('../../config'),
   getDynamicFolderGroupConfig: jest.fn(),
   getWorkspaceFolder: jest.fn(),
+  getWorkspaceFolderFor: jest.fn(),
   getCodebookConfigFilePath: jest.fn(),
 }));
 
@@ -123,6 +124,7 @@ beforeEach(() => {
   }));
 
   mockedConfig.getWorkspaceFolder.mockReturnValue(root);
+  mockedConfig.getWorkspaceFolderFor.mockReturnValue(root);
   mockedConfig.getCodebookConfigFilePath.mockReturnValue(path.join(root, '.vscode', 'codebook-md.json'));
   mockedConfig.getDynamicFolderGroupConfig.mockReturnValue({
     enabled: true,
@@ -162,15 +164,15 @@ describe('NotebooksViewProvider rows', () => {
   test('open a file whose name has an apostrophe', () => {
     const { dom, posted } = loadPage(renderHtml('docs/guide.md'));
     const rows = Array.from(dom.window.document.querySelectorAll<HTMLElement>('#dynamic-folder-group .file'));
-    click(dom, rows.find(row => row.dataset.itemPath === quoteFile));
-    expect(posted).toEqual([{ command: 'openFile', filePath: quoteFile }]);
+    click(dom, rows.find(row => row.dataset.itemPath === path.join(root, quoteFile)));
+    expect(posted).toEqual([{ command: 'openFile', filePath: path.join(root, quoteFile) }]);
   });
 
   test('treat a file name written as script as a plain path', () => {
     const { dom, posted } = loadPage(renderHtml('docs/guide.md'));
     const rows = Array.from(dom.window.document.querySelectorAll<HTMLElement>('#dynamic-folder-group .file'));
-    click(dom, rows.find(row => row.dataset.itemPath === scriptFile));
-    expect(posted).toEqual([{ command: 'openFile', filePath: scriptFile }]);
+    click(dom, rows.find(row => row.dataset.itemPath === path.join(root, scriptFile)));
+    expect(posted).toEqual([{ command: 'openFile', filePath: path.join(root, scriptFile) }]);
     expect((dom.window as unknown as { hacked?: boolean; }).hacked).toBeUndefined();
   });
 
@@ -181,8 +183,8 @@ describe('NotebooksViewProvider rows', () => {
     const rows = Array.from(document.querySelectorAll<HTMLElement>('.doc-folder .file'));
     click(dom, rows.find(row => (row.dataset.itemPath ?? '').endsWith("don't.sh")));
     expect(posted).toEqual([
-      { command: 'openFile', filePath: '.agents/skills/deploy/SKILL.md' },
-      { command: 'openFile', filePath: ".agents/skills/deploy/don't.sh" },
+      { command: 'openFile', filePath: path.join(root, '.agents/skills/deploy/SKILL.md') },
+      { command: 'openFile', filePath: path.join(root, ".agents/skills/deploy/don't.sh") },
     ]);
   });
 
@@ -240,7 +242,8 @@ describe('NotebooksViewProvider open file', () => {
   test('marks the open file\'s row in every group that lists it', () => {
     openInEditor('docs/guide.md');
     const { dom } = loadPage(renderHtml('docs/guide.md'));
-    expect(activeRows(dom)).toEqual(['docs/guide.md', 'docs/guide.md']);
+    // Generated rows carry absolute paths; rows in a group built by hand keep theirs
+    expect(activeRows(dom)).toEqual([path.join(root, 'docs/guide.md'), 'docs/guide.md']);
   });
 
   test('marks nothing when no file is open', () => {
@@ -262,7 +265,7 @@ describe('NotebooksViewProvider open file', () => {
       data: { command: 'setActiveFile', paths: [script?.dataset.abs] },
     }));
 
-    expect(activeRows(dom)).toEqual([".agents/skills/deploy/don't.sh"]);
+    expect(activeRows(dom)).toEqual([path.join(root, ".agents/skills/deploy/don't.sh")]);
     expect(script?.closest('.folder-content')?.classList.contains('hidden')).toBe(false);
   });
 });
