@@ -22,6 +22,7 @@ Tests live in `src/test/` and mirror the structure of `src/`:
 | `src/io.ts` | `src/test/env.test.ts` |
 | `src/folders.ts` | `src/test/folders.test.ts` |
 | `src/relatedDocs.ts` | `src/test/relatedDocs.test.ts` |
+| `src/docScope.ts` | `src/test/docScope.test.ts` |
 | `src/languages/go.ts` | `src/test/languages/go.test.ts` |
 | `src/languages/http.ts` | `src/test/languages/http.test.ts` |
 | `src/webview/configModal.ts` | `src/test/webview/configModal.test.ts` |

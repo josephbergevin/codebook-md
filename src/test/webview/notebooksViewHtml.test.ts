@@ -1,6 +1,7 @@
 import { docTypes } from '../../docTypes';
 import {
-  activeRowAttrs, comparablePath, docIconHtml, escapeHtml, hintHtml, plainFileIconHtml, titleAttr,
+  activeRowAttrs, appliesMarkHtml, comparablePath, docIconHtml, escapeHtml, hintHtml, plainFileIconHtml,
+  scopeChipHtml, titleAttr,
 } from '../../webview/notebooksViewHtml';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -64,6 +65,35 @@ describe('the template', () => {
   test('styles the open file\'s row and listens for the open file changing', () => {
     expect(template).toContain('.file[data-active="true"]');
     expect(template).toContain('"setActiveFile"');
+  });
+});
+
+describe('scopeChipHtml', () => {
+  test('shows a rule\'s only pattern', () => {
+    expect(scopeChipHtml(['extractor/**'])).toBe('<span class="scope-chip">extractor/**</span>');
+  });
+
+  test('shows the first pattern and counts the rest', () => {
+    expect(scopeChipHtml(['a/**', 'b/**', 'c/**'])).toBe('<span class="scope-chip">a/** +2</span>');
+  });
+
+  test('escapes the pattern', () => {
+    expect(scopeChipHtml(['<b>/**'])).toBe('<span class="scope-chip">&lt;b&gt;/**</span>');
+  });
+
+  test('renders nothing for a file with no scope', () => {
+    expect(scopeChipHtml(undefined)).toBe('');
+    expect(scopeChipHtml([])).toBe('');
+  });
+});
+
+describe('appliesMarkHtml', () => {
+  test('renders a labelled mark when the rule applies', () => {
+    expect(appliesMarkHtml(true)).toContain('aria-label="Applies to the open file"');
+  });
+
+  test('renders nothing when it does not', () => {
+    expect(appliesMarkHtml(false)).toBe('');
   });
 });
 

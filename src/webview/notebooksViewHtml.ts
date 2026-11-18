@@ -37,6 +37,26 @@ export function hintHtml(hint: string | undefined): string {
   return hint ? `<span class="row-hint">${escapeHtml(hint)}</span>` : '';
 }
 
+/**
+ * scopeChipHtml returns the chip that shows what a rule is scoped to: its
+ * first pattern, and how many more there are. The row's hover text lists them
+ * all.
+ */
+export function scopeChipHtml(scope: string[] | undefined): string {
+  if (!scope || scope.length === 0) {
+    return '';
+  }
+  const more = scope.length > 1 ? ` +${scope.length - 1}` : '';
+  return `<span class="scope-chip">${escapeHtml(scope[0] + more)}</span>`;
+}
+
+/** appliesMarkHtml returns the mark on a rule whose scope matches the open file, or nothing. */
+export function appliesMarkHtml(applies: boolean): string {
+  return applies
+    ? '<span class="applies-mark" role="img" aria-label="Applies to the open file" title="Applies to the open file"></span>'
+    : '';
+}
+
 /** plainFileIconHtml returns the icon for a file that is not markdown. */
 export function plainFileIconHtml(): string {
   return '<span class="codicon codicon-file doc-icon" aria-hidden="true"></span>';

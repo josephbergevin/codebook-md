@@ -131,6 +131,7 @@ beforeEach(() => {
     subFolderInclusions: [],
     exclusions: ['node_modules'],
     includeAgentDocs: true,
+    placeRulesByScope: true,
   });
   clearRelatedDocsCache();
   clearDocMetaCache();
@@ -201,6 +202,34 @@ describe('NotebooksViewProvider rows', () => {
     const { dom, posted } = loadPage(renderHtml('docs/guide.md'));
     click(dom, dom.window.document.querySelector('#folder-group-1 .folder-header button[title="Rename"]'));
     expect(posted).toEqual([{ command: 'renameFolder', folderName: quoteFolder, currentName: quoteFolder }]);
+  });
+});
+
+describe('NotebooksViewProvider scoped rules', () => {
+  const ruleRow = (dom: JSDOM, name: string) => Array.from(dom.window.document.querySelectorAll<HTMLElement>('#dynamic-folder-group .file'))
+    .find(row => row.querySelector('.file-name')?.textContent === name);
+
+  beforeEach(() => {
+    write('.github/instructions/docs.instructions.md', '---\napplyTo: "docs/**"\n---\n');
+    write('.github/instructions/go.instructions.md', '---\napplyTo: "docs/**/*.go, src/**"\n---\n');
+  });
+
+  test('show what they are scoped to', () => {
+    const { dom } = loadPage(renderHtml('docs/guide.md'));
+    expect(ruleRow(dom, 'Docs Instructions')?.querySelector('.scope-chip')?.textContent).toBe('docs/**');
+    expect(ruleRow(dom, 'Go Instructions')?.querySelector('.scope-chip')?.textContent).toBe('docs/**/*.go +1');
+  });
+
+  test('are marked when their scope covers the file the tree is built around', () => {
+    const { dom } = loadPage(renderHtml('docs/guide.md'));
+    expect(ruleRow(dom, 'Docs Instructions')?.querySelector('.applies-mark')).not.toBeNull();
+    expect(ruleRow(dom, 'Go Instructions')?.querySelector('.applies-mark')).toBeNull();
+  });
+
+  test('sit under the folder they apply to', () => {
+    const { dom } = loadPage(renderHtml('docs/guide.md'));
+    const folderName = ruleRow(dom, 'Docs Instructions')?.closest('.folder')?.querySelector('.folder-name')?.textContent;
+    expect(folderName).toBe('Docs');
   });
 });
 

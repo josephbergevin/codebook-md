@@ -145,6 +145,9 @@ export interface DynamicFolderGroupConfig {
   // Find skills, rules, prompts and other agent docs in their standard
   // locations without listing those folders in subFolderInclusions
   includeAgentDocs: boolean;
+  // Show a rule that is scoped to a folder (applyTo, paths, globs,
+  // fileMatchPattern) under that folder instead of where the file is kept
+  placeRulesByScope: boolean;
 }
 
 // getDynamicFolderGroupConfig returns the configuration for the dynamic folder group
@@ -158,7 +161,8 @@ export function getDynamicFolderGroupConfig(): DynamicFolderGroupConfig {
     description: config.get<string>('dynamicFolderGroup.description', 'Auto-generated based on the current file'),
     subFolderInclusions: config.get<string[]>('dynamicFolderGroup.subFolderInclusions', []),
     exclusions: config.get<string[]>('dynamicFolderGroup.exclusions', ['node_modules', 'out', 'dist']),
-    includeAgentDocs: config.get<boolean>('dynamicFolderGroup.includeAgentDocs', true)
+    includeAgentDocs: config.get<boolean>('dynamicFolderGroup.includeAgentDocs', true),
+    placeRulesByScope: config.get<boolean>('dynamicFolderGroup.placeRulesByScope', true)
   };
 }
 

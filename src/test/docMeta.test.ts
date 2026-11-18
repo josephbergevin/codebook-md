@@ -120,6 +120,11 @@ describe('docTooltip', () => {
     expect(docTooltip({ type: 'markdown', description: 'Notes.', fields: {} }, 'docs/notes.md')).toBe('Notes.\ndocs/notes.md');
   });
 
+  test('lists what a scoped rule applies to, before its path', () => {
+    expect(docTooltip({ type: 'rule', fields: {} }, '.github/instructions/go.instructions.md', [], ['**/*.go', 'cmd/**']))
+      .toBe('Scoped rule\nApplies to: **/*.go, cmd/**\n.github/instructions/go.instructions.md');
+  });
+
   test('names the other paths to the same file', () => {
     expect(docTooltip({ type: 'instructions', fields: {} }, 'AGENTS.md', ['CLAUDE.md']))
       .toBe('Agent instructions\nAGENTS.md\nAlso at: CLAUDE.md');

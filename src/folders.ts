@@ -759,6 +759,11 @@ export class FolderGroupFile {
   tooltip?: string;
   // hint is short dimmed text after the name, e.g. "also CLAUDE.md"
   hint?: string;
+  // scope holds a rule's scope patterns, e.g. ["extractor/**"]
+  scope?: string[];
+  // scopeBase is the folder those patterns are relative to, itself relative
+  // to the workspace folder ('' for the workspace folder)
+  scopeBase?: string;
 
   constructor(name: string, path: string, entityId?: string) {
     this.name = name;

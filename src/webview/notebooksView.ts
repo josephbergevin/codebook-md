@@ -15,9 +15,11 @@ import * as config from '../config';
 import * as folders from '../folders';
 import * as relatedDocs from '../relatedDocs';
 import { clearDocMetaCache, docTooltip, getDocMeta } from '../docMeta';
+import { scopeMatchesFile } from '../docScope';
 import { isMarkdownFileName } from '../docTypes';
 import {
-  activeRowAttrs, comparablePath, docIconHtml, escapeHtml, hintHtml, plainFileIconHtml, titleAttr,
+  activeRowAttrs, appliesMarkHtml, comparablePath, docIconHtml, escapeHtml, hintHtml, plainFileIconHtml,
+  scopeChipHtml, titleAttr,
 } from './notebooksViewHtml';
 
 /**
@@ -805,12 +807,17 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
         // A skill's scripts and other non-markdown files get a plain file icon
         const rowIconHtml = isMarkdownFileName(file.path) ? docIconHtml(file.docType ?? 'markdown') : plainFileIconHtml();
 
+        // A scoped rule shows its scope, and a mark when that scope covers
+        // the file the tree was built around
+        const appliesToOpenFile = file.scope !== undefined && this._currentEditorFile !== undefined
+          && scopeMatchesFile(file.scope, path.resolve(workspacePath, file.scopeBase ?? ''), this._currentEditorFile);
+
         // For dynamic files, we don't include the action buttons
         html += `
           <div class="file" onclick="openRow(this)" data-path="${this._escapeHtml(filePath)}" data-item-path="${this._escapeHtml(file.path)}" id="file-${this._escapeHtml(fileEntityId)}"${titleAttr(file.tooltip)}${activeRowAttrs(path.resolve(workspacePath, filePath), this._htmlActiveFiles)}>
             <span class="file-icon">${rowIconHtml}</span>
             <span class="file-name">${this._escapeHtml(file.name)}</span>
-            ${hintHtml(file.hint)}
+            ${hintHtml(file.hint)}${scopeChipHtml(file.scope)}${appliesMarkHtml(appliesToOpenFile)}
           </div>
         `;
       });
