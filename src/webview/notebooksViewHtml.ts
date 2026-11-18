@@ -57,6 +57,18 @@ export function appliesMarkHtml(applies: boolean): string {
     : '';
 }
 
+/**
+ * issueMarkHtml returns the warning mark for a doc that has problems, or
+ * nothing. The problems themselves are in the row's hover text.
+ */
+export function issueMarkHtml(issues: string[] | undefined): string {
+  if (!issues || issues.length === 0) {
+    return '';
+  }
+  const label = issues.length === 1 ? 'Has a problem' : `Has ${issues.length} problems`;
+  return `<span class="codicon codicon-warning issue-mark" role="img" aria-label="${escapeHtml(label)}"></span>`;
+}
+
 /** plainFileIconHtml returns the icon for a file that is not markdown. */
 export function plainFileIconHtml(): string {
   return '<span class="codicon codicon-file doc-icon" aria-hidden="true"></span>';

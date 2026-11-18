@@ -9,6 +9,7 @@ activity bar container `codebook-md-activitybar` holding three views, each
 | `codebook-md-welcome-view` | `src/webview/welcomeView.ts` | `templates/welcome.html` |
 | `codebook-md-notebooks-view` | `src/webview/notebooksView.ts` | `templates/notebooks.html` |
 | `codebook-md-documentation-view` | `src/webview/documentationView.ts` | `templates/documentation.html` |
+| `codebook-md-ai-docs-view` | `src/webview/aiDocsView.ts` | `templates/aiDocs.html` |
 
 `src/webview/configModal.ts` is the per-cell configuration modal. It is by far
 the largest webview module and generates its markup inline rather than from a

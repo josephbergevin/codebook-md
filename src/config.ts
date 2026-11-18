@@ -135,6 +135,30 @@ export function getCodebookConfigFilePath(): string {
     : '';
 }
 
+/**
+ * getWorkspaceFolderFor returns the workspace folder a file belongs to.
+ *
+ * In a workspace with several folders, a file in the second or a later one
+ * belongs to that folder. For anything else this is getWorkspaceFolder(), so
+ * the `rootPath` setting keeps applying to the first folder as before.
+ * @throws when there is no workspace folder at all, as getWorkspaceFolder does
+ */
+export function getWorkspaceFolderFor(filePath: string): string {
+  const folders = (workspace.workspaceFolders ?? []).map(folder => folder.uri.fsPath);
+  let containing = '';
+  for (const folder of folders) {
+    const relative = path.relative(folder, filePath);
+    const isInside = relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+    if (isInside && folder.length > containing.length) {
+      containing = folder;
+    }
+  }
+  if (containing && containing !== folders[0]) {
+    return containing;
+  }
+  return getWorkspaceFolder();
+}
+
 // Get dynamic folder group settings
 export interface DynamicFolderGroupConfig {
   enabled: boolean;
@@ -163,6 +187,26 @@ export function getDynamicFolderGroupConfig(): DynamicFolderGroupConfig {
     exclusions: config.get<string[]>('dynamicFolderGroup.exclusions', ['node_modules', 'out', 'dist']),
     includeAgentDocs: config.get<boolean>('dynamicFolderGroup.includeAgentDocs', true),
     placeRulesByScope: config.get<boolean>('dynamicFolderGroup.placeRulesByScope', true)
+  };
+}
+
+// Settings for the AI Docs view
+export interface AiDocsConfig {
+  // Show the view when the workspace has agent docs
+  enabled: boolean;
+  // Also list the docs kept in the home folder, such as ~/.claude/skills
+  includeUserDocs: boolean;
+  // File and folder names the scan skips
+  exclusions: string[];
+}
+
+// getAiDocsConfig returns the configuration for the AI Docs view
+export function getAiDocsConfig(): AiDocsConfig {
+  const config = workspace.getConfiguration('codebook-md');
+  return {
+    enabled: config.get<boolean>('aiDocs.enabled', true),
+    includeUserDocs: config.get<boolean>('aiDocs.includeUserDocs', true),
+    exclusions: config.get<string[]>('aiDocs.exclusions', ['node_modules', 'out', 'dist'])
   };
 }
 

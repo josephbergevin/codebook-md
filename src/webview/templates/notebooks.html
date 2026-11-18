@@ -202,6 +202,16 @@
         overflow: hidden;
         text-overflow: ellipsis;
       }
+      /* An agent doc with a problem; the reason is in the row's hover text */
+      .issue-mark {
+        flex: none;
+        margin-left: 6px;
+        font-size: 14px;
+        color: var(--vscode-list-warningForeground, var(--vscode-editorWarning-foreground));
+      }
+      .file-name:has(+ .issue-mark) {
+        flex-grow: 0;
+      }
       /* A scoped rule whose scope covers the open file */
       .applies-mark {
         flex: none;

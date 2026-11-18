@@ -9,7 +9,7 @@ Extension source. See the root [AGENTS.md](../AGENTS.md) for project-wide rules.
 | `extension.ts` | `activate()` / `deactivate()`, command registration, chat participant, webview provider registration |
 | `kernel.ts` | Notebook controller — executes cells, streams stdout/stderr into cell output |
 | `codebook.ts` | Core types and the language registry. `ExecutableCell`, `Executable`, `Command`, `CodeBlockConfig`, `OutputConfig`, `Language`, `NewExecutableCell()`, `StartOutput`/`EndOutput` |
-| `config.ts` | Settings access and path resolution (`getFullPath`, `getExecPath`, `getWorkspaceFolder`) |
+| `config.ts` | Settings access and path resolution (`getFullPath`, `getExecPath`, `getWorkspaceFolder`, `getWorkspaceFolderFor`) |
 | `cellConfig.ts` | Per-notebook/per-cell config persistence and execution history |
 | `io.ts` | Safe process spawning, filesystem helpers, merged environment variables |
 | `fmt.ts` | Small formatting helpers |
@@ -20,6 +20,10 @@ Extension source. See the root [AGENTS.md](../AGENTS.md) for project-wide rules.
 | `frontMatterFields.ts` | Front matter readers shared with the notebook renderer bundle (no `vscode` or Node imports) |
 | `glob.ts` | Small glob matcher for inclusion patterns and scoped rules |
 | `docScope.ts` | A rule's scope: reads `applyTo` / `paths` / `globs` / `fileMatchPattern`, works out the folders they are about, and tests a file against them |
+| `dirEntries.ts` | Reads one folder for the scanners (markdown, other files, sub-folders; exclusions; symlinks), blocking and non-blocking |
+| `aiDocs.ts` | Finds every agent doc in a workspace folder for the AI Docs view, non-blocking, and decides which docs apply to a file |
+| `docHealth.ts` | Health checks for agent docs: skill front matter, broken links, dead scope patterns, copied skills |
+| `newSkill.ts` | The New Skill command: name and description checks, `SKILL.md` content, where the skill goes |
 | `createNotebook.ts` | Notebook creation commands |
 | `prompt.ts` | Chat/prompt construction |
 | `taskListToggle.ts` | Applies task list checkbox clicks from the notebook renderer to the cell source |

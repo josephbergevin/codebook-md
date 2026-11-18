@@ -1,7 +1,9 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { clearDocMetaCache, docDisplayName, docTooltip, getDocMeta, hasExecutableCodeBlock } from '../docMeta';
+import {
+  clearDocMetaCache, docDisplayName, docSizeText, docTooltip, getDocMeta, hasExecutableCodeBlock, relativeLinks,
+} from '../docMeta';
 
 let dir: string;
 
@@ -121,12 +123,68 @@ describe('docTooltip', () => {
   });
 
   test('lists what a scoped rule applies to, before its path', () => {
-    expect(docTooltip({ type: 'rule', fields: {} }, '.github/instructions/go.instructions.md', [], ['**/*.go', 'cmd/**']))
-      .toBe('Scoped rule\nApplies to: **/*.go, cmd/**\n.github/instructions/go.instructions.md');
+    expect(docTooltip({ type: 'rule', fields: {} }, '.github/instructions/go.instructions.md', { scope: ['**/*.go', 'cmd/**'] }))
+      .toBe('Rule\nApplies to: **/*.go, cmd/**\n.github/instructions/go.instructions.md');
   });
 
   test('names the other paths to the same file', () => {
-    expect(docTooltip({ type: 'instructions', fields: {} }, 'AGENTS.md', ['CLAUDE.md']))
+    expect(docTooltip({ type: 'instructions', fields: {} }, 'AGENTS.md', { aliases: ['CLAUDE.md'] }))
       .toBe('Agent instructions\nAGENTS.md\nAlso at: CLAUDE.md');
+  });
+});
+
+describe('docTooltip details', () => {
+  test('lists problems first, then scope, size and path', () => {
+    const meta = { type: 'rule' as const, fields: {}, size: 6332 };
+    expect(docTooltip(meta, '.claude/rules/go.md', { scope: ['**/*.go'], issues: ['Scope "**/*.go" matches no files'] })).toBe(
+      'Rule\nProblem: Scope "**/*.go" matches no files\nApplies to: **/*.go\n6.3 KB, about 1,600 tokens\n.claude/rules/go.md'
+    );
+  });
+});
+
+describe('docSizeText', () => {
+  test('gives the file size and a rounded token estimate for instruction files and rules', () => {
+    expect(docSizeText({ type: 'instructions', fields: {}, size: 6332 })).toBe('6.3 KB, about 1,600 tokens');
+    expect(docSizeText({ type: 'rule', fields: {}, size: 18792 })).toBe('18.8 KB, about 4,700 tokens');
+    expect(docSizeText({ type: 'instructions', fields: {}, size: 420 })).toBe('420 bytes, about 110 tokens');
+  });
+
+  test('says nothing for docs that only load when asked for, or when the size is unknown', () => {
+    expect(docSizeText({ type: 'skill', fields: {}, size: 6332 })).toBeUndefined();
+    expect(docSizeText({ type: 'instructions', fields: {} })).toBeUndefined();
+  });
+});
+
+describe('relativeLinks', () => {
+  test('lists links and images that point at other files', () => {
+    expect(relativeLinks('[a](docs/a.md) ![b](img/b.png "title") [c](<my file.md>)')).toEqual(['docs/a.md', 'img/b.png', 'my file.md']);
+  });
+
+  test('drops fragments and queries, and decodes escapes', () => {
+    expect(relativeLinks('[a](docs/a.md#setup) [b](b.md?x=1) [c](my%20file.md)')).toEqual(['docs/a.md', 'b.md', 'my file.md']);
+  });
+
+  test('leaves out web addresses, mail links, anchors and site-absolute paths', () => {
+    expect(relativeLinks('[a](https://x.dev) [b](mailto:a@b.c) [c](#top) [d](/abs/path.md)')).toEqual([]);
+  });
+
+  test('does not read links inside fenced or inline code', () => {
+    expect(relativeLinks('`[a](a.md)`\n\n```md\n[b](b.md)\n```\n\n[c](c.md)\n')).toEqual(['c.md']);
+  });
+
+  test('lists a repeated target once', () => {
+    expect(relativeLinks('[a](a.md) [again](a.md)')).toEqual(['a.md']);
+  });
+});
+
+describe('getDocMeta details for health checks', () => {
+  test('records the size, the links and whether the front matter closes', () => {
+    const file = write('AGENTS.md', '---\ntitle: A\n---\n[ref](docs/ref.md)\n');
+    expect(getDocMeta(file)).toMatchObject({ size: 36, links: ['docs/ref.md'], unclosedFrontMatter: false });
+  });
+
+  test('notices front matter that never closes', () => {
+    expect(getDocMeta(write('AGENTS.md', '---\ntitle: A\n\n# Body\n')).unclosedFrontMatter).toBe(true);
+    expect(getDocMeta(write('notes.md', '# Body\n\n---\n')).unclosedFrontMatter).toBe(false);
   });
 });

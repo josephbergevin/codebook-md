@@ -35,7 +35,7 @@ export const docTypes: DocTypeInfo[] = [
   { id: 'license', label: 'License', icon: 'law', isAgentDoc: false },
   { id: 'policy', label: 'Project policy', icon: 'shield', isAgentDoc: false },
   { id: 'instructions', label: 'Agent instructions', icon: 'robot', isAgentDoc: true },
-  { id: 'rule', label: 'Scoped rule', icon: 'target', isAgentDoc: true },
+  { id: 'rule', label: 'Rule', icon: 'target', isAgentDoc: true },
   { id: 'skill', label: 'Skill', icon: 'mortar-board', isAgentDoc: true },
   { id: 'prompt', label: 'Prompt', icon: 'terminal', isAgentDoc: true },
   { id: 'agent', label: 'Agent definition', icon: 'hubot', isAgentDoc: true },

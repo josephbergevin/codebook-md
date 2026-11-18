@@ -16,10 +16,11 @@ import * as folders from '../folders';
 import * as relatedDocs from '../relatedDocs';
 import { clearDocMetaCache, docTooltip, getDocMeta } from '../docMeta';
 import { scopeMatchesFile } from '../docScope';
+import { activeFilePaths, samePaths } from './activeFile';
 import { isMarkdownFileName } from '../docTypes';
 import {
-  activeRowAttrs, appliesMarkHtml, comparablePath, docIconHtml, escapeHtml, hintHtml, plainFileIconHtml,
-  scopeChipHtml, titleAttr,
+  activeRowAttrs, appliesMarkHtml, docIconHtml, escapeHtml, hintHtml, issueMarkHtml,
+  plainFileIconHtml, scopeChipHtml, titleAttr,
 } from './notebooksViewHtml';
 
 /**
@@ -91,7 +92,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
         // The page was reloaded from its HTML, which may mark a file that is
         // no longer the open one
         this._shownActiveFiles = this._htmlActiveFiles;
-        if (this._redrawOnShow || !this._samePaths(this._activeFilePaths(), this._htmlActiveFiles)) {
+        if (this._redrawOnShow || !samePaths(activeFilePaths(), this._htmlActiveFiles)) {
           this._updateWebview();
         }
       }
@@ -300,42 +301,14 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
   }
 
   /**
-   * The paths of the file open in the editor, in the form rows are matched
-   * by: as opened, and with symlinks resolved, so that opening CLAUDE.md marks
-   * the AGENTS.md row it links to.
-   */
-  private _activeFilePaths(): string[] {
-    const notebookUri = window.activeNotebookEditor?.notebook.uri;
-    const textUri = window.activeTextEditor?.document.uri;
-    const uri = notebookUri ?? textUri;
-    if (!uri || (uri.scheme !== 'file' && uri.scheme !== 'vscode-notebook-cell')) {
-      return [];
-    }
-    const paths = [comparablePath(uri.fsPath)];
-    try {
-      const real = comparablePath(fs.realpathSync(uri.fsPath));
-      if (!paths.includes(real)) {
-        paths.push(real);
-      }
-    } catch {
-      // Not on disk yet: the path as opened is all there is
-    }
-    return paths;
-  }
-
-  private _samePaths(a: string[], b: string[]): boolean {
-    return a.length === b.length && a.every((value, index) => value === b[index]);
-  }
-
-  /**
    * Moves the highlight to the open file's row without rebuilding the page.
    */
   private _syncActiveFile(): void {
     if (!this._view || !this._isViewVisible) {
       return;
     }
-    const active = this._activeFilePaths();
-    if (this._samePaths(active, this._shownActiveFiles)) {
+    const active = activeFilePaths();
+    if (samePaths(active, this._shownActiveFiles)) {
       return;
     }
     this._shownActiveFiles = active;
@@ -372,7 +345,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
 
     // The open file's row is marked in the HTML itself; later changes are
     // sent to the page as messages
-    this._htmlActiveFiles = this._activeFilePaths();
+    this._htmlActiveFiles = activeFilePaths();
     this._shownActiveFiles = this._htmlActiveFiles;
     this._redrawOnShow = false;
 
@@ -756,7 +729,10 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
    * Similar to _buildFolderHtml but simplified and without editing options
    */
   private _buildDynamicFolderHtml(folder: folders.FolderGroupFolder, level: number = 0, folderIndex: string): string {
-    const workspacePath = config.getWorkspaceFolder();
+    // A generated group's paths are relative to the workspace folder the open
+    // file is in, which is not always the first one. Its rows carry absolute
+    // paths, so opening one never depends on which folder that is.
+    const workspacePath = this._dynamicFolderGroup?.basePath || config.getWorkspaceFolder();
 
     // A folder that stands for a file - a skill with supporting files - shows
     // that file's icon, opens it when its name is clicked and starts collapsed
@@ -768,7 +744,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
             </svg>`;
     const childCount = folder.files.length + folder.folders.length;
     const folderNameHtml = folder.filePath
-      ? `<span class="folder-name doc-folder-name" onclick="event.stopPropagation(); openRow(this)" data-item-path="${this._escapeHtml(folder.filePath)}">${this._escapeHtml(folder.name)}</span>${hintHtml(childCount > 0 ? `+${childCount}` : undefined)}`
+      ? `<span class="folder-name doc-folder-name" onclick="event.stopPropagation(); openRow(this)" data-item-path="${this._escapeHtml(path.resolve(workspacePath, folder.filePath))}">${this._escapeHtml(folder.name)}</span>${hintHtml(childCount > 0 ? `+${childCount}` : undefined)}${issueMarkHtml(folder.issues)}`
       : `<span class="folder-name">${this._escapeHtml(folder.name)}</span>`;
     const folderActiveAttrs = folder.filePath
       ? activeRowAttrs(path.resolve(workspacePath, docPath), this._htmlActiveFiles)
@@ -814,10 +790,10 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
 
         // For dynamic files, we don't include the action buttons
         html += `
-          <div class="file" onclick="openRow(this)" data-path="${this._escapeHtml(filePath)}" data-item-path="${this._escapeHtml(file.path)}" id="file-${this._escapeHtml(fileEntityId)}"${titleAttr(file.tooltip)}${activeRowAttrs(path.resolve(workspacePath, filePath), this._htmlActiveFiles)}>
+          <div class="file" onclick="openRow(this)" data-path="${this._escapeHtml(filePath)}" data-item-path="${this._escapeHtml(path.resolve(workspacePath, file.path))}" id="file-${this._escapeHtml(fileEntityId)}"${titleAttr(file.tooltip)}${activeRowAttrs(path.resolve(workspacePath, filePath), this._htmlActiveFiles)}>
             <span class="file-icon">${rowIconHtml}</span>
             <span class="file-name">${this._escapeHtml(file.name)}</span>
-            ${hintHtml(file.hint)}${scopeChipHtml(file.scope)}${appliesMarkHtml(appliesToOpenFile)}
+            ${hintHtml(file.hint)}${scopeChipHtml(file.scope)}${issueMarkHtml(file.issues)}${appliesMarkHtml(appliesToOpenFile)}
           </div>
         `;
       });

@@ -16,6 +16,8 @@ import * as cellStore from './cellStore';
 import { NotebooksViewProvider } from './webview/notebooksView';
 import { WelcomeViewProvider } from './webview/welcomeView';
 import { DocumentationViewProvider } from './webview/documentationView';
+import { AiDocsViewProvider } from './webview/aiDocsView';
+import { runNewSkillCommand } from './newSkill';
 import * as configModal from './webview/configModal';
 import * as codeLens from './codeLens';
 import * as shellSession from './shellSession';
@@ -548,6 +550,15 @@ export async function activate(context: ExtensionContext) {
   context.subscriptions.push(
     window.registerWebviewViewProvider(NotebooksViewProvider.viewType, notebooksViewProvider)
   );
+
+  // Register the AI Docs webview provider. It is shown only when the
+  // workspace has agent docs, so it starts scanning without waiting to be opened.
+  const aiDocsViewProvider = new AiDocsViewProvider(context);
+  context.subscriptions.push(
+    window.registerWebviewViewProvider(AiDocsViewProvider.viewType, aiDocsViewProvider),
+    aiDocsViewProvider
+  );
+  aiDocsViewProvider.start();
 
   // Add commands to show and focus webviews
   let disposable = commands.registerCommand('codebook-md.openDocumentation', async (sectionId?: string) => {
@@ -1284,6 +1295,29 @@ export async function activate(context: ExtensionContext) {
   // Register the command to create a new CodebookMD notebook
   // Uses the improved implementation from createNotebook.ts
   disposable = commands.registerCommand('codebook-md.createNewNotebook', createNewNotebook);
+  context.subscriptions.push(disposable);
+
+  // Register the command that creates a new agent skill (SKILL.md) from a name and description
+  disposable = commands.registerCommand('codebook-md.newSkill', async () => {
+    try {
+      await runNewSkillCommand();
+      await aiDocsViewProvider.refresh();
+    } catch (error) {
+      console.error('newSkill failed:', error);
+      window.showErrorMessage(`Codebook: could not create the skill - ${error instanceof Error ? error.message : error}`);
+    }
+  });
+  context.subscriptions.push(disposable);
+
+  // Register the command that re-reads the workspace's agent docs for the AI Docs view
+  disposable = commands.registerCommand('codebook-md.refreshAiDocs', async () => {
+    try {
+      await aiDocsViewProvider.refresh();
+    } catch (error) {
+      console.error('refreshAiDocs failed:', error);
+      window.showErrorMessage(`Codebook: could not refresh AI Docs - ${error instanceof Error ? error.message : error}`);
+    }
+  });
   context.subscriptions.push(disposable);
 
   // Register the command to create a new CodebookMD notebook from selection

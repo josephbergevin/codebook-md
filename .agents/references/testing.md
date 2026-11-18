@@ -23,6 +23,9 @@ Tests live in `src/test/` and mirror the structure of `src/`:
 | `src/folders.ts` | `src/test/folders.test.ts` |
 | `src/relatedDocs.ts` | `src/test/relatedDocs.test.ts` |
 | `src/docScope.ts` | `src/test/docScope.test.ts` |
+| `src/aiDocs.ts` | `src/test/aiDocs.test.ts` |
+| `src/docHealth.ts` | `src/test/docHealth.test.ts` |
+| `src/webview/aiDocsView.ts` | `src/test/webview/aiDocsView.test.ts` |
 | `src/languages/go.ts` | `src/test/languages/go.test.ts` |
 | `src/languages/http.ts` | `src/test/languages/http.test.ts` |
 | `src/webview/configModal.ts` | `src/test/webview/configModal.test.ts` |

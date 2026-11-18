@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Docs</title>
+    <link rel="stylesheet" href="{{codiconsCssUri}}" />
+    <style>
+      body {
+        font-family: var(--vscode-font-family);
+        font-size: var(--vscode-font-size);
+        color: var(--vscode-foreground);
+        padding: 0;
+        margin: 0;
+      }
+      .toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        padding: 6px 8px;
+        background-color: var(--vscode-sideBar-background, var(--vscode-editor-background));
+      }
+      .filter {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 6px;
+        border: 1px solid var(--vscode-input-border, transparent);
+        border-radius: 2px;
+        background-color: var(--vscode-input-background);
+        color: var(--vscode-input-foreground);
+      }
+      .filter:focus-within {
+        border-color: var(--vscode-focusBorder);
+      }
+      .filter .codicon {
+        color: var(--vscode-input-placeholderForeground);
+      }
+      .filter input {
+        flex: 1;
+        min-width: 0;
+        border: 0;
+        outline: 0;
+        padding: 2px 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+      }
+      .filter input::placeholder {
+        color: var(--vscode-input-placeholderForeground);
+      }
+      .tree {
+        padding: 0 4px 8px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        min-width: 0;
+        padding: 3px 6px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .row:hover {
+        background-color: var(--vscode-list-hoverBackground);
+      }
+      .children {
+        padding-left: 16px;
+      }
+      [aria-expanded="false"] > .children {
+        display: none;
+      }
+      /* While filtering, matches show even inside a folder you closed */
+      .tree.filtering [aria-expanded="false"] > .children {
+        display: block;
+      }
+      .twistie {
+        flex: none;
+        font-size: 14px;
+        transition: transform 80ms;
+      }
+      [aria-expanded="false"] > .node-row .twistie {
+        transform: rotate(-90deg);
+      }
+      .tree.filtering [aria-expanded="false"] > .node-row .twistie {
+        transform: none;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .twistie {
+          transition: none;
+        }
+      }
+      .node-title {
+        font-weight: 600;
+      }
+      .root-icon {
+        flex: none;
+        font-size: 16px;
+        color: var(--vscode-descriptionForeground);
+      }
+      .count {
+        font-size: 0.85em;
+        color: var(--vscode-descriptionForeground);
+      }
+      .row-name {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      /* Keyboard focus sits on the tree item; the ring is drawn on its row */
+      [role="treeitem"] {
+        outline: none;
+      }
+      .doc-row:focus-visible,
+      .node:focus-visible > .node-row {
+        outline: 1px solid var(--vscode-focusBorder);
+        outline-offset: -1px;
+      }
+      /* The row of the file open in the editor */
+      .doc-row[data-active="true"] {
+        background-color: var(--vscode-list-inactiveSelectionBackground);
+        color: var(--vscode-list-inactiveSelectionForeground, inherit);
+        outline: 1px solid var(--vscode-contrastActiveBorder, transparent);
+        outline-offset: -1px;
+      }
+      /* Icons for the kinds of markdown document; the tints match My Notebooks */
+      .doc-icon {
+        flex: none;
+        font-size: 16px;
+        color: var(--vscode-descriptionForeground);
+      }
+      .doc-readme {
+        color: var(--vscode-charts-blue);
+      }
+      .doc-changelog {
+        color: var(--vscode-charts-purple);
+      }
+      .doc-instructions {
+        color: var(--vscode-charts-green);
+      }
+      .doc-rule {
+        color: var(--vscode-charts-orange);
+      }
+      .doc-skill {
+        color: var(--vscode-charts-yellow);
+      }
+      .doc-prompt {
+        color: var(--vscode-terminal-ansiCyan);
+      }
+      .doc-agent {
+        color: var(--vscode-terminal-ansiMagenta);
+      }
+      .doc-notebook {
+        color: var(--vscode-textLink-foreground);
+      }
+      .row-hint {
+        font-size: 0.85em;
+        color: var(--vscode-descriptionForeground);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .scope-chip {
+        padding: 0 4px;
+        border: 1px solid currentColor;
+        border-radius: 4px;
+        font-family: var(--vscode-editor-font-family, monospace);
+        font-size: 0.8em;
+        color: var(--vscode-charts-orange);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .issue-mark {
+        flex: none;
+        font-size: 14px;
+        color: var(--vscode-list-warningForeground, var(--vscode-editorWarning-foreground));
+      }
+      /* Shown only on the docs that apply to the open file */
+      .applies-mark {
+        display: none;
+        flex: none;
+        width: 6px;
+        height: 6px;
+        margin-left: auto;
+        margin-right: 2px;
+        border-radius: 50%;
+        background-color: var(--vscode-charts-green);
+      }
+      [data-applies="true"] > .applies-mark {
+        display: block;
+      }
+      .note,
+      .empty {
+        margin: 8px 10px;
+        font-size: 0.9em;
+        color: var(--vscode-descriptionForeground);
+      }
+      .legend {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 4px 10px 10px;
+        font-size: 0.85em;
+        color: var(--vscode-descriptionForeground);
+      }
+      .legend .applies-mark {
+        display: block;
+        margin: 0;
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <label class="filter">
+        <span class="codicon codicon-search" aria-hidden="true"></span>
+        <input id="filter" type="text" placeholder="Filter by name or description" aria-label="Filter agent docs by name or description" spellcheck="false" />
+      </label>
+    </div>
+    <div class="tree" id="tree" role="tree" aria-label="Agent docs">{{tree}}</div>
+    <p class="empty" id="no-match" hidden>No agent docs match the filter.</p>
+    <p class="empty" id="no-docs" hidden>No agent docs found in this workspace. Use the + button above to start a skill.</p>
+    <p class="legend" id="legend" hidden><span class="applies-mark"></span>Applies to the open file</p>
+    <script>
+      (function () {
+        const vscode = acquireVsCodeApi();
+        const tree = document.getElementById("tree");
+        const filter = document.getElementById("filter");
+        const noMatch = document.getElementById("no-match");
+        const noDocs = document.getElementById("no-docs");
+        const legend = document.getElementById("legend");
+
+        // Closed folders and the filter text survive the page being redrawn
+        const saved = vscode.getState() || {};
+        const collapsed = new Set(Array.isArray(saved.collapsed) ? saved.collapsed : []);
+
+        function save() {
+          vscode.setState({ collapsed: Array.from(collapsed), filter: filter.value });
+        }
+
+        function isFiltering() {
+          return tree.classList.contains("filtering");
+        }
+
+        // A tree item can be reached when nothing above it is closed or filtered out
+        function isShown(item) {
+          if (item.hidden) {
+            return false;
+          }
+          let parent = item.parentElement;
+          while (parent && parent !== tree) {
+            if (parent.hidden) {
+              return false;
+            }
+            if (!isFiltering() && parent.getAttribute("aria-expanded") === "false") {
+              return false;
+            }
+            parent = parent.parentElement;
+          }
+          return true;
+        }
+
+        function shownItems() {
+          return Array.from(tree.querySelectorAll('[role="treeitem"]')).filter(isShown);
+        }
+
+        // One item at a time takes part in the Tab order, as in VS Code's own trees
+        function setCurrent(item, focus) {
+          tree.querySelectorAll('[role="treeitem"][tabindex="0"]').forEach(function (other) {
+            other.tabIndex = -1;
+          });
+          item.tabIndex = 0;
+          if (focus) {
+            item.focus();
+          }
+        }
+
+        function isFolder(item) {
+          return item.hasAttribute("data-node");
+        }
+
+        function setExpanded(node, expanded) {
+          node.setAttribute("aria-expanded", String(expanded));
+          if (expanded) {
+            collapsed.delete(node.dataset.node);
+          } else {
+            collapsed.add(node.dataset.node);
+          }
+          save();
+        }
+
+        function openDoc(row) {
+          vscode.postMessage({ command: "openFile", filePath: row.dataset.itemPath });
+        }
+
+        function activate(item) {
+          if (isFolder(item)) {
+            setExpanded(item, item.getAttribute("aria-expanded") !== "true");
+          } else {
+            openDoc(item);
+          }
+        }
+
+        function parentItem(item) {
+          const parent = item.parentElement ? item.parentElement.closest('[role="treeitem"]') : null;
+          return parent && tree.contains(parent) ? parent : null;
+        }
+
+        tree.addEventListener("click", function (event) {
+          const row = event.target.closest(".row");
+          const item = row ? row.closest('[role="treeitem"]') : null;
+          if (!item) {
+            return;
+          }
+          setCurrent(item, true);
+          activate(item);
+        });
+
+        tree.addEventListener("keydown", function (event) {
+          const item = event.target.closest('[role="treeitem"]');
+          if (!item || event.altKey || event.ctrlKey || event.metaKey) {
+            return;
+          }
+          const items = shownItems();
+          const index = items.indexOf(item);
+          let next = null;
+          switch (event.key) {
+            case "ArrowDown":
+              next = items[index + 1];
+              break;
+            case "ArrowUp":
+              next = items[index - 1];
+              break;
+            case "Home":
+              next = items[0];
+              break;
+            case "End":
+              next = items[items.length - 1];
+              break;
+            case "ArrowRight":
+              if (isFolder(item) && item.getAttribute("aria-expanded") === "false") {
+                setExpanded(item, true);
+              } else if (isFolder(item)) {
+                next = items[index + 1];
+              }
+              break;
+            case "ArrowLeft":
+              if (isFolder(item) && item.getAttribute("aria-expanded") === "true" && !isFiltering()) {
+                setExpanded(item, false);
+              } else {
+                next = parentItem(item);
+              }
+              break;
+            case "Enter":
+            case " ":
+              activate(item);
+              break;
+            default:
+              return;
+          }
+          event.preventDefault();
+          if (next) {
+            setCurrent(next, true);
+            next.scrollIntoView({ block: "nearest" });
+          }
+        });
+
+        function applyFilter() {
+          const query = filter.value.trim().toLowerCase();
+          tree.classList.toggle("filtering", query !== "");
+          const rows = Array.from(tree.querySelectorAll(".doc-row"));
+          let matches = 0;
+          rows.forEach(function (row) {
+            const match = query === "" || (row.dataset.filter || "").indexOf(query) !== -1;
+            row.hidden = !match;
+            if (match) {
+              matches++;
+            }
+          });
+          // A folder with no matching doc anywhere below it is hidden too
+          tree.querySelectorAll(".node").forEach(function (node) {
+            node.hidden = node.querySelector(".doc-row:not([hidden])") === null;
+          });
+          noDocs.hidden = rows.length > 0;
+          noMatch.hidden = rows.length === 0 || matches > 0;
+          if (!tree.querySelector('[role="treeitem"][tabindex="0"]:not([hidden])')) {
+            const first = shownItems()[0];
+            if (first) {
+              setCurrent(first, false);
+            }
+          }
+        }
+
+        filter.addEventListener("input", function () {
+          applyFilter();
+          save();
+        });
+        filter.addEventListener("keydown", function (event) {
+          if (event.key === "Escape" && filter.value !== "") {
+            filter.value = "";
+            applyFilter();
+            save();
+          } else if (event.key === "ArrowDown") {
+            const first = shownItems()[0];
+            if (first) {
+              event.preventDefault();
+              setCurrent(first, true);
+            }
+          }
+        });
+
+        function updateLegend() {
+          legend.hidden = tree.querySelector('[data-applies="true"]') === null;
+        }
+
+        // The extension says which file is open: move the highlight and the marks
+        function setOpenFile(activePaths, appliesPaths) {
+          tree.querySelectorAll(".doc-row").forEach(function (row) {
+            if (activePaths.indexOf(row.dataset.abs) !== -1) {
+              row.dataset.active = "true";
+              row.setAttribute("aria-current", "true");
+            } else {
+              delete row.dataset.active;
+              row.removeAttribute("aria-current");
+            }
+            if (appliesPaths.indexOf(row.dataset.abs) !== -1) {
+              row.dataset.applies = "true";
+            } else {
+              delete row.dataset.applies;
+            }
+          });
+          updateLegend();
+        }
+
+        window.addEventListener("message", function (event) {
+          const message = event.data;
+          if (message && message.command === "setOpenFile"
+            && Array.isArray(message.activePaths) && Array.isArray(message.appliesPaths)) {
+            setOpenFile(message.activePaths, message.appliesPaths);
+          } else if (message && message.command === "focusFilter") {
+            filter.focus();
+          }
+        });
+
+        // First draw: restore closed folders and the filter, then settle focus
+        tree.querySelectorAll(".node").forEach(function (node) {
+          if (collapsed.has(node.dataset.node)) {
+            node.setAttribute("aria-expanded", "false");
+          }
+        });
+        tree.querySelectorAll('.doc-row[data-active="true"]').forEach(function (row) {
+          row.setAttribute("aria-current", "true");
+        });
+        if (typeof saved.filter === "string") {
+          filter.value = saved.filter;
+        }
+        applyFilter();
+        updateLegend();
+      })();
+    </script>
+  </body>
+</html>
