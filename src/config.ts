@@ -142,6 +142,9 @@ export interface DynamicFolderGroupConfig {
   description: string;
   subFolderInclusions: string[];
   exclusions: string[];
+  // Find skills, rules, prompts and other agent docs in their standard
+  // locations without listing those folders in subFolderInclusions
+  includeAgentDocs: boolean;
 }
 
 // getDynamicFolderGroupConfig returns the configuration for the dynamic folder group
@@ -154,7 +157,8 @@ export function getDynamicFolderGroupConfig(): DynamicFolderGroupConfig {
     name: config.get<string>('dynamicFolderGroup.name', 'Current Context'),
     description: config.get<string>('dynamicFolderGroup.description', 'Auto-generated based on the current file'),
     subFolderInclusions: config.get<string[]>('dynamicFolderGroup.subFolderInclusions', []),
-    exclusions: config.get<string[]>('dynamicFolderGroup.exclusions', ['node_modules', 'out', 'dist'])
+    exclusions: config.get<string[]>('dynamicFolderGroup.exclusions', ['node_modules', 'out', 'dist']),
+    includeAgentDocs: config.get<boolean>('dynamicFolderGroup.includeAgentDocs', true)
   };
 }
 

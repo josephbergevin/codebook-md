@@ -14,6 +14,11 @@ Extension source. See the root [AGENTS.md](../AGENTS.md) for project-wide rules.
 | `io.ts` | Safe process spawning, filesystem helpers, merged environment variables |
 | `fmt.ts` | Small formatting helpers |
 | `folders.ts` | `FolderGroup` system backing the My Notebooks view |
+| `relatedDocs.ts` | Builds the dynamic folder group for the open file: inclusions, agent doc discovery, symlink de-duplication, scan cache |
+| `docTypes.ts` | Markdown doc types (icon, label), path classification, and the catalog of agent doc locations |
+| `docMeta.ts` | Cached per-file metadata: type, front matter name/description, row label and hover text |
+| `frontMatterFields.ts` | Front matter readers shared with the notebook renderer bundle (no `vscode` or Node imports) |
+| `glob.ts` | Small glob matcher for inclusion patterns and scoped rules |
 | `createNotebook.ts` | Notebook creation commands |
 | `prompt.ts` | Chat/prompt construction |
 | `taskListToggle.ts` | Applies task list checkbox clicks from the notebook renderer to the cell source |

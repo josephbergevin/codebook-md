@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>My Notebooks</title>
+    <link rel="stylesheet" href="{{codiconsCssUri}}" />
     <style>
       body {
         font-family: var(--vscode-font-family);
@@ -142,6 +143,62 @@
       .file-name {
         margin-left: 5px;
         flex-grow: 1;
+      }
+      /* Icons for the kinds of markdown document. Tints come from the theme's
+         own colors, so they follow light, dark and high contrast themes. */
+      .doc-icon {
+        font-size: 16px;
+        color: var(--vscode-descriptionForeground);
+      }
+      .doc-readme {
+        color: var(--vscode-charts-blue);
+      }
+      .doc-changelog {
+        color: var(--vscode-charts-purple);
+      }
+      .doc-instructions {
+        color: var(--vscode-charts-green);
+      }
+      .doc-rule {
+        color: var(--vscode-charts-orange);
+      }
+      .doc-skill {
+        color: var(--vscode-charts-yellow);
+      }
+      .doc-prompt {
+        color: var(--vscode-terminal-ansiCyan);
+      }
+      .doc-agent {
+        color: var(--vscode-terminal-ansiMagenta);
+      }
+      .doc-notebook {
+        color: var(--vscode-textLink-foreground);
+      }
+      /* Dimmed text after a row's name, such as another path to the same file */
+      .row-hint {
+        margin-left: 6px;
+        font-size: 0.85em;
+        font-weight: normal;
+        color: var(--vscode-descriptionForeground);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .file-name:has(+ .row-hint),
+      .folder-name:has(+ .row-hint) {
+        flex-grow: 0;
+      }
+      /* The row of the file open in the editor */
+      .file[data-active="true"],
+      .folder-header[data-active="true"] {
+        background-color: var(--vscode-list-inactiveSelectionBackground);
+        color: var(--vscode-list-inactiveSelectionForeground, inherit);
+        outline: 1px solid var(--vscode-contrastActiveBorder, transparent);
+        outline-offset: -1px;
+      }
+      /* A folder that stands for a file: its name opens the file */
+      .doc-folder-name:hover {
+        text-decoration: underline;
       }
       .hidden {
         display: none;
@@ -485,6 +542,46 @@
           }
         });
 
+        // Open every collapsed folder above the open file's row, so the row
+        // can be seen
+        function revealActiveRows(scroll) {
+          document.querySelectorAll('[data-active="true"]').forEach(function (row) {
+            let parent = row.parentElement;
+            while (parent) {
+              if (parent.classList.contains("folder-content")) {
+                parent.classList.remove("hidden");
+              }
+              parent = parent.parentElement;
+            }
+            if (scroll) {
+              row.scrollIntoView({ block: "nearest" });
+            }
+          });
+        }
+
+        // The extension says which file is open; mark its row
+        function setActiveFile(paths) {
+          document.querySelectorAll("[data-abs]").forEach(function (row) {
+            if (paths.indexOf(row.dataset.abs) !== -1) {
+              row.dataset.active = "true";
+            } else {
+              delete row.dataset.active;
+            }
+          });
+          revealActiveRows(true);
+        }
+
+        window.addEventListener("message", function (event) {
+          const message = event.data;
+          if (message && message.command === "setActiveFile" && Array.isArray(message.paths)) {
+            setActiveFile(message.paths);
+          }
+        });
+
+        document.addEventListener("DOMContentLoaded", function () {
+          revealActiveRows(false);
+        });
+
         window.toggleFolder = function (header) {
           const content = header.nextElementSibling;
           if (content) {
@@ -492,10 +589,12 @@
           }
         };
 
-        window.openFile = function (filePath, itemPath) {
+        // Rows carry their file as data attributes, which these functions
+        // read. Nothing from a file name is ever written into a handler.
+        window.openRow = function (row) {
           vscode.postMessage({
             command: "openFile",
-            filePath: itemPath, // Use the relative path stored in data-item-path
+            filePath: row.dataset.itemPath,
           });
         };
 
@@ -604,18 +703,18 @@
           return false;
         };
 
-        window.renameFile = function (name, path) {
+        window.renameFileRow = function (button) {
           vscode.postMessage({
             command: "renameFile",
-            entry: { name, path },
+            entry: { name: button.dataset.name, path: button.dataset.itemPath },
           });
         };
 
-        window.renameFolder = function (folderName, currentName) {
+        window.renameFolderRow = function (button) {
           vscode.postMessage({
             command: "renameFolder",
-            folderName: folderName,
-            currentName: currentName,
+            folderName: button.dataset.folderName,
+            currentName: button.dataset.folderName,
           });
         };
 

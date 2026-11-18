@@ -117,7 +117,8 @@ You can customize the dynamic folder group through VS Code settings (`settings.j
     "node_modules",
     "out",
     "dist"
-  ]
+  ],
+  "codebook-md.dynamicFolderGroup.includeAgentDocs": true
 }
 ```
 
@@ -126,10 +127,35 @@ You can customize the dynamic folder group through VS Code settings (`settings.j
 - `enabled`: Enable or disable the dynamic folder group (default: `true`)
 - `name`: Custom name for the dynamic folder group (default: `Current Context`)
 - `description`: Description shown when hovering over the folder group (default: `Auto-generated based on the current file`)
-- `subFolderInclusions`: Sub-folders to include when searching for markdown files (default: `[]`)
+- `subFolderInclusions`: Sub-folders to include when searching for markdown files (default: `[]`). A plain name such as `.github` is matched at every level. An entry with a slash or a wildcard is a pattern, read relative to each folder in the group: `tooling/**` adds `tooling` and everything below it, `docs/guides` adds exactly that folder.
 - `exclusions`: Patterns to exclude from the search (default: `["node_modules", "out", "dist"]`)
+- `includeAgentDocs`: Find agent docs in their standard locations without listing those folders in `subFolderInclusions` (default: `true`)
 
 The dynamic folder group will only show folders that contain markdown files after applying exclusions, providing a clean and focused view of relevant documentation.
+
+##### Agent Docs
+
+The dynamic folder group finds the markdown files written for coding agents and groups them by type under the folder that holds them:
+
+| Group | What it lists |
+| --- | --- |
+| **Skills** | `SKILL.md` under `.agents/skills`, `.agent/skills`, `.claude/skills` and `.github/skills` |
+| **Rules** | `.github/instructions/*.instructions.md`, and the rule folders of Claude Code, Windsurf, Kiro, Continue and Cline |
+| **Prompts** | `.github/prompts/*.prompt.md`, `.claude/commands`, `.agent/workflows` |
+| **Agent Definitions** | `.claude/agents`, `.github/agents/*.agent.md`, `.github/chatmodes/*.chatmode.md` |
+| **Agent References** | Any other markdown under `.agents`, `.agent` or `.claude` |
+
+`AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and `.github/copilot-instructions.md` are listed next to the folder's own markdown files.
+
+- **Skills are shown by name.** Every skill file is called `SKILL.md`, so the row uses the `name` from the file's front matter, written as a title (`docker-cleanup` becomes "Docker Cleanup"), or the skill's folder name when there is none. Hover the row for the exact name, the description and the path.
+- **A skill with supporting files expands.** When a skill's folder holds other files - more markdown, scripts, templates - the skill is a folder: click its name to open `SKILL.md`, click the row to list the rest. Markdown opens as a notebook; other files open in their usual editor. Up to 50 non-markdown files are listed per skill.
+- **Symlinked files appear once.** When `CLAUDE.md` is a link to `AGENTS.md`, the row shows `AGENTS.md` and names the other path beside it.
+
+##### Document Icons
+
+Markdown files in My Notebooks get an icon for what they are: README, changelog, license, project policies (`CONTRIBUTING.md`, `SECURITY.md`), agent instructions, scoped rules, skills, prompts, agent definitions, and runnable notebooks (any markdown file with a code block CodebookMD can run). Icon colors come from your VS Code theme. Hovering a file shows the `description` from its front matter.
+
+The row of the file open in the editor is highlighted, in your own folder groups and in Related Docs. A collapsed skill opens to show it.
 
 #### User-Defined Virtual Folders
 

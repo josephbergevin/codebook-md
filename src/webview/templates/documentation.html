@@ -85,6 +85,8 @@
         <li><a href="#create-notebooks">Creating New Notebooks</a></li>
         <li><a href="#chat-participant">Chat Participant Integration</a></li>
         <li><a href="#dynamic-folders">Dynamic Folders (Current Context)</a></li>
+        <li><a href="#agent-docs">Agent Docs: Skills, Rules and Prompts</a></li>
+        <li><a href="#doc-icons">Document Icons</a></li>
         <li><a href="#executable-code">Executable Code Blocks</a></li>
         <li><a href="#run-from-text-editor">Running Blocks from the Text Editor</a></li>
         <li><a href="#switch-views">Switching Between Text and Notebook</a></li>
@@ -375,7 +377,8 @@ echo "Hello from CodebookMD!"
         "node_modules",
         "out",
         "dist"
-      ]
+      ],
+      "includeAgentDocs": true
     }
   }
 }</code></pre>
@@ -388,6 +391,7 @@ echo "Hello from CodebookMD!"
           <li><code>subFolderInclusions</code>: Array of sub-folder names to include when searching for markdown files
             <ul>
               <li>If a folder is included in the dynamic folder group and has a sub-folder matching one of these names, that sub-folder will be searched for markdown files</li>
+              <li>An entry with a slash or a wildcard is a pattern, read relative to each folder in the group: <code>tooling/**</code> adds <code>tooling</code> and everything below it, and <code>docs/guides</code> adds exactly that folder</li>
               <li>Sub-folders are only included if they contain markdown files after applying exclusions</li>
             </ul>
           </li>
@@ -398,7 +402,29 @@ echo "Hello from CodebookMD!"
               <li>Default exclusions: <code>["node_modules", "out", "dist"]</code></li>
             </ul>
           </li>
+          <li><code>includeAgentDocs</code>: Find agent docs in their standard locations without listing those folders in <code>subFolderInclusions</code> (default: <code>true</code>). See <a href="#agent-docs">Agent Docs</a>.</li>
         </ul>
+
+        <h4 id="agent-docs">Agent Docs: Skills, Rules and Prompts</h4>
+        <p>The dynamic folder group finds the markdown files written for coding agents and groups them by type under the folder that holds them:</p>
+        <ul>
+          <li><span class="feature-highlight">Skills:</span> <code>SKILL.md</code> under <code>.agents/skills</code>, <code>.agent/skills</code>, <code>.claude/skills</code> and <code>.github/skills</code></li>
+          <li><span class="feature-highlight">Rules:</span> <code>.github/instructions/*.instructions.md</code>, and the rule folders of Claude Code, Windsurf, Kiro, Continue and Cline</li>
+          <li><span class="feature-highlight">Prompts:</span> <code>.github/prompts/*.prompt.md</code>, <code>.claude/commands</code>, <code>.agent/workflows</code></li>
+          <li><span class="feature-highlight">Agent Definitions:</span> <code>.claude/agents</code>, <code>.github/agents/*.agent.md</code>, <code>.github/chatmodes/*.chatmode.md</code></li>
+          <li><span class="feature-highlight">Agent References:</span> any other markdown under <code>.agents</code>, <code>.agent</code> or <code>.claude</code></li>
+        </ul>
+        <p><code>AGENTS.md</code>, <code>CLAUDE.md</code>, <code>GEMINI.md</code> and <code>.github/copilot-instructions.md</code> are listed next to the folder's own markdown files.</p>
+        <ul>
+          <li><span class="feature-highlight">Skills are shown by name:</span> every skill file is called <code>SKILL.md</code>, so the row uses the <code>name</code> from the file's front matter, written as a title (<code>docker-cleanup</code> becomes "Docker Cleanup"), or the skill's folder name when there is none. Hover the row for the exact name, the description and the path.</li>
+          <li><span class="feature-highlight">A skill with supporting files expands:</span> when a skill's folder holds other files - more markdown, scripts, templates - the skill is a folder. Click its name to open <code>SKILL.md</code>; click the row to list the rest. Markdown opens as a notebook; other files open in their usual editor. Up to 50 non-markdown files are listed per skill.</li>
+          <li><span class="feature-highlight">Symlinked files appear once:</span> when <code>CLAUDE.md</code> is a link to <code>AGENTS.md</code>, the row shows <code>AGENTS.md</code> and names the other path beside it.</li>
+          <li><span class="feature-highlight">Already listed, not repeated:</span> a file that one of your <code>subFolderInclusions</code> already shows stays where it is and is not added to a group as well.</li>
+        </ul>
+
+        <h4 id="doc-icons">Document Icons</h4>
+        <p>Markdown files in My Notebooks get an icon for what they are: README, changelog, license, project policies (<code>CONTRIBUTING.md</code>, <code>SECURITY.md</code>), agent instructions, scoped rules, skills, prompts, agent definitions, and runnable notebooks (any markdown file with a code block CodebookMD can run). Icon colors come from your VS Code theme. Hovering a file shows the <code>description</code> from its front matter.</p>
+        <p>The row of the file open in the editor is highlighted, in your own folder groups and in Related Docs. A collapsed skill opens to show it.</p>
 
         <h4>Benefits</h4>
         <p>The dynamic folders feature helps you:</p>

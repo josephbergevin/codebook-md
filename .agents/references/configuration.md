@@ -60,7 +60,8 @@ Output (`codebook-md.output.*`, also mirrored per-language):
 Execution history (`codebook-md.executionHistory.*`): `enabled`, `historyLimit`.
 
 Dynamic folder group (`codebook-md.dynamicFolderGroup.*`): `enabled`, `name`,
-`description`, `subFolderInclusions`, `exclusions`.
+`description`, `subFolderInclusions` (plain names, or patterns such as
+`tooling/**`), `exclusions`, `includeAgentDocs`.
 
 Per-language objects: `codebook-md.go`, `.bash`, `.javascript`, `.typescript`,
 `.sql`, `.python`, `.http` — each with its own exec options plus a nested
@@ -125,7 +126,11 @@ as the integrated terminal.
 `src/folders.ts` implements the `FolderGroup` system:
 
 - **Static folders** from `.vscode/codebook-md.json`
-- **Dynamic folder groups** generated from the currently focused file
+- **Dynamic folder groups** generated from the currently focused file by
+  `src/relatedDocs.ts`. It finds agent docs through the catalog in
+  `src/docTypes.ts`, labels rows from front matter via `src/docMeta.ts`, and
+  caches each scan until a scanned folder changes. The notebooks view clears
+  that cache when a markdown file changes.
 - `FolderGroupEntity` for move/delete operations
 - Entity ids encode the group/folder/file hierarchy for webview round-trips
 - The webview sends **1-based** `groupIndex` values; convert to 0-based before
