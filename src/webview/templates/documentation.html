@@ -86,6 +86,7 @@
         <li><a href="#chat-participant">Chat Participant Integration</a></li>
         <li><a href="#dynamic-folders">Dynamic Folders (Current Context)</a></li>
         <li><a href="#agent-docs">Agent Docs: Skills, Rules and Prompts</a></li>
+        <li><a href="#scoped-rules">Scoped Rules</a></li>
         <li><a href="#doc-icons">Document Icons</a></li>
         <li><a href="#executable-code">Executable Code Blocks</a></li>
         <li><a href="#run-from-text-editor">Running Blocks from the Text Editor</a></li>
@@ -378,7 +379,8 @@ echo "Hello from CodebookMD!"
         "out",
         "dist"
       ],
-      "includeAgentDocs": true
+      "includeAgentDocs": true,
+      "placeRulesByScope": true
     }
   }
 }</code></pre>
@@ -403,6 +405,7 @@ echo "Hello from CodebookMD!"
             </ul>
           </li>
           <li><code>includeAgentDocs</code>: Find agent docs in their standard locations without listing those folders in <code>subFolderInclusions</code> (default: <code>true</code>). See <a href="#agent-docs">Agent Docs</a>.</li>
+          <li><code>placeRulesByScope</code>: Show a rule that is scoped to a folder under that folder, instead of where the rule file is kept (default: <code>true</code>). See <a href="#scoped-rules">Scoped Rules</a>.</li>
         </ul>
 
         <h4 id="agent-docs">Agent Docs: Skills, Rules and Prompts</h4>
@@ -421,6 +424,22 @@ echo "Hello from CodebookMD!"
           <li><span class="feature-highlight">Symlinked files appear once:</span> when <code>CLAUDE.md</code> is a link to <code>AGENTS.md</code>, the row shows <code>AGENTS.md</code> and names the other path beside it.</li>
           <li><span class="feature-highlight">Already listed, not repeated:</span> a file that one of your <code>subFolderInclusions</code> already shows stays where it is and is not added to a group as well.</li>
         </ul>
+
+        <h4 id="scoped-rules">Scoped Rules</h4>
+        <p>Some rule files only apply to part of a repository, and say so in their front matter:</p>
+        <pre><code>---
+applyTo: "extractor/**"
+---</code></pre>
+        <p>CodebookMD reads that scope and shows the rule where it applies. With a file under <code>extractor/</code> open, this rule is listed under the <strong>Extractor</strong> folder in Related Docs, and no longer under <strong>Rules</strong> at the repository root.</p>
+        <ul>
+          <li><span class="feature-highlight">Keys that are read:</span> <code>applyTo</code> (GitHub Copilot), <code>paths</code> (Claude Code), <code>globs</code> (Cursor, Continue, Windsurf) and <code>fileMatchPattern</code> (Kiro). A value can be a list, or one string with patterns separated by commas.</li>
+          <li><span class="feature-highlight">Which folder:</span> the part of the pattern before its first wildcard. <code>extractor/**/*.go</code> is about <code>extractor</code>. Patterns are read relative to the folder that holds the rule folder: for <code>.github/instructions/go.instructions.md</code>, that is the repository root.</li>
+          <li><span class="feature-highlight">Several patterns:</span> a rule that names several folders is shown under each one that is in the tree.</li>
+          <li><span class="feature-highlight">When a rule stays put:</span> a rule for a folder that is not in the tree, or for the whole repository (<code>**/*.ts</code>), stays under <strong>Rules</strong>.</li>
+          <li><span class="feature-highlight">Scope chip:</span> a scoped rule shows its first pattern beside its name, and all of them in the hover text along with where the file is kept.</li>
+          <li><span class="feature-highlight">Applies mark:</span> a green dot marks a rule whose pattern matches the open file itself. A rule for <code>extractor/**/*.go</code> is listed under Extractor while you edit a markdown file there, but is not marked.</li>
+        </ul>
+        <p>Turn <code>placeRulesByScope</code> off to leave every rule where its file is kept. The chip and the mark are shown either way.</p>
 
         <h4 id="doc-icons">Document Icons</h4>
         <p>Markdown files in My Notebooks get an icon for what they are: README, changelog, license, project policies (<code>CONTRIBUTING.md</code>, <code>SECURITY.md</code>), agent instructions, scoped rules, skills, prompts, agent definitions, and runnable notebooks (any markdown file with a code block CodebookMD can run). Icon colors come from your VS Code theme. Hovering a file shows the <code>description</code> from its front matter.</p>

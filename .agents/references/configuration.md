@@ -61,7 +61,7 @@ Execution history (`codebook-md.executionHistory.*`): `enabled`, `historyLimit`.
 
 Dynamic folder group (`codebook-md.dynamicFolderGroup.*`): `enabled`, `name`,
 `description`, `subFolderInclusions` (plain names, or patterns such as
-`tooling/**`), `exclusions`, `includeAgentDocs`.
+`tooling/**`), `exclusions`, `includeAgentDocs`, `placeRulesByScope`.
 
 Per-language objects: `codebook-md.go`, `.bash`, `.javascript`, `.typescript`,
 `.sql`, `.python`, `.http` — each with its own exec options plus a nested

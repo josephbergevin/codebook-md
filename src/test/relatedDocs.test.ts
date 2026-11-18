@@ -32,6 +32,7 @@ function settings(overrides: Partial<config.DynamicFolderGroupConfig> = {}): voi
     subFolderInclusions: [],
     exclusions: ['node_modules', 'out', 'dist'],
     includeAgentDocs: true,
+    placeRulesByScope: true,
     ...overrides,
   });
 }
@@ -78,6 +79,7 @@ beforeEach(() => {
   write('.agents/skills/extractor-deploy/references/checklist.md');
   write('.agents/references/architecture.md');
   write('.claude/commands/commit.md');
+  write('.claude/rules/style.md');
   write('.claude/agents/reviewer.md', '---\nname: code-reviewer\n---\n');
   write('tooling/tooling.md');
   write('tooling/deep/nested/notes.md');
@@ -204,9 +206,10 @@ describe('createDynamicFolderGroupFromPath', () => {
       expect(names).toEqual(['Skills', 'Rules', 'Prompts', 'Agent Definitions', 'Agent References']);
     });
 
-    test('list a scoped rule under Rules', () => {
+    test('list a rule with no scope under Rules', () => {
       const rules = folderAt(groupFor(openFile), suggested(root), 'Rules');
-      expect(rules.files.map(file => [file.name, file.docType])).toEqual([['Extractor Instructions', 'rule']]);
+      expect(rules.files.map(file => [file.name, file.docType])).toEqual([['Style', 'rule']]);
+      expect(rules.files[0].scope).toBeUndefined();
     });
 
     test('name an agent definition from its front matter', () => {
@@ -224,11 +227,85 @@ describe('createDynamicFolderGroupFromPath', () => {
     });
 
     test('are not repeated when an inclusion already shows them', () => {
-      settings({ subFolderInclusions: ['.github', 'instructions'] });
+      settings({ subFolderInclusions: ['.github', 'instructions'], placeRulesByScope: false });
       const group = groupFor(openFile);
       expect(fileNames(folderAt(group, suggested(root), 'Github', 'Instructions'))).toEqual(['Extractor Instructions']);
-      expect(folderNames(rootFolder(group))).not.toContain('Rules');
+      expect(fileNames(folderAt(group, suggested(root), 'Rules'))).toEqual(['Style']);
       expect(fileNames(rootFolder(group))).not.toContain('Copilot Instructions');
+    });
+  });
+
+  describe('scoped rules', () => {
+    const rule = (applyTo: string) => `---\napplyTo: "${applyTo}"\n---\n# Rule\n`;
+    const rulesAtRoot = (group: FolderGroup) => fileNames(folderAt(group, suggested(root), 'Rules'));
+
+    test('move to the folder they apply to', () => {
+      const group = groupFor(openFile);
+      expect(fileNames(folderAt(group, 'Extractor'))).toEqual(['Readme', 'Extractor Instructions']);
+      expect(rulesAtRoot(group)).toEqual(['Style']);
+    });
+
+    test('carry their patterns, the folder those are relative to, and both in the hover text', () => {
+      const moved = folderAt(groupFor(openFile), 'Extractor').files[1];
+      expect(moved).toMatchObject({
+        path: '.github/instructions/extractor.instructions.md',
+        docType: 'rule',
+        scope: ['extractor/**'],
+        scopeBase: '',
+      });
+      expect(moved.tooltip).toBe('Scoped rule\nApplies to: extractor/**\n.github/instructions/extractor.instructions.md');
+    });
+
+    test('stay where the file is kept when the setting is off', () => {
+      settings({ placeRulesByScope: false });
+      const group = groupFor(openFile);
+      expect(fileNames(folderAt(group, 'Extractor'))).toEqual(['Readme']);
+      expect(rulesAtRoot(group)).toEqual(['Extractor Instructions', 'Style']);
+      // The scope is still read, for the chip and the mark
+      expect(folderAt(group, suggested(root), 'Rules').files[0].scope).toEqual(['extractor/**']);
+    });
+
+    test('stay where the file is kept when their folder is not one of those shown', () => {
+      write('.github/instructions/parser.instructions.md', rule('parser/**'));
+      expect(rulesAtRoot(groupFor(openFile))).toEqual(['Parser Instructions', 'Style']);
+    });
+
+    test('stay where the file is kept when they cover their whole base folder', () => {
+      write('.github/instructions/go.instructions.md', rule('**/*.go'));
+      expect(rulesAtRoot(groupFor(openFile))).toEqual(['Go Instructions', 'Style']);
+    });
+
+    test('appear under each folder they name', () => {
+      write('.github/instructions/both.instructions.md', rule('parser/**,extractor/apiplayground/**, extractor/*.go'));
+      const group = groupFor(openFile);
+      expect(fileNames(folderAt(group, 'Apiplayground'))).toContain('Both Instructions');
+      expect(fileNames(folderAt(group, 'Extractor'))).toContain('Both Instructions');
+      expect(rulesAtRoot(group)).toEqual(['Style']);
+    });
+
+    test('read a brace group as several folders', () => {
+      write('.github/instructions/pair.instructions.md', rule('{parser,extractor}/**'));
+      expect(fileNames(folderAt(groupFor(openFile), 'Extractor'))).toContain('Pair Instructions');
+    });
+
+    test('read a list of paths from a Claude Code rule', () => {
+      write('.claude/rules/playground.md', '---\npaths:\n  - extractor/apiplayground/**\n---\n');
+      const group = groupFor(openFile);
+      expect(fileNames(folderAt(group, 'Apiplayground'))).toContain('Playground');
+      expect(rulesAtRoot(group)).toEqual(['Style']);
+    });
+
+    test('read patterns relative to the folder that holds the rule folder', () => {
+      write('extractor/.claude/rules/local.md', '---\npaths: apiplayground/**\n---\n');
+      const local = folderAt(groupFor(openFile), 'Apiplayground').files.find(file => file.name === 'Local');
+      expect(local).toMatchObject({ scope: ['apiplayground/**'], scopeBase: 'extractor' });
+    });
+
+    test('move out of a folder shown by an inclusion as well', () => {
+      settings({ subFolderInclusions: ['.github', 'instructions'] });
+      const group = groupFor(openFile);
+      expect(fileNames(folderAt(group, 'Extractor'))).toContain('Extractor Instructions');
+      expect(folderNames(folderAt(group, suggested(root), 'Github'))).toEqual([]);
     });
   });
 

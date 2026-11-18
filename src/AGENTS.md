@@ -19,6 +19,7 @@ Extension source. See the root [AGENTS.md](../AGENTS.md) for project-wide rules.
 | `docMeta.ts` | Cached per-file metadata: type, front matter name/description, row label and hover text |
 | `frontMatterFields.ts` | Front matter readers shared with the notebook renderer bundle (no `vscode` or Node imports) |
 | `glob.ts` | Small glob matcher for inclusion patterns and scoped rules |
+| `docScope.ts` | A rule's scope: reads `applyTo` / `paths` / `globs` / `fileMatchPattern`, works out the folders they are about, and tests a file against them |
 | `createNotebook.ts` | Notebook creation commands |
 | `prompt.ts` | Chat/prompt construction |
 | `taskListToggle.ts` | Applies task list checkbox clicks from the notebook renderer to the cell source |

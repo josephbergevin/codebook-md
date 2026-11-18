@@ -118,7 +118,8 @@ You can customize the dynamic folder group through VS Code settings (`settings.j
     "out",
     "dist"
   ],
-  "codebook-md.dynamicFolderGroup.includeAgentDocs": true
+  "codebook-md.dynamicFolderGroup.includeAgentDocs": true,
+  "codebook-md.dynamicFolderGroup.placeRulesByScope": true
 }
 ```
 
@@ -130,6 +131,7 @@ You can customize the dynamic folder group through VS Code settings (`settings.j
 - `subFolderInclusions`: Sub-folders to include when searching for markdown files (default: `[]`). A plain name such as `.github` is matched at every level. An entry with a slash or a wildcard is a pattern, read relative to each folder in the group: `tooling/**` adds `tooling` and everything below it, `docs/guides` adds exactly that folder.
 - `exclusions`: Patterns to exclude from the search (default: `["node_modules", "out", "dist"]`)
 - `includeAgentDocs`: Find agent docs in their standard locations without listing those folders in `subFolderInclusions` (default: `true`)
+- `placeRulesByScope`: Show a rule that is scoped to a folder under that folder, instead of where the rule file is kept (default: `true`). See [Scoped Rules](#scoped-rules).
 
 The dynamic folder group will only show folders that contain markdown files after applying exclusions, providing a clean and focused view of relevant documentation.
 
@@ -150,6 +152,27 @@ The dynamic folder group finds the markdown files written for coding agents and 
 - **Skills are shown by name.** Every skill file is called `SKILL.md`, so the row uses the `name` from the file's front matter, written as a title (`docker-cleanup` becomes "Docker Cleanup"), or the skill's folder name when there is none. Hover the row for the exact name, the description and the path.
 - **A skill with supporting files expands.** When a skill's folder holds other files - more markdown, scripts, templates - the skill is a folder: click its name to open `SKILL.md`, click the row to list the rest. Markdown opens as a notebook; other files open in their usual editor. Up to 50 non-markdown files are listed per skill.
 - **Symlinked files appear once.** When `CLAUDE.md` is a link to `AGENTS.md`, the row shows `AGENTS.md` and names the other path beside it.
+
+##### Scoped Rules
+
+Some rule files only apply to part of a repository, and say so in their front matter:
+
+```markdown
+---
+applyTo: "extractor/**"
+---
+```
+
+CodebookMD reads that scope and shows the rule where it applies. With a file under `extractor/` open, this rule is listed under the **Extractor** folder in Related Docs, and no longer under **Rules** at the repository root.
+
+- **Keys that are read:** `applyTo` (GitHub Copilot), `paths` (Claude Code), `globs` (Cursor, Continue, Windsurf) and `fileMatchPattern` (Kiro). A value can be a list, or one string with patterns separated by commas.
+- **Which folder:** the part of the pattern before its first wildcard. `extractor/**/*.go` is about `extractor`. Patterns are read relative to the folder that holds the rule folder: for `.github/instructions/go.instructions.md`, that is the repository root.
+- **Several patterns:** a rule that names several folders is shown under each one that is in the tree.
+- **When a rule stays put:** a rule for a folder that is not in the tree, or for the whole repository (`**/*.ts`), stays under **Rules**.
+- **Scope chip:** a scoped rule shows its first pattern beside its name, and all of them in the hover text along with where the file is kept.
+- **Applies mark:** a green dot marks a rule whose pattern matches the open file itself. A rule for `extractor/**/*.go` is listed under Extractor while you edit a markdown file there, but is not marked.
+
+Turn `placeRulesByScope` off to leave every rule where its file is kept. The chip and the mark are shown either way.
 
 ##### Document Icons
 

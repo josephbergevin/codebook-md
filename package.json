@@ -375,6 +375,12 @@
           "description": "Find agent docs in their standard locations and show them in the Dynamic Folder Group without listing their folders in subFolderInclusions: skills (SKILL.md), instruction files, scoped rules, prompts and agent definitions.",
           "scope": "window"
         },
+        "codebook-md.dynamicFolderGroup.placeRulesByScope": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show an agent rule that is scoped to a folder under that folder in the Dynamic Folder Group, instead of where the rule file is kept. The scope is read from the rule's front matter: applyTo, paths, globs or fileMatchPattern. For example, a rule with applyTo: \"extractor/**\" is listed under the extractor folder.",
+          "scope": "window"
+        },
         "codebook-md.output.showExecutableCodeInOutput": {
           "type": "boolean",
           "default": true,

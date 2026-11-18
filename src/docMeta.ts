@@ -143,10 +143,10 @@ export function docDisplayName(filePath: string, meta: DocMeta, fallback: string
 
 /**
  * docTooltip builds the hover text for a file's row: what kind of doc it is,
- * its exact name, its description, where it lives and any other paths that
- * lead to the same file.
+ * its exact name, its description, the files it is scoped to, where it lives
+ * and any other paths that lead to the same file.
  */
-export function docTooltip(meta: DocMeta, relativePath: string, aliases: string[] = []): string {
+export function docTooltip(meta: DocMeta, relativePath: string, aliases: string[] = [], scope: string[] = []): string {
   const lines: string[] = [];
   const info = docTypeInfo(meta.type);
   if (meta.type !== 'markdown') {
@@ -154,6 +154,9 @@ export function docTooltip(meta: DocMeta, relativePath: string, aliases: string[
   }
   if (meta.description) {
     lines.push(meta.description);
+  }
+  if (scope.length) {
+    lines.push(`Applies to: ${scope.join(', ')}`);
   }
   lines.push(relativePath);
   if (aliases.length) {

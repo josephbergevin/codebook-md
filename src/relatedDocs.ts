@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as config from './config';
 import { docDisplayName, docTooltip, getDocMeta } from './docMeta';
+import { readScopePatterns, ruleBaseDir, scopeFolders } from './docScope';
 import {
   agentDocGroupNames, agentDocLocations, agentDocRoots, isMarkdownFileName, skillFileName, skillRoots,
 } from './docTypes';
@@ -20,6 +21,9 @@ import { globLiteralPrefix, globToRegExp, isGlobPattern, toPosix } from './glob'
  *   that folder),
  * - the agent docs found in the standard locations under it: skills, rules,
  *   prompts, agent definitions and reference docs, each in a folder of its own.
+ *
+ * A rule whose front matter scopes it to a folder (`applyTo: "extractor/**"`)
+ * is then moved to that folder, when the folder is one of those shown.
  */
 
 // Never walked, whatever the exclusions say
@@ -42,6 +46,8 @@ interface PlacedDoc {
   // False when the path reaches the file through a symlink
   isDirect: boolean;
   aliases: string[];
+  // The node whose files hold this row
+  parent: DirNode;
   // The row is either a file or, for a skill with supporting files, a folder
   file?: FolderGroupFile;
   node?: DirNode;
@@ -202,7 +208,7 @@ function placeFile(top: TopFolder, node: DirNode, absPath: string): PlacedDoc | 
     return undefined;
   }
 
-  const doc: PlacedDoc = { absPath, realPath, isDirect, aliases: [], file: new FolderGroupFile('', '') };
+  const doc: PlacedDoc = { absPath, realPath, isDirect, aliases: [], parent: node, file: new FolderGroupFile('', '') };
   node.files.push(doc.file as FolderGroupFile);
   top.placed.set(realPath, doc);
   return doc;
@@ -404,13 +410,84 @@ function addAgentDocs(scan: Scan, top: TopFolder): void {
   }
 }
 
+interface RuleScope {
+  // The folder the patterns are relative to
+  baseDir: string;
+  patterns: string[];
+}
+
+/** ruleScope reads a rule file's scope, or returns undefined for a file that has none. */
+function ruleScope(absPath: string): RuleScope | undefined {
+  const meta = getDocMeta(absPath);
+  if (meta.type !== 'rule') {
+    return undefined;
+  }
+  const patterns = readScopePatterns(meta.fields);
+  if (patterns.length === 0) {
+    return undefined;
+  }
+  const baseDir = ruleBaseDir(absPath);
+  return baseDir ? { baseDir, patterns } : undefined;
+}
+
+/** dirKey puts a folder path in the form two paths to it are compared in. */
+function dirKey(dirPath: string): string {
+  const normalized = path.normalize(dirPath);
+  return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+}
+
+/**
+ * placeScopedRules moves each rule that is scoped to a folder out of the
+ * place it was found and into that folder, when that folder is one of the
+ * top-level folders. A rule scoped to several folders is shown under each one
+ * that is on screen. A rule scoped to a folder that is not shown, or to the
+ * whole of its base folder, stays where it was found.
+ */
+function placeScopedRules(tops: TopFolder[]): void {
+  const topByDir = new Map<string, TopFolder>(tops.map(top => [dirKey(top.dirPath), top]));
+
+  // Decide every move first: moving adds rows to the maps being read
+  const moves: { from: TopFolder; doc: PlacedDoc; targets: TopFolder[]; }[] = [];
+  for (const top of tops) {
+    for (const doc of top.placed.values()) {
+      const scope = doc.file ? ruleScope(doc.absPath) : undefined;
+      if (!scope) {
+        continue;
+      }
+      const targets: TopFolder[] = [];
+      for (const folder of scopeFolders(scope.patterns)) {
+        // An empty folder is the base folder itself: nowhere to move to
+        const target = folder ? topByDir.get(dirKey(path.join(scope.baseDir, folder))) : undefined;
+        if (target && !targets.includes(target)) {
+          targets.push(target);
+        }
+      }
+      if (targets.length > 0) {
+        moves.push({ from: top, doc, targets });
+      }
+    }
+  }
+
+  for (const move of moves) {
+    move.doc.parent.files = move.doc.parent.files.filter(file => file !== move.doc.file);
+    move.from.placed.delete(move.doc.realPath);
+    for (const target of move.targets) {
+      const moved = placeFile(target, target.root, move.doc.absPath);
+      if (moved) {
+        moved.aliases.push(...move.doc.aliases);
+      }
+    }
+  }
+}
+
 /** labelDoc fills in a row's label, type and hover text once every alias is known. */
 function labelDoc(scan: Scan, doc: PlacedDoc): void {
   const relative = (target: string) => toPosix(path.relative(scan.workspacePath, target));
   const meta = getDocMeta(doc.absPath);
   const baseName = path.basename(doc.absPath);
   const name = docDisplayName(doc.absPath, meta, suggestedDisplayName(baseName));
-  const tooltip = docTooltip(meta, relative(doc.absPath), doc.aliases.map(relative));
+  const scope = ruleScope(doc.absPath);
+  const tooltip = docTooltip(meta, relative(doc.absPath), doc.aliases.map(relative), scope?.patterns);
 
   // Name the other paths in the row itself when their file names differ
   const otherNames = Array.from(new Set(doc.aliases.map(alias => path.basename(alias)))).filter(alias => alias !== baseName);
@@ -422,6 +499,10 @@ function labelDoc(scan: Scan, doc: PlacedDoc): void {
     doc.file.docType = meta.type;
     doc.file.tooltip = tooltip;
     doc.file.hint = hint;
+    if (scope) {
+      doc.file.scope = scope.patterns;
+      doc.file.scopeBase = relative(scope.baseDir);
+    }
   } else if (doc.node) {
     doc.node.name = name;
   }
@@ -502,13 +583,17 @@ function buildTopFolder(scan: Scan, dirPath: string): TopFolder {
   if (scan.settings.includeAgentDocs && scan.workspacePath) {
     addAgentDocs(scan, top);
   }
-
-  top.placed.forEach(doc => labelDoc(scan, doc));
   return top;
 }
 
 function scanRelatedDocs(filePath: string, scan: Scan): FolderGroup | undefined {
   const tops = ancestorDirs(filePath, scan.workspacePath).map(dir => buildTopFolder(scan, dir));
+
+  // Rows are labelled last: a scoped rule may move between folders first
+  if (scan.settings.placeRulesByScope) {
+    placeScopedRules(tops);
+  }
+  tops.forEach(top => top.placed.forEach(doc => labelDoc(scan, doc)));
 
   // Folders with markdown of their own come first, as they always have
   const ordered = [...tops.filter(top => top.hasDirectMarkdown), ...tops.filter(top => !top.hasDirectMarkdown)];

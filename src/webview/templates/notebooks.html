@@ -185,8 +185,32 @@
         text-overflow: ellipsis;
       }
       .file-name:has(+ .row-hint),
+      .file-name:has(+ .scope-chip),
       .folder-name:has(+ .row-hint) {
         flex-grow: 0;
+      }
+      /* What a scoped rule applies to, e.g. extractor/** */
+      .scope-chip {
+        margin-left: 6px;
+        padding: 0 4px;
+        border: 1px solid currentColor;
+        border-radius: 4px;
+        font-family: var(--vscode-editor-font-family, monospace);
+        font-size: 0.8em;
+        color: var(--vscode-charts-orange);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      /* A scoped rule whose scope covers the open file */
+      .applies-mark {
+        flex: none;
+        width: 6px;
+        height: 6px;
+        margin-left: auto;
+        margin-right: 4px;
+        border-radius: 50%;
+        background-color: var(--vscode-charts-green);
       }
       /* The row of the file open in the editor */
       .file[data-active="true"],
