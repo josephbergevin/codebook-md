@@ -663,6 +663,28 @@ describe('NotebooksViewProvider messages', () => {
     expect(update).toHaveBeenCalledWith('dynamicFolderGroup.placeRulesByScope', false, vscode.ConfigurationTarget.Workspace);
   });
 
+  test('a drawer switch the window does not know yet offers a reload instead of an error', async () => {
+    // After an update without a window reload: declared by the extension,
+    // unknown to the window
+    const extensionsMock = vscode.extensions as unknown as { getExtension: jest.Mock; };
+    const showWarningMessage = vscode.window.showWarningMessage as jest.Mock;
+    const showErrorMessage = vscode.window.showErrorMessage as jest.Mock;
+    showWarningMessage.mockReset();
+    showErrorMessage.mockClear();
+    extensionsMock.getExtension.mockReturnValue({
+      packageJSON: JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', '..', 'package.json'), 'utf8')),
+    });
+    try {
+      send({ command: 'setSetting', key: 'dynamicFolderGroup.startCollapsed', value: true });
+      await new Promise(resolve => setImmediate(resolve));
+      expect(update).not.toHaveBeenCalled();
+      expect(showWarningMessage).toHaveBeenCalledWith(expect.stringContaining('Reload the window to finish'), 'Reload Window');
+      expect(showErrorMessage).not.toHaveBeenCalled();
+    } finally {
+      extensionsMock.getExtension.mockReset();
+    }
+  });
+
   test('a setting the drawers do not own is not written', async () => {
     send({ command: 'setSetting', key: 'execPath', value: '/tmp' });
     await new Promise(resolve => setImmediate(resolve));

@@ -38,7 +38,10 @@ interface Page {
 }
 
 function settingState(field: sideBarSettings.SettingField, value: unknown, extra: Partial<sideBarSettings.SettingState> = {}): sideBarSettings.SettingState {
-  return { ...field, value, defaultValue: value, source: 'default', isSetInScope: false, isOverridden: false, resetsTo: 'default', ...extra };
+  return {
+    ...field, value, defaultValue: value, source: 'default', isSetInScope: false, isOverridden: false, resetsTo: 'default',
+    needsReload: false, ...extra,
+  };
 }
 
 const relatedValues: Record<string, unknown> = {
@@ -73,6 +76,7 @@ function state(overrides: Partial<sideBarSettings.SideBarState> = {}): sideBarSe
     ],
     related: sideBarSettings.relatedFields.map(field => settingState(field, relatedValues[field.key])),
     aiDocs: sideBarSettings.aiDocsFields.map(field => settingState(field, aiDocsValues[field.key])),
+    needsReload: false,
     icons: ['folder', 'rocket', 'flame'],
     ...overrides,
   };
@@ -409,8 +413,58 @@ describe('the Side Bar Settings page', () => {
   });
 });
 
+// The window still has the previous version's settings; see sideBarSettings
+describe('the Side Bar Settings page in a window that needs a reload', () => {
+  const behind = () => state({
+    needsReload: true,
+    aiDocs: sideBarSettings.aiDocsFields.map(each => settingState(each, aiDocsValues[each.key], { needsReload: true })),
+  });
+
+  test('says nothing about reloading when every setting is known', () => {
+    const page = loadPage();
+    expect(page.document.getElementById('reload-notice')?.hidden).toBe(true);
+    expect(page.document.querySelectorAll('.field.needs-reload')).toHaveLength(0);
+  });
+
+  test('shows a notice whose button asks for a reload', () => {
+    const page = loadPage(behind());
+    const notice = page.document.getElementById('reload-notice');
+    expect(notice?.hidden).toBe(false);
+    expect(notice?.textContent).toContain('Reload the window to finish');
+    click(page, page.document.getElementById('reload-window'));
+    expect(page.posted).toEqual([{ command: 'reloadWindow' }]);
+  });
+
+  test('shows the options that are waiting with their real values, but they cannot be changed', () => {
+    const page = loadPage(behind(), 'aiDocs');
+    const waiting = field(page, 'aiDocs.includeUserDocs');
+    const toggle = waiting.querySelector<HTMLInputElement>('input[role="switch"]');
+    expect(toggle?.checked).toBe(true);
+    expect(toggle?.disabled).toBe(true);
+    expect(Array.from(waiting.querySelectorAll<HTMLButtonElement>('button')).every(button => button.disabled)).toBe(true);
+    expect(waiting.querySelector('.meta')?.textContent).toBe('Reload the window to change this');
+    expect(Array.from(page.document.querySelectorAll('#detail .field.needs-reload'))).toHaveLength(sideBarSettings.aiDocsFields.length);
+  });
+
+  test('leaves the options the window knows as they were', () => {
+    const page = loadPage(behind());
+    const known = field(page, 'dynamicFolderGroup.includeAgentDocs');
+    expect(known.classList.contains('needs-reload')).toBe(false);
+    expect(known.querySelector<HTMLInputElement>('input[role="switch"]')?.disabled).toBe(false);
+    expect(known.querySelector('.meta')?.textContent).toBe('Default');
+  });
+
+  test('the notice goes away when a newer state says every setting is known', () => {
+    const page = loadPage(behind());
+    page.receive({ command: 'state', state: state() });
+    expect(page.document.getElementById('reload-notice')?.hidden).toBe(true);
+  });
+});
+
 describe('handleSideBarSettingsMessage', () => {
   const executeCommand = vscode.commands.executeCommand as jest.Mock;
+  const showWarningMessage = vscode.window.showWarningMessage as jest.Mock;
+  const settled = () => new Promise(resolve => setImmediate(resolve));
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -418,7 +472,32 @@ describe('handleSideBarSettingsMessage', () => {
     // functions are cleared one by one
     executeCommand.mockClear();
     (vscode.window.showErrorMessage as jest.Mock).mockClear();
+    showWarningMessage.mockReset();
     mockedConfig.getCodebookConfigFilePath.mockReturnValue('/repo/.vscode/codebook-md.json');
+  });
+
+  test('offers a reload when a setting is waiting for one, and reloads when asked', async () => {
+    showWarningMessage.mockResolvedValueOnce('Reload Window');
+    mockedSettings.writeSetting.mockRejectedValueOnce(new sideBarSettings.ReloadNeededError());
+    await handleSideBarSettingsMessage({ command: 'setSetting', key: 'aiDocs.includeUserDocs', value: false });
+    await settled();
+    expect(showWarningMessage).toHaveBeenCalledWith(expect.stringContaining('Reload the window to finish'), 'Reload Window');
+    expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+    expect(executeCommand).toHaveBeenCalledWith('workbench.action.reloadWindow');
+  });
+
+  test('does not reload when the offer is dismissed', async () => {
+    showWarningMessage.mockResolvedValueOnce(undefined);
+    mockedSettings.applyGroupOrder.mockRejectedValueOnce(new sideBarSettings.ReloadNeededError());
+    await handleSideBarSettingsMessage({ command: 'setOrder', order: ['group:0', 'related'] });
+    await settled();
+    expect(showWarningMessage).toHaveBeenCalledTimes(1);
+    expect(executeCommand).not.toHaveBeenCalled();
+  });
+
+  test('the notice\'s button reloads the window', async () => {
+    await handleSideBarSettingsMessage({ command: 'reloadWindow' });
+    expect(executeCommand).toHaveBeenCalledWith('workbench.action.reloadWindow');
   });
 
   test('writes and resets settings at the scope that is selected', async () => {

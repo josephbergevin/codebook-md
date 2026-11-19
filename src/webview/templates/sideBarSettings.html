@@ -74,6 +74,49 @@
       .saved.on {
         opacity: 1;
       }
+      .notice {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 12px 0 0;
+        padding: 8px 12px;
+        max-width: 70ch;
+        border: 1px solid var(--vscode-inputValidation-warningBorder, var(--vscode-editorWarning-foreground));
+        background-color: var(--vscode-inputValidation-warningBackground, transparent);
+        color: var(--vscode-inputValidation-warningForeground, var(--vscode-foreground));
+        border-radius: 4px;
+      }
+      .notice[hidden] {
+        display: none;
+      }
+      .notice .codicon {
+        flex: none;
+        color: var(--vscode-editorWarning-foreground);
+      }
+      .notice p {
+        margin: 0;
+        flex: 1;
+      }
+      .notice button {
+        flex: none;
+        padding: 4px 10px;
+        border: none;
+        border-radius: 2px;
+        background-color: var(--vscode-button-background);
+        color: var(--vscode-button-foreground);
+        font: inherit;
+        cursor: pointer;
+      }
+      .notice button:hover {
+        background-color: var(--vscode-button-hoverBackground);
+      }
+      .notice button:focus-visible {
+        outline: 1px solid var(--vscode-focusBorder);
+        outline-offset: 2px;
+      }
+      .field.needs-reload > :not(.meta):not(.help) {
+        opacity: 0.6;
+      }
       .lead {
         margin: 12px 0 18px;
         max-width: 70ch;
@@ -401,6 +444,11 @@
       </div>
       <span class="saved" id="saved" role="status" aria-live="polite"></span>
     </header>
+    <div class="notice" id="reload-notice" role="status" hidden>
+      <span class="codicon codicon-warning" aria-hidden="true"></span>
+      <p>CodebookMD was updated. Reload the window to finish; until then, the greyed-out options cannot be changed.</p>
+      <button type="button" id="reload-window" data-fk="reload-window">Reload Window</button>
+    </div>
     <p class="lead">Changes apply as you make them, and the side bar shows the result. Options of the generated groups are VS Code settings, saved to the workspace or to your user settings. Folder groups you build are saved in <span id="config-file">.vscode/codebook-md.json</span>.</p>
     <main class="layout">
       <nav aria-label="Groups and views">
@@ -635,6 +683,10 @@
         }
 
         function metaEl(field) {
+          if (field.needsReload) {
+            // The window does not know this setting yet, so it cannot be written
+            return el("div", { class: "meta" }, [el("span", { text: "Reload the window to change this" })]);
+          }
           const parts = [el("span", { text: sourceText(field) })];
           if (field.isSetInScope) {
             parts.push(el("button", {
@@ -758,12 +810,18 @@
           } else {
             control = iconsEl(field.value, "Default", field.key, set);
           }
-          return el("div", { class: "field", "data-key": field.key }, [
+          const node = el("div", { class: field.needsReload ? "field needs-reload" : "field", "data-key": field.key }, [
             head,
             control,
             field.help ? el("p", { class: "help", text: field.help }) : null,
             metaEl(field),
           ]);
+          if (field.needsReload) {
+            node.querySelectorAll("input, button").forEach(function (item) {
+              item.disabled = true;
+            });
+          }
+          return node;
         }
 
         function plainField(label, control) {
@@ -858,6 +916,7 @@
           if (state.configFile) {
             document.getElementById("config-file").textContent = state.configFile;
           }
+          document.getElementById("reload-notice").hidden = state.needsReload !== true;
 
           groupsList.replaceChildren.apply(groupsList, state.groups.map(function (group) {
             const row = Object.assign({ defaultIcon: group.kind === "auto" ? "target" : "folder" }, group);
@@ -900,6 +959,10 @@
             showSaved();
           }
         }
+
+        document.getElementById("reload-window").addEventListener("click", function () {
+          post({ command: "reloadWindow" });
+        });
 
         document.getElementById("scope").addEventListener("click", function (event) {
           const button = event.target.closest ? event.target.closest("button[data-scope]") : null;

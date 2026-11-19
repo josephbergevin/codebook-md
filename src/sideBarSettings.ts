@@ -1,4 +1,4 @@
-import { ConfigurationTarget, workspace } from 'vscode';
+import { ConfigurationTarget, extensions, workspace } from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { aiDocGroups } from './aiDocs';
@@ -60,6 +60,9 @@ export interface SettingState extends SettingField {
   resetsTo: 'user' | 'default';
   // Looking at user settings while the workspace sets something else
   isOverridden: boolean;
+  // The window does not know this setting yet: the extension was updated and
+  // only the extension host restarted. It cannot be written until a reload.
+  needsReload: boolean;
 }
 
 /** The id of the generated group in every list of groups. */
@@ -92,6 +95,8 @@ export interface SideBarState {
   groups: GroupState[];
   related: SettingState[];
   aiDocs: SettingState[];
+  // Some settings cannot be changed until the window is reloaded
+  needsReload: boolean;
   // Icons offered for a group
   icons: string[];
 }
@@ -182,6 +187,63 @@ function hasWorkspace(): boolean {
   return (workspace.workspaceFolders?.length ?? 0) > 0;
 }
 
+const extensionId = 'josephbergevin.codebook-md';
+
+/**
+ * ReloadNeededError is thrown when a setting cannot be written because the
+ * window has not picked it up yet. After an update, VS Code can restart the
+ * extension without reloading the window; the new code then runs against the
+ * previous version's list of settings.
+ */
+export class ReloadNeededError extends Error {
+  constructor() {
+    super('CodebookMD was updated. Reload the window to change this setting.');
+    this.name = 'ReloadNeededError';
+  }
+}
+
+/** manifestDefault returns the default this extension's package.json declares for a setting. */
+function manifestDefault(key: string): unknown {
+  const configuration = extensions.getExtension(extensionId)?.packageJSON?.contributes?.configuration;
+  // `contributes.configuration` is one section or a list of them
+  const sections: unknown[] = Array.isArray(configuration) ? configuration : [configuration];
+  for (const section of sections) {
+    const properties = (section as { properties?: Record<string, { default?: unknown; }>; } | undefined)?.properties;
+    const declared = properties?.[`codebook-md.${key}`];
+    if (declared && declared.default !== undefined) {
+      return declared.default;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * settingNeedsReload reports whether a setting is declared by this version of
+ * the extension but unknown to the window, which is the case between an
+ * update and the next window reload.
+ * @param key the key below `codebook-md.`
+ */
+export function settingNeedsReload(key: string): boolean {
+  const inspected = workspace.getConfiguration('codebook-md').inspect<unknown>(key);
+  return inspected?.defaultValue === undefined && manifestDefault(key) !== undefined;
+}
+
+/** Writes or removes one setting, naming the cause when the window is behind. */
+async function updateSetting(key: string, value: unknown, scope: SettingScope): Promise<void> {
+  if (settingNeedsReload(key)) {
+    throw new ReloadNeededError();
+  }
+  try {
+    await workspace.getConfiguration('codebook-md').update(key, value, targetFor(scope));
+  } catch (error) {
+    // The same cause, reported by VS Code itself
+    if (/not a registered configuration/i.test(error instanceof Error ? error.message : String(error))) {
+      throw new ReloadNeededError();
+    }
+    throw error;
+  }
+}
+
 /**
  * defaultScope is where a change is written when the UI offers no choice: the
  * workspace when one is open, otherwise the user's own settings.
@@ -235,7 +297,9 @@ export function readSetting(field: SettingField, scope: SettingScope): SettingSt
   const inspected = workspace.getConfiguration('codebook-md').inspect<unknown>(field.key);
   const workspaceValue = inspected?.workspaceFolderValue ?? inspected?.workspaceValue;
   const userValue = inspected?.globalValue;
-  const defaultValue = inspected?.defaultValue;
+  // A window that is behind has no default; the manifest's is the real one
+  const declaredDefault = inspected?.defaultValue === undefined ? manifestDefault(field.key) : undefined;
+  const defaultValue = inspected?.defaultValue ?? declaredDefault;
 
   const source: SettingSource = workspaceValue !== undefined ? 'workspace' : (userValue !== undefined ? 'user' : 'default');
   const userView = userValue ?? defaultValue;
@@ -248,6 +312,7 @@ export function readSetting(field: SettingField, scope: SettingScope): SettingSt
     isSetInScope: isUserScope ? userValue !== undefined : workspaceValue !== undefined,
     resetsTo: !isUserScope && userValue !== undefined ? 'user' : 'default',
     isOverridden: isUserScope && workspaceValue !== undefined,
+    needsReload: declaredDefault !== undefined,
   };
 }
 
@@ -267,7 +332,7 @@ export async function writeSetting(key: unknown, value: unknown, scope: SettingS
   }
   // A name cannot be empty: clearing it goes back to the level below
   const stored = field.kind === 'text' && field.key.endsWith('.name') && normalized === '' ? undefined : normalized;
-  await workspace.getConfiguration('codebook-md').update(field.key, stored, targetFor(scope));
+  await updateSetting(field.key, stored, scope);
   return true;
 }
 
@@ -280,7 +345,7 @@ export async function resetSetting(key: unknown, scope: SettingScope): Promise<b
   if (typeof key !== 'string' || !fieldsByKey.has(key)) {
     return false;
   }
-  await workspace.getConfiguration('codebook-md').update(key, undefined, targetFor(scope));
+  await updateSetting(key, undefined, scope);
   return true;
 }
 
@@ -354,13 +419,16 @@ function configFileLabel(configPath: string): string {
 export function sideBarState(scope: SettingScope): SideBarState {
   const configPath = config.getCodebookConfigFilePath();
   const effectiveScope: SettingScope = hasWorkspace() ? scope : 'user';
+  const related = relatedFields.map(field => readSetting(field, effectiveScope));
+  const aiDocs = aiDocsFields.map(field => readSetting(field, effectiveScope));
   return {
     scope: effectiveScope,
     hasWorkspace: hasWorkspace(),
     configFile: configFileLabel(configPath),
     groups: groupStates(readCodebookConfig(configPath), config.getDynamicFolderGroupConfig()),
-    related: relatedFields.map(field => readSetting(field, effectiveScope)),
-    aiDocs: aiDocsFields.map(field => readSetting(field, effectiveScope)),
+    related,
+    aiDocs,
+    needsReload: [...related, ...aiDocs].some(field => field.needsReload),
     icons: groupIconChoices,
   };
 }
@@ -453,6 +521,14 @@ export async function applyGroupOrder(configPath: string, order: unknown, scope:
     return false;
   }
 
+  const position = ids.indexOf(relatedGroupId);
+  const settings = config.getDynamicFolderGroupConfig();
+  const movesRelated = position !== relatedPosition(settings.position, groups.length);
+  // Checked before anything is written, so an order is never half saved
+  if (movesRelated && settingNeedsReload(positionKey)) {
+    throw new ReloadNeededError();
+  }
+
   const handBuilt = ids.filter(id => id !== relatedGroupId).map(id => Number(id.slice('group:'.length)));
   const isMoved = handBuilt.some((from, to) => from !== to);
   if (codebookConfig && isMoved) {
@@ -463,16 +539,14 @@ export async function applyGroupOrder(configPath: string, order: unknown, scope:
     writeCodebookConfig(configPath, codebookConfig);
   }
 
-  const position = ids.indexOf(relatedGroupId);
-  const settings = config.getDynamicFolderGroupConfig();
-  if (position !== relatedPosition(settings.position, groups.length)) {
+  if (movesRelated) {
     // When the level below already gives this position, the value at this
     // scope is removed rather than repeated
     const inspected = workspace.getConfiguration('codebook-md').inspect<number>(positionKey);
     const below = scope === 'workspace' && hasWorkspace()
       ? (inspected?.globalValue ?? inspected?.defaultValue ?? 0)
       : (inspected?.defaultValue ?? 0);
-    await workspace.getConfiguration('codebook-md').update(positionKey, position === below ? undefined : position, targetFor(scope));
+    await updateSetting(positionKey, position === below ? undefined : position, scope);
   }
   return true;
 }

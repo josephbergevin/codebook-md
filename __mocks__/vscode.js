@@ -55,6 +55,9 @@ const vscode = {
       writeText: jestMock.fn(async () => undefined),
     },
   },
+  extensions: {
+    getExtension: jestMock.fn(() => undefined),
+  },
   commands: {
     registerCommand: jestMock.fn(),
     executeCommand: jestMock.fn(),

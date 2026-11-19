@@ -35,6 +35,20 @@ export function isSideBarSettingsOpen(): boolean {
   return currentPanel !== undefined;
 }
 
+/**
+ * offerReload tells the user that a setting cannot be saved until the window
+ * is reloaded, and reloads it when they choose to.
+ */
+export async function offerReload(): Promise<void> {
+  const reload = 'Reload Window';
+  const choice = await window.showWarningMessage(
+    'CodebookMD was updated. Reload the window to finish; this setting can be changed after that.', reload
+  );
+  if (choice === reload) {
+    await commands.executeCommand('workbench.action.reloadWindow');
+  }
+}
+
 function postState(saved = false): void {
   currentPanel?.webview.postMessage({ command: 'state', state: sideBarSettings.sideBarState(currentScope), saved });
 }
@@ -92,8 +106,18 @@ export async function handleSideBarSettingsMessage(message: Record<string, unkno
           await commands.executeCommand('vscode.open', Uri.file(configPath));
         }
         break;
+      case 'reloadWindow':
+        // The button in the notice shown while settings wait for a reload
+        await commands.executeCommand('workbench.action.reloadWindow');
+        break;
     }
   } catch (error) {
+    if (error instanceof sideBarSettings.ReloadNeededError) {
+      // Nothing was written; show what is stored and say what will fix it
+      postState();
+      void offerReload();
+      return;
+    }
     console.error('Side Bar Settings: could not apply the change:', error);
     window.showErrorMessage(`Codebook: could not save the setting - ${error instanceof Error ? error.message : error}`);
     // Show what is really stored, not what the page tried to set

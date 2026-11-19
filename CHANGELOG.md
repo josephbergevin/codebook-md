@@ -4,6 +4,28 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.24.1] - 2026-11-19
+
+### Fixed
+
+- **Side Bar Settings could not save right after an update.** Saving
+  an option failed with "is not a registered configuration", and
+  options that were new in 0.24.0 showed as off or empty. After an
+  update, VS Code can restart the extension without reloading the
+  window; the window then still has the previous version's list of
+  settings. The panel now shows a notice with a **Reload Window**
+  button, greys out the options that are waiting, and shows their
+  real values. Where a save would hit the problem - an option in the
+  panel, the eye on a row, moving the generated group, or a switch
+  in a group's drawer - you are offered a reload instead of the
+  error. Everything works as before once the window has reloaded.
+
+### Changed
+
+- **The Marketplace listing mentions agent docs.** The description
+  and keywords now cover `AGENTS.md`, `CLAUDE.md`, skills and rules,
+  so the extension can be found by searching for them.
+
 ## [0.24.0] - 2026-11-19
 
 ### Added

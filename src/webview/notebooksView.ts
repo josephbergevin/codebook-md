@@ -20,7 +20,7 @@ import { activeFilePaths, samePaths } from './activeFile';
 import { isMarkdownFileName } from '../docTypes';
 import * as sideBarSettings from '../sideBarSettings';
 import { folderGroupDrawerHtml, gearButtonHtml, groupIconHtml, relatedDrawerHtml } from './groupDrawerHtml';
-import { refreshSideBarSettingsPanel } from './sideBarSettingsPanel';
+import { offerReload, refreshSideBarSettingsPanel } from './sideBarSettingsPanel';
 import {
   activeRowAttrs, appliesMarkHtml, docIconHtml, escapeHtml, hintHtml, issueMarkHtml,
   plainFileIconHtml, scopeChipHtml, titleAttr,
@@ -277,6 +277,12 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
     try {
       await sideBarSettings.writeSetting(key, value, sideBarSettings.defaultScope());
     } catch (error) {
+      if (error instanceof sideBarSettings.ReloadNeededError) {
+        // Nothing was saved: draw the drawer as it is stored again
+        this._updateWebview();
+        void offerReload();
+        return;
+      }
       console.error('Could not save the side bar setting:', error);
       window.showErrorMessage(`Codebook: could not save the setting - ${error instanceof Error ? error.message : error}`);
     }

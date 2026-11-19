@@ -249,6 +249,7 @@ Everything about the side bar can be set from the side bar itself. Changes apply
 - **Per group:** name, description, icon, start collapsed. The generated group and the AI Docs view also let you choose which doc types they show, for example Related Docs without skills.
 - **Workspace or User.** Options of the generated group and the AI Docs view are VS Code settings. The switch at the top chooses where a change is saved. Each option says where its current value comes from (workspace setting, user setting or default) and can be reset. The gear beside an option opens it in the Settings UI.
 - **Folder groups you build** are saved in `.vscode/codebook-md.json`, which has one level, so they have no Workspace/User switch.
+- **After an update.** If VS Code restarts the extension without reloading the window, options that are new in that version are greyed out and the panel offers **Reload Window**. They can be changed once the window has reloaded.
 
 **Keyboard in My Notebooks.** The tree works from the keyboard the way AI Docs does: Up and Down move between rows, Right and Left open and close a folder or group, Enter opens a file, Home and End jump to the ends. Tab from a row reaches its buttons. On a skill that lists supporting files, Enter opens the skill and Space shows or hides the list.
 
