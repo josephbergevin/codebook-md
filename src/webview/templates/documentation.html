@@ -238,7 +238,7 @@ echo "Hello from CodebookMD!"
 
 ## Quick Tips
 
-- Use Configure (⚙️) below a code cell to configure it
+- Use the gear (⚙️) below a code cell to configure it
 - Hover over file links to preview their content
 - Add this notebook to your My Notebooks view for quick access</code></pre>
         
@@ -578,7 +578,7 @@ applyTo: "extractor/**"
         <h4>Using the Configuration Modal</h4>
         <p>The recommended way to configure code blocks is through the intuitive configuration modal:</p>
         <ol>
-          <li>Click <strong><span class="codicon codicon-gear"></span> Configure</strong> in the status bar below a code cell</li>
+          <li>Click the gear <span class="codicon codicon-gear" title="Configure"></span> in the status bar below a code cell</li>
           <li>This opens a configuration panel beside the notebook for the selected cell</li>
           <li>Change any option - each one shows where its value comes from</li>
           <li>Click <strong>Save</strong> in the panel's toolbar (or press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd> in the panel)</li>
@@ -674,7 +674,7 @@ fmt.Println("Hello, CodebookMD!")
         <h5>Configuring Go Code Blocks</h5>
         <p>Configure Go code blocks easily through the configuration modal:</p>
         <ol>
-          <li>Click <strong>Configure</strong> in the status bar below the code cell</li>
+          <li>Click the gear <span class="codicon codicon-gear" title="Configure"></span> in the status bar below the code cell</li>
           <li>Adjust settings in the Go-specific configuration section</li>
           <li>Click "Save Configuration" to apply your changes</li>
         </ol>
@@ -747,7 +747,7 @@ console.log(greeting);
         <h5>Configuring JavaScript/TypeScript Code Blocks</h5>
         <p>Configure JavaScript/TypeScript code blocks through the configuration modal:</p>
         <ol>
-          <li>Click <strong>Configure</strong> in the status bar below the code cell</li>
+          <li>Click the gear <span class="codicon codicon-gear" title="Configure"></span> in the status bar below the code cell</li>
           <li>Adjust settings in the JavaScript/TypeScript-specific configuration section</li>
           <li>Click "Save Configuration" to apply your changes</li>
         </ol>
@@ -792,7 +792,7 @@ print("Hello from Python!")
         <h5>Configuring Python Code Blocks</h5>
         <p>Configure Python code blocks through the configuration modal:</p>
         <ol>
-          <li>Click <strong>Configure</strong> in the status bar below the code cell</li>
+          <li>Click the gear <span class="codicon codicon-gear" title="Configure"></span> in the status bar below the code cell</li>
           <li>Adjust settings in the Python-specific configuration section</li>
           <li>Click "Save Configuration" to apply your changes</li>
         </ol>
@@ -841,7 +841,7 @@ echo "Hello from Bash!"
         <h5>Configuring Bash/Shell Code Blocks</h5>
         <p>Configure Bash/Shell code blocks through the configuration modal:</p>
         <ol>
-          <li>Click <strong>Configure</strong> in the status bar below the code cell</li>
+          <li>Click the gear <span class="codicon codicon-gear" title="Configure"></span> in the status bar below the code cell</li>
           <li>Adjust settings in the Bash/Shell-specific configuration section</li>
           <li>Click "Save Configuration" to apply your changes</li>
         </ol>
@@ -874,7 +874,7 @@ echo "Hello from Bash!"
 
         <h5 id="exec-path">Where a cell runs</h5>
         <p>Every code cell runs in a directory. By default that is the <code>codebook-md.execPath</code> setting (<code>./codebook-md/</code>, resolved next to the markdown file), and it is shown at the left of the cell's status bar, below the code.</p>
-        <p>To change it for one cell, click that path (or <strong>Configure</strong>) and set <strong>Execution path</strong>. A relative path is taken from your workspace folder, so <code>scripts/db</code> means the same thing on every machine; an absolute path is used as it is. Clear the field to follow the setting again.</p>
+        <p>To change it for one cell, click that path (or the gear <span class="codicon codicon-gear" title="Configure"></span>) and set <strong>Execution path</strong>. A relative path is taken from your workspace folder, so <code>scripts/db</code> means the same thing on every machine; an absolute path is used as it is. Clear the field to follow the setting again.</p>
 
         <h5 id="shell-session">Persistent Shell Sessions</h5>
         <p>By default every shell cell runs in a fresh process, so a <code>cd</code> or <code>export</code> in one cell is gone by the next. Turn on a persistent session and shell cells run in one long-lived shell per notebook instead - like typing into a terminal:</p>
@@ -934,7 +934,7 @@ SELECT 'Hello from SQL!' AS greeting;
         <h5>Configuring SQL Code Blocks</h5>
         <p>Configure SQL code blocks through the configuration modal:</p>
         <ol>
-          <li>Click <strong>Configure</strong> in the status bar below the code cell</li>
+          <li>Click the gear <span class="codicon codicon-gear" title="Configure"></span> in the status bar below the code cell</li>
           <li>Adjust settings in the SQL-specific configuration section</li>
           <li>Click "Save Configuration" to apply your changes</li>
         </ol>
@@ -999,7 +999,7 @@ Authorization: Bearer {{YOUR_TOKEN}}
         <h5>Configuring HTTP Code Blocks</h5>
         <p>Configure HTTP code blocks through the configuration modal:</p>
         <ol>
-          <li>Click <strong>Configure</strong> in the status bar below the code cell</li>
+          <li>Click the gear <span class="codicon codicon-gear" title="Configure"></span> in the status bar below the code cell</li>
           <li>Adjust settings in the HTTP-specific configuration section</li>
           <li>Click "Save Configuration" to apply your changes</li>
         </ol>
@@ -1096,7 +1096,7 @@ Authorization: Bearer {{YOUR_TOKEN}}
         <h4>Automatic Configuration</h4>
         <p>Configuration files are created and managed automatically:</p>
         <ol>
-          <li>Open any code block's configuration modal by clicking <strong>Configure</strong> below the cell</li>
+          <li>Open any code block's configuration modal by clicking the gear <span class="codicon codicon-gear" title="Configure"></span> below the cell</li>
           <li>Adjust your settings using the intuitive interface</li>
           <li>Click <strong>Save</strong> to apply changes</li>
           <li>Settings are automatically saved to the appropriate JSON file</li>
@@ -1188,7 +1188,7 @@ Authorization: Bearer {{YOUR_TOKEN}}
         <h3>Accessing Execution History</h3>
         <p>To view and manage execution history for your code blocks:</p>
         <ol>
-          <li>Open the configuration modal for any code block by clicking <strong>Configure</strong> below the cell</li>
+          <li>Open the configuration modal for any code block by clicking the gear <span class="codicon codicon-gear" title="Configure"></span> below the cell</li>
           <li>Navigate to the <strong>"Execution History"</strong> section</li>
           <li>The history will automatically load, displaying all past executions for that cell</li>
         </ol>

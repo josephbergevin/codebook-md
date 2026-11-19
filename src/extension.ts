@@ -642,8 +642,10 @@ export async function activate(context: ExtensionContext) {
         }
 
         items.push({
-          text: '$(gear) Configure',
+          // Icon only; the tooltip and the accessible label carry the name
+          text: '$(gear)',
           tooltip: 'Configure how this code block runs and shows its output',
+          accessibilityInformation: { label: 'Configure Code Block', role: 'button' },
           command: {
             title: 'Configure Code Block',
             command: 'codebook-md.openCodeBlockConfig',
