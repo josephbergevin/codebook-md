@@ -6,7 +6,8 @@ import * as config from '../config';
 import { CodebookConfig } from '../folders';
 import {
   aiDocsFields, applyGroupOrder, defaultScope, groupIconChoices, groupStates, isIconName, normalizeSettingValue,
-  readSetting, relatedFields, relatedPosition, resetSetting, SettingField, sideBarState, updateFolderGroup, writeSetting,
+  readSetting, relatedFields, relatedPosition, ReloadNeededError, resetSetting, SettingField, settingNeedsReload, sideBarState,
+  updateFolderGroup, writeSetting,
 } from '../sideBarSettings';
 
 jest.mock('../config', () => ({
@@ -21,6 +22,8 @@ const workspaceMock = vscode.workspace as unknown as {
   workspaceFolders: unknown[];
 };
 const originalGetConfiguration = workspaceMock.getConfiguration.getMockImplementation();
+const extensionsMock = vscode.extensions as unknown as { getExtension: jest.Mock; };
+const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf8'));
 
 interface Inspected {
   defaultValue?: unknown;
@@ -88,6 +91,7 @@ beforeEach(() => {
 afterEach(() => {
   workspaceMock.workspaceFolders = [];
   workspaceMock.getConfiguration.mockImplementation(originalGetConfiguration);
+  extensionsMock.getExtension.mockReset();
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -388,5 +392,95 @@ describe('applyGroupOrder', () => {
     fs.rmSync(configPath);
     expect(await applyGroupOrder(configPath, ['related'], 'workspace')).toBe(true);
     expect(update).not.toHaveBeenCalled();
+  });
+});
+
+// After an update VS Code can restart the extension without reloading the
+// window. The new code then runs while the window still has the previous
+// version's settings: the manifest declares a setting that `inspect` knows
+// nothing about.
+describe('a window that is behind the installed version', () => {
+  const registered = (key: string): Inspected => ({ defaultValue: manifest.contributes.configuration.properties[`codebook-md.${key}`].default });
+
+  beforeEach(() => {
+    extensionsMock.getExtension.mockReturnValue({ packageJSON: manifest });
+    // Settings 0.23.0 already had are known; the ones added since are not
+    stored = {
+      'dynamicFolderGroup.enabled': registered('dynamicFolderGroup.enabled'),
+      'dynamicFolderGroup.name': registered('dynamicFolderGroup.name'),
+    };
+  });
+
+  test('finds the settings the window does not know yet', () => {
+    expect(settingNeedsReload('aiDocs.includeUserDocs')).toBe(true);
+    expect(settingNeedsReload('dynamicFolderGroup.position')).toBe(true);
+    expect(settingNeedsReload('dynamicFolderGroup.enabled')).toBe(false);
+    expect(extensionsMock.getExtension).toHaveBeenCalledWith('josephbergevin.codebook-md');
+  });
+
+  test('a setting the manifest does not declare is not waiting for anything', () => {
+    expect(settingNeedsReload('noSuchSetting')).toBe(false);
+  });
+
+  test('nothing is waiting when the extension cannot be found', () => {
+    extensionsMock.getExtension.mockReturnValue(undefined);
+    expect(settingNeedsReload('aiDocs.includeUserDocs')).toBe(false);
+  });
+
+  test('reads a manifest whose configuration is a list of sections', () => {
+    const properties = manifest.contributes.configuration.properties;
+    extensionsMock.getExtension.mockReturnValue({ packageJSON: { contributes: { configuration: [{ properties: {} }, { properties }] } } });
+    expect(settingNeedsReload('aiDocs.includeUserDocs')).toBe(true);
+  });
+
+  test('shows the real default instead of an empty one, and says a reload is needed', () => {
+    expect(readSetting(field('aiDocs.includeUserDocs'), 'workspace')).toMatchObject({
+      value: true, defaultValue: true, source: 'default', needsReload: true,
+    });
+    expect(readSetting(field('aiDocs.exclusions'), 'workspace')).toMatchObject({
+      value: ['node_modules', 'out', 'dist'], needsReload: true,
+    });
+    expect(readSetting(field('dynamicFolderGroup.enabled'), 'workspace')).toMatchObject({ value: true, needsReload: false });
+  });
+
+  test('the panel is told that a reload is needed', () => {
+    expect(sideBarState('workspace').needsReload).toBe(true);
+    stored = Object.fromEntries([...relatedFields, ...aiDocsFields].map(each => [each.key, registered(each.key)]));
+    expect(sideBarState('workspace').needsReload).toBe(false);
+  });
+
+  test('does not try to write a setting the window does not know', async () => {
+    await expect(writeSetting('aiDocs.includeUserDocs', false, 'workspace')).rejects.toBeInstanceOf(ReloadNeededError);
+    await expect(resetSetting('aiDocs.enabled', 'workspace')).rejects.toBeInstanceOf(ReloadNeededError);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  test('still writes the settings the window does know', async () => {
+    expect(await writeSetting('dynamicFolderGroup.enabled', false, 'workspace')).toBe(true);
+    expect(update).toHaveBeenCalledWith('dynamicFolderGroup.enabled', false, vscode.ConfigurationTarget.Workspace);
+  });
+
+  test('names the cause when VS Code itself refuses the setting', async () => {
+    update.mockRejectedValueOnce(new Error('Unable to write to Workspace Settings because codebook-md.dynamicFolderGroup.enabled is not a registered configuration.'));
+    await expect(writeSetting('dynamicFolderGroup.enabled', false, 'workspace')).rejects.toBeInstanceOf(ReloadNeededError);
+  });
+
+  test('passes any other failure on as it is', async () => {
+    update.mockRejectedValueOnce(new Error('settings are read-only'));
+    await expect(writeSetting('dynamicFolderGroup.enabled', false, 'workspace')).rejects.toThrow('settings are read-only');
+  });
+
+  test('a new order that moves the generated group is refused before anything is saved', async () => {
+    writeGroups([group('A'), group('B')]);
+    const before = fs.readFileSync(configPath, 'utf8');
+    await expect(applyGroupOrder(configPath, ['group:1', 'related', 'group:0'], 'workspace')).rejects.toBeInstanceOf(ReloadNeededError);
+    expect(fs.readFileSync(configPath, 'utf8')).toBe(before);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  test('hand-built groups can still be reordered among themselves', async () => {
+    writeGroups([group('A'), group('B')]);
+    expect(await applyGroupOrder(configPath, ['related', 'group:1', 'group:0'], 'workspace')).toBe(true);
+    expect(readGroups().map(each => each.name)).toEqual(['B', 'A']);
   });
 });
