@@ -396,6 +396,164 @@
         display: none;
       }
 
+      /* A group's own icon, its settings gear and the drawer the gear opens */
+      .group-icon {
+        font-size: 16px;
+        margin-right: 6px;
+        color: var(--vscode-sideBarTitle-foreground);
+      }
+      .folder-group-title {
+        padding-right: 26px;
+      }
+      .gear-button {
+        position: absolute;
+        top: 8px;
+        right: 6px;
+        margin: 0;
+        padding: 3px;
+        opacity: 0.7;
+      }
+      .gear-button:hover,
+      .gear-button:focus-visible,
+      .gear-button[aria-expanded="true"] {
+        opacity: 1;
+        background-color: var(--vscode-toolbar-hoverBackground);
+      }
+      .group-drawer {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        padding: 10px 12px 12px;
+        border-bottom: 1px solid var(--vscode-panel-border);
+      }
+      .group-drawer[hidden] {
+        display: none;
+      }
+      .drawer-switch {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+      }
+      .drawer-switch input {
+        appearance: none;
+        -webkit-appearance: none;
+        flex: none;
+        position: relative;
+        width: 28px;
+        height: 16px;
+        margin: 0;
+        border-radius: 8px;
+        border: 1px solid var(--vscode-checkbox-border, var(--vscode-panel-border));
+        background-color: var(--vscode-input-background);
+        cursor: pointer;
+      }
+      .drawer-switch input::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: var(--vscode-descriptionForeground);
+        transition: transform 0.12s ease;
+      }
+      .drawer-switch input:checked {
+        background-color: var(--vscode-button-background);
+        border-color: var(--vscode-button-background);
+      }
+      .drawer-switch input:checked::after {
+        transform: translateX(12px);
+        background-color: var(--vscode-button-foreground);
+      }
+      .drawer-field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .drawer-label {
+        font-size: 0.85em;
+        color: var(--vscode-descriptionForeground);
+      }
+      .drawer-input,
+      .chip-input {
+        min-width: 0;
+        padding: 3px 6px;
+        border: 1px solid var(--vscode-input-border, transparent);
+        border-radius: 2px;
+        background-color: var(--vscode-input-background);
+        color: var(--vscode-input-foreground);
+        font-family: inherit;
+        font-size: inherit;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        max-width: 100%;
+        padding: 1px 2px 1px 7px;
+        border-radius: 10px;
+        background-color: var(--vscode-badge-background);
+        color: var(--vscode-badge-foreground);
+        font-size: 0.85em;
+      }
+      .chip-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .chip-remove {
+        display: inline-flex;
+        padding: 1px;
+        border: none;
+        border-radius: 50%;
+        background: none;
+        color: inherit;
+        cursor: pointer;
+      }
+      .chip-remove .codicon {
+        font-size: 12px;
+      }
+      .chip-input {
+        flex: 1;
+        min-width: 90px;
+      }
+      .drawer-links {
+        display: flex;
+        gap: 14px;
+      }
+      .drawer-link {
+        padding: 0;
+        border: none;
+        background: none;
+        color: var(--vscode-textLink-foreground);
+        font-family: inherit;
+        font-size: inherit;
+        cursor: pointer;
+      }
+      .drawer-link:hover {
+        text-decoration: underline;
+      }
+      /* Keyboard focus: one row at a time, as in VS Code's own trees */
+      [role="treeitem"]:focus-visible,
+      .group-drawer input:focus-visible,
+      .group-drawer button:focus-visible,
+      .action-button:focus-visible {
+        outline: 1px solid var(--vscode-focusBorder);
+        outline-offset: -1px;
+      }
+      .folder-header:focus-within .actions,
+      .file:focus-within .actions {
+        display: flex;
+      }
+
       /* Footer styles */
       .footer {
         margin-top: 30px;
@@ -529,7 +687,7 @@
           </div>
         </div>
       </div>
-      {{folders}}
+      <div id="tree" role="tree" aria-label="My Notebooks">{{folders}}</div>
 
       <!-- Footer -->
       <div class="footer">
@@ -576,6 +734,378 @@
           }
         });
 
+        const tree = document.getElementById("tree");
+
+        // What survives the page being redrawn: groups opened or closed by
+        // hand, the drawer that is open and the control that was being used
+        const saved = vscode.getState() || {};
+        const state = {
+          groups: saved.groups && typeof saved.groups === "object" ? saved.groups : {},
+          drawer: typeof saved.drawer === "string" ? saved.drawer : null,
+          focus: typeof saved.focus === "string" ? saved.focus : null,
+        };
+
+        function saveState() {
+          vscode.setState(state);
+        }
+
+        // ---- Keyboard navigation -------------------------------------------
+
+        function treeItems() {
+          return Array.from(tree.querySelectorAll(".folder-group-header, .folder-header, .file"));
+        }
+
+        // A row can be reached when no folder or group above it is closed
+        function isShown(item) {
+          let parent = item.parentElement;
+          while (parent && parent !== tree) {
+            if (parent.classList.contains("folder-content") && parent.classList.contains("hidden")) {
+              return false;
+            }
+            if (parent.classList.contains("folder-group-content") && parent.parentElement.classList.contains("collapsed")) {
+              return false;
+            }
+            parent = parent.parentElement;
+          }
+          return true;
+        }
+
+        function isGroupHeader(item) {
+          return item.classList.contains("folder-group-header");
+        }
+
+        function isExpandable(item) {
+          return !item.classList.contains("file");
+        }
+
+        function isExpanded(item) {
+          if (isGroupHeader(item)) {
+            return !item.parentElement.classList.contains("collapsed");
+          }
+          const content = item.nextElementSibling;
+          return !!content && !content.classList.contains("hidden");
+        }
+
+        function syncExpanded(item) {
+          if (item && isExpandable(item)) {
+            item.setAttribute("aria-expanded", String(isExpanded(item)));
+          }
+        }
+
+        function setExpanded(item, expanded) {
+          if (isExpanded(item) === expanded) {
+            return;
+          }
+          if (isGroupHeader(item)) {
+            window.toggleFolderGroup(item.parentElement);
+          } else {
+            window.toggleFolder(item);
+          }
+        }
+
+        // The row one level up: the folder or group a row sits in
+        function parentItem(item) {
+          if (isGroupHeader(item)) {
+            return null;
+          }
+          const container = item.classList.contains("file") ? item.parentElement : item.parentElement.parentElement;
+          if (!container) {
+            return null;
+          }
+          if (container.classList.contains("folder-content")) {
+            return container.previousElementSibling;
+          }
+          if (container.classList.contains("folder-group-content")) {
+            return container.parentElement.querySelector(".folder-group-header");
+          }
+          return null;
+        }
+
+        // One row at a time takes part in the Tab order
+        function setCurrent(item, focus) {
+          tree.querySelectorAll('[role="treeitem"][tabindex="0"]').forEach(function (other) {
+            other.tabIndex = -1;
+          });
+          item.tabIndex = 0;
+          if (focus) {
+            item.focus();
+          }
+        }
+
+        function activate(item, key) {
+          if (item.classList.contains("file")) {
+            window.openRow(item);
+            return;
+          }
+          // A skill shown as a folder: Enter opens it, Space opens or closes its list
+          const docName = item.querySelector(".doc-folder-name");
+          if (docName && key === "Enter") {
+            window.openRow(docName);
+            return;
+          }
+          setExpanded(item, !isExpanded(item));
+        }
+
+        // Gives the rows their roles, levels and a place in the Tab order.
+        // Done here rather than in the HTML so every kind of row gets the same.
+        function decorateTree() {
+          treeItems().forEach(function (item) {
+            item.setAttribute("role", "treeitem");
+            item.tabIndex = -1;
+            let level = 1;
+            let parent = item.parentElement;
+            while (parent && parent !== tree) {
+              if (parent.classList.contains("folder-content") || parent.classList.contains("folder-group-content")) {
+                level++;
+              }
+              parent = parent.parentElement;
+            }
+            item.setAttribute("aria-level", String(level));
+            if (item.dataset.active === "true") {
+              item.setAttribute("aria-current", "true");
+            }
+            syncExpanded(item);
+          });
+          tree.querySelectorAll(".folder-content, .folder-group-content").forEach(function (group) {
+            group.setAttribute("role", "group");
+          });
+          // Buttons that show only an icon are named by their tooltip
+          document.querySelectorAll("button[title]:not([aria-label])").forEach(function (button) {
+            button.setAttribute("aria-label", button.getAttribute("title"));
+          });
+          const first = treeItems().filter(isShown)[0];
+          if (first) {
+            setCurrent(first, false);
+          }
+        }
+
+        tree.addEventListener("click", function (event) {
+          const item = event.target.closest('[role="treeitem"]');
+          if (item) {
+            setCurrent(item, false);
+          }
+        });
+
+        tree.addEventListener("keydown", function (event) {
+          // Keys pressed in a row's buttons or a drawer's fields are theirs
+          const item = event.target;
+          if (!item.matches || !item.matches('[role="treeitem"]') || event.altKey || event.ctrlKey || event.metaKey) {
+            return;
+          }
+          const items = treeItems().filter(isShown);
+          const index = items.indexOf(item);
+          let next = null;
+          switch (event.key) {
+            case "ArrowDown":
+              next = items[index + 1];
+              break;
+            case "ArrowUp":
+              next = items[index - 1];
+              break;
+            case "Home":
+              next = items[0];
+              break;
+            case "End":
+              next = items[items.length - 1];
+              break;
+            case "ArrowRight":
+              if (isExpandable(item) && !isExpanded(item)) {
+                setExpanded(item, true);
+              } else if (isExpandable(item)) {
+                next = items[index + 1];
+              }
+              break;
+            case "ArrowLeft":
+              if (isExpandable(item) && isExpanded(item)) {
+                setExpanded(item, false);
+              } else {
+                next = parentItem(item);
+              }
+              break;
+            case "Enter":
+            case " ":
+              activate(item, event.key);
+              break;
+            default:
+              return;
+          }
+          event.preventDefault();
+          if (next) {
+            setCurrent(next, true);
+            next.scrollIntoView({ block: "nearest" });
+          }
+        });
+
+        // ---- Group drawers --------------------------------------------------
+
+        function drawerOf(group) {
+          return Array.from(group.children).find(function (child) {
+            return child.hasAttribute("data-drawer");
+          });
+        }
+
+        function groupByKey(key) {
+          return Array.from(document.querySelectorAll(".folder-group[data-group-key]")).find(function (group) {
+            return group.dataset.groupKey === key;
+          });
+        }
+
+        function setDrawer(group, open) {
+          const drawer = drawerOf(group);
+          if (!drawer) {
+            return;
+          }
+          drawer.hidden = !open;
+          const gear = group.querySelector(".gear-button");
+          if (gear) {
+            gear.setAttribute("aria-expanded", String(open));
+          }
+        }
+
+        // The view is redrawn after every change, so the control in use is
+        // remembered and given the focus back
+        function rememberFocus(control) {
+          state.focus = control.dataset.focusKey || null;
+          saveState();
+        }
+
+        window.toggleDrawer = function (button) {
+          const group = button.closest(".folder-group");
+          const drawer = drawerOf(group);
+          if (!drawer) {
+            return;
+          }
+          const open = drawer.hidden;
+          // One drawer at a time
+          document.querySelectorAll(".folder-group").forEach(function (other) {
+            setDrawer(other, false);
+          });
+          setDrawer(group, open);
+          state.drawer = open ? group.dataset.groupKey : null;
+          state.focus = null;
+          saveState();
+        };
+
+        function postGroupPatch(control, patch) {
+          vscode.postMessage({
+            command: "updateGroup",
+            index: parseInt(control.dataset.groupIndex, 10),
+            patch: patch,
+          });
+        }
+
+        window.drawerSwitch = function (input) {
+          rememberFocus(input);
+          if (input.dataset.setting) {
+            vscode.postMessage({ command: "setSetting", key: input.dataset.setting, value: input.checked });
+          } else {
+            const patch = {};
+            patch[input.dataset.field] = input.checked;
+            postGroupPatch(input, patch);
+          }
+        };
+
+        window.drawerGroupText = function (input) {
+          const value = input.value.trim();
+          if (input.dataset.field === "name" && value !== "") {
+            // What is remembered about a group goes by its name; follow the rename
+            const group = input.closest(".folder-group");
+            const oldKey = group.dataset.groupKey;
+            const newKey = "group:" + value;
+            if (state.groups[oldKey]) {
+              state.groups[newKey] = state.groups[oldKey];
+              delete state.groups[oldKey];
+            }
+            if (state.drawer === oldKey) {
+              state.drawer = newKey;
+            }
+          }
+          rememberFocus(input);
+          const patch = {};
+          patch[input.dataset.field] = value;
+          postGroupPatch(input, patch);
+        };
+
+        window.drawerHideGroup = function (button) {
+          state.drawer = null;
+          state.focus = null;
+          saveState();
+          postGroupPatch(button, { hide: true });
+        };
+
+        function chipValues(container) {
+          try {
+            const values = JSON.parse(container.dataset.values || "[]");
+            return Array.isArray(values) ? values : [];
+          } catch (error) {
+            return [];
+          }
+        }
+
+        window.drawerRemoveChip = function (button) {
+          const container = button.closest(".chips");
+          const values = chipValues(container).filter(function (value) {
+            return value !== button.dataset.value;
+          });
+          rememberFocus(button);
+          vscode.postMessage({ command: "setSetting", key: container.dataset.setting, value: values });
+        };
+
+        window.drawerChipKey = function (event, input) {
+          if (event.key !== "Enter") {
+            return;
+          }
+          event.preventDefault();
+          const value = input.value.trim();
+          const container = input.closest(".chips");
+          const values = chipValues(container);
+          if (value === "" || values.indexOf(value) !== -1) {
+            input.value = "";
+            return;
+          }
+          values.push(value);
+          rememberFocus(input);
+          vscode.postMessage({ command: "setSetting", key: container.dataset.setting, value: values });
+        };
+
+        window.openAllSettings = function (button) {
+          vscode.postMessage({ command: "openSideBarSettings", groupId: button.dataset.groupId });
+        };
+
+        // Puts back what was remembered: groups opened or closed by hand, the
+        // open drawer and the control that was in use
+        function restoreState() {
+          document.querySelectorAll(".folder-group[data-group-key]").forEach(function (group) {
+            const key = group.dataset.groupKey;
+            const start = group.dataset.startCollapsed === "true";
+            const entry = state.groups[key];
+            // A choice made by hand holds until the "start collapsed" option changes
+            if (entry && entry.start === start) {
+              group.classList.toggle("collapsed", entry.collapsed === true);
+            } else if (entry) {
+              delete state.groups[key];
+            }
+          });
+
+          const group = state.drawer ? groupByKey(state.drawer) : undefined;
+          const drawer = group ? drawerOf(group) : undefined;
+          if (!drawer) {
+            state.drawer = null;
+            state.focus = null;
+            return;
+          }
+          setDrawer(group, true);
+          if (state.focus) {
+            const control = Array.from(drawer.querySelectorAll("[data-focus-key]")).find(function (candidate) {
+              return candidate.dataset.focusKey === state.focus && candidate.tagName === "INPUT";
+            });
+            if (control) {
+              control.focus();
+            }
+            state.focus = null;
+          }
+        }
+
         // Open every collapsed folder above the open file's row, so the row
         // can be seen
         function revealActiveRows(scroll) {
@@ -591,6 +1121,7 @@
               row.scrollIntoView({ block: "nearest" });
             }
           });
+          treeItems().forEach(syncExpanded);
         }
 
         // The extension says which file is open; mark its row
@@ -598,8 +1129,10 @@
           document.querySelectorAll("[data-abs]").forEach(function (row) {
             if (paths.indexOf(row.dataset.abs) !== -1) {
               row.dataset.active = "true";
+              row.setAttribute("aria-current", "true");
             } else {
               delete row.dataset.active;
+              row.removeAttribute("aria-current");
             }
           });
           revealActiveRows(true);
@@ -612,15 +1145,12 @@
           }
         });
 
-        document.addEventListener("DOMContentLoaded", function () {
-          revealActiveRows(false);
-        });
-
         window.toggleFolder = function (header) {
           const content = header.nextElementSibling;
           if (content) {
             content.classList.toggle("hidden");
           }
+          syncExpanded(header);
         };
 
         // Rows carry their file as data attributes, which these functions
@@ -785,10 +1315,26 @@
           }
 
           // Toggle the collapsed class on the folder group
-          folderGroupElement.classList.toggle("collapsed");
+          const collapsed = folderGroupElement.classList.toggle("collapsed");
+          syncExpanded(folderGroupElement.querySelector(".folder-group-header"));
 
-          // We don't need to return anything as we're just toggling a class
+          // Remember the choice, along with the option it was made under
+          const key = folderGroupElement.dataset.groupKey;
+          if (key) {
+            state.groups[key] = {
+              collapsed: collapsed,
+              start: folderGroupElement.dataset.startCollapsed === "true",
+            };
+            saveState();
+          }
         };
+
+        // First draw. This script is the last thing in the page, so every row
+        // is already there.
+        restoreState();
+        saveState();
+        decorateTree();
+        revealActiveRows(false);
       })();
     </script>
   </body>

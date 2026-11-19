@@ -32,6 +32,10 @@ function settings(overrides: Partial<config.DynamicFolderGroupConfig> = {}): voi
     exclusions: ['node_modules', 'out', 'dist'],
     includeAgentDocs: true,
     placeRulesByScope: true,
+    startCollapsed: false,
+    icon: '',
+    position: 0,
+    hiddenDocTypes: [],
     ...overrides,
   });
 }
@@ -328,6 +332,35 @@ describe('createDynamicFolderGroupFromPath', () => {
         ['.agents/skills/docker-cleanup/SKILL.md', ['Same name as the skill in .claude/skills']],
         ['.claude/skills/docker-cleanup/SKILL.md', ['Same name as the skill in .agents/skills']],
       ]);
+    });
+  });
+
+  describe('hidden doc types', () => {
+    test('leave out the skills, with the folders of the ones that have supporting files', () => {
+      settings({ hiddenDocTypes: ['skill'] });
+      const names = folderNames(rootFolder(groupFor(openFile)));
+      expect(names).not.toContain('Skills');
+      expect(names).toContain('Rules');
+    });
+
+    test('leave out a kind of file wherever it is listed', () => {
+      settings({ hiddenDocTypes: ['readme'] });
+      const group = groupFor(openFile);
+      expect(fileNames(rootFolder(group))).not.toContain('Readme');
+      expect(fileNames(folderAt(group, 'Extractor'))).not.toContain('Readme');
+      expect(fileNames(rootFolder(group))).toContain('Agents');
+    });
+
+    test('drop a folder left with nothing to show', () => {
+      settings({ hiddenDocTypes: ['prompt', 'agent'] });
+      const names = folderNames(rootFolder(groupFor(openFile)));
+      expect(names).not.toContain('Prompts');
+      expect(names).not.toContain('Agent Definitions');
+    });
+
+    test('change nothing when the list is empty', () => {
+      const names = folderNames(rootFolder(groupFor(openFile)));
+      expect(names).toEqual(expect.arrayContaining(['Skills', 'Rules', 'Prompts']));
     });
   });
 

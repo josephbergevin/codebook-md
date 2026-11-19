@@ -62,8 +62,11 @@ export class FolderGroup {
   source: string; // 
   index: number; // not included in json
   description: string;
+  // Codicon name shown beside the group's name; empty for none
   icon: string;
   hide: boolean;
+  // Start the group collapsed in the My Notebooks view
+  collapsed?: boolean;
   isDynamic?: boolean; // Flag to indicate if this folder group is dynamically generated
   // The folder a generated group's paths are relative to: the workspace
   // folder the open file is in. Never written to codebook-md.json.
@@ -810,7 +813,60 @@ export function getWorkspaceFolderGroup(configPath: string): FolderGroup {
     return folderGroup;
   }
 
-  return new FolderGroup('Workspace', configPath, '', []);
+  // No group is named "Workspace" yet. The new one must not take the place of
+  // an existing group when it is written: index -1 matches none, so
+  // writeChanges adds it to the end.
+  const newGroup = new FolderGroup('Workspace', configPath, '', []);
+  newGroup.index = -1;
+  return newGroup;
+}
+
+/** Builds a FolderGroup with its methods from a group as read from the config file. */
+function asFolderGroup(group: FolderGroup, configPath: string): FolderGroup {
+  const folderGroup = new FolderGroup(group.name, group.source || configPath, group.description || '', group.folders || []);
+  folderGroup.index = group.index;
+  folderGroup.icon = group.icon;
+  folderGroup.hide = group.hide;
+  return folderGroup;
+}
+
+/**
+ * Finds the folder group a row's command should act on. The group named
+ * "Workspace" is tried first, as these commands always used it; then the
+ * others in order, so a row in any group - or in the Workspace group after it
+ * was renamed - still finds its own.
+ * @returns the Workspace group when no group passes the test
+ */
+function folderGroupWhere(configPath: string, hasIt: (folders: FolderGroupFolder[]) => boolean): FolderGroup {
+  if (configPath) {
+    const groups = readCodebookConfig(configPath).folderGroups ?? [];
+    const candidates = [...groups.filter(group => group.name === 'Workspace'), ...groups.filter(group => group.name !== 'Workspace')];
+    const found = candidates.find(group => hasIt(group.folders ?? []));
+    if (found) {
+      return asFolderGroup(found, configPath);
+    }
+  }
+  return getWorkspaceFolderGroup(configPath);
+}
+
+/**
+ * getFolderGroupWithFolder returns the folder group that holds a folder with
+ * the given name, at any depth.
+ */
+export function getFolderGroupWithFolder(configPath: string, folderName: string): FolderGroup {
+  const hasFolder = (list: FolderGroupFolder[]): boolean =>
+    list.some(folder => folder.name === folderName || hasFolder(folder.folders ?? []));
+  return folderGroupWhere(configPath, hasFolder);
+}
+
+/**
+ * getFolderGroupWithFile returns the folder group that lists a file under
+ * the given name and path.
+ */
+export function getFolderGroupWithFile(configPath: string, fileName: string, filePath: string): FolderGroup {
+  const hasFile = (list: FolderGroupFolder[]): boolean => list.some(folder =>
+    (folder.files ?? []).some(file => file.name === fileName && file.path === filePath) || hasFile(folder.folders ?? []));
+  return folderGroupWhere(configPath, hasFile);
 }
 
 // Type for VS Code settings

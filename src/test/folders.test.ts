@@ -333,3 +333,64 @@ describe('folders.ts Test Suite', () => {
     });
   });
 });
+
+describe('finding the folder group a row belongs to', () => {
+  const fsMock = jest.requireMock('fs') as { existsSync: jest.Mock; readFileSync: jest.Mock; writeFileSync: jest.Mock; };
+  const configPath = 'test-config-path';
+  const file = (name: string, filePath: string) => ({ name, path: filePath });
+  const folder = (name: string, files: object[] = [], subFolders: object[] = []) => ({ name, hide: false, files, folders: subFolders });
+  const group = (name: string, groupFolders: object[]) => ({ name, description: '', icon: '', hide: false, folders: groupFolders });
+
+  function withGroups(groups: object[]): void {
+    fsMock.existsSync.mockReturnValue(true);
+    fsMock.readFileSync.mockReturnValue(JSON.stringify({ folderGroups: groups }));
+    fsMock.writeFileSync.mockClear();
+  }
+
+  /** The folder groups last written to the config file. */
+  function written(): { name: string; folders: { name: string; }[]; }[] {
+    const calls = fsMock.writeFileSync.mock.calls;
+    return JSON.parse(calls[calls.length - 1][1]).folderGroups;
+  }
+
+  it('finds a folder in a group that is not named Workspace', () => {
+    withGroups([group('Team docs', [folder('Guides')]), group('Runbooks', [folder('On call', [], [folder('Paging')])])]);
+    expect(folders.getFolderGroupWithFolder(configPath, 'Guides')).toMatchObject({ name: 'Team docs', index: 0 });
+    expect(folders.getFolderGroupWithFolder(configPath, 'Paging')).toMatchObject({ name: 'Runbooks', index: 1 });
+  });
+
+  it('prefers the Workspace group when two groups have a folder of that name', () => {
+    withGroups([group('Runbooks', [folder('Guides')]), group('Workspace', [folder('Guides')])]);
+    expect(folders.getFolderGroupWithFolder(configPath, 'Guides')).toMatchObject({ name: 'Workspace', index: 1 });
+  });
+
+  it('finds the group that lists a file under a name and path', () => {
+    withGroups([
+      group('Workspace', [folder('Guides', [file('Readme', 'README.md')])]),
+      group('Runbooks', [folder('On call', [], [folder('Paging', [file('Readme', 'ops/README.md')])])]),
+    ]);
+    expect(folders.getFolderGroupWithFile(configPath, 'Readme', 'ops/README.md')).toMatchObject({ name: 'Runbooks', index: 1 });
+    expect(folders.getFolderGroupWithFile(configPath, 'Readme', 'README.md')).toMatchObject({ name: 'Workspace', index: 0 });
+  });
+
+  it('writes a change back to the group it found, leaving the others alone', () => {
+    withGroups([group('Team docs', [folder('Guides')]), group('Runbooks', [folder('On call')])]);
+    const found = folders.getFolderGroupWithFolder(configPath, 'On call');
+    const target = found.findFolder('On call');
+    expect(target).toBeDefined();
+    (target as folders.FolderGroupFolder).name = 'Pager';
+    found.writeChanges();
+    expect(written().map(each => [each.name, each.folders.map(sub => sub.name)])).toEqual([['Team docs', ['Guides']], ['Runbooks', ['Pager']]]);
+  });
+
+  it('falls back to a new Workspace group that is added, never written over another group', () => {
+    withGroups([group('Team docs', [folder('Guides')])]);
+    const fallback = folders.getFolderGroupWithFolder(configPath, 'Nowhere');
+    expect(fallback).toMatchObject({ name: 'Workspace', folders: [] });
+
+    const workspace = folders.getWorkspaceFolderGroup(configPath);
+    workspace.folders.push(new folders.FolderGroupFolder('New'));
+    workspace.writeChanges();
+    expect(written().map(each => [each.name, each.folders.map(sub => sub.name)])).toEqual([['Team docs', ['Guides']], ['Workspace', ['New']]]);
+  });
+});

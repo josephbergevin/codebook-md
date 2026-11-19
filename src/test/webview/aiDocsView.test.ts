@@ -138,7 +138,7 @@ beforeEach(() => {
 
   (vscode.workspace as unknown as { workspaceFolders: unknown; }).workspaceFolders =
     [{ name: 'repo', uri: { scheme: 'file', fsPath: root } }];
-  mockedConfig.getAiDocsConfig.mockReturnValue({ enabled: true, includeUserDocs: false, exclusions: ['node_modules'] });
+  mockedConfig.getAiDocsConfig.mockReturnValue({ enabled: true, includeUserDocs: false, exclusions: ['node_modules'], hiddenDocTypes: [] });
   executeCommand.mockClear();
   clearDocMetaCache();
   setOpenFile(undefined);
@@ -158,7 +158,7 @@ describe('AiDocsViewProvider', () => {
   });
 
   test('turns the view off when the setting is off', async () => {
-    mockedConfig.getAiDocsConfig.mockReturnValue({ enabled: false, includeUserDocs: false, exclusions: [] });
+    mockedConfig.getAiDocsConfig.mockReturnValue({ enabled: false, includeUserDocs: false, exclusions: [], hiddenDocTypes: [] });
     const { provider } = await openView();
     expect(executeCommand).toHaveBeenCalledWith('setContext', hasAgentDocsContextKey, false);
     expect(provider.roots).toEqual([]);
@@ -176,6 +176,22 @@ describe('AiDocsViewProvider', () => {
     const page = loadPage((await openView()).view.webview.html);
     expect(names(page, '.node-title')).toEqual(['Instructions', 'Rules', 'Skills']);
     expect(names(page, '.doc-row .row-name')).toEqual(['Agents', 'Agents', 'Web', 'Docker Cleanup', 'Release']);
+  });
+
+  test('leaves out the groups turned off in the settings', async () => {
+    mockedConfig.getAiDocsConfig.mockReturnValue({ enabled: true, includeUserDocs: false, exclusions: ['node_modules'], hiddenDocTypes: ['skill'] });
+    const page = loadPage((await openView()).view.webview.html);
+    expect(names(page, '.node-title')).toEqual(['Instructions', 'Rules']);
+    expect(executeCommand).toHaveBeenCalledWith('setContext', hasAgentDocsContextKey, true);
+  });
+
+  test('turns the view off when every group it would show is turned off', async () => {
+    mockedConfig.getAiDocsConfig.mockReturnValue({
+      enabled: true, includeUserDocs: false, exclusions: ['node_modules'], hiddenDocTypes: ['instructions', 'rule', 'skill'],
+    });
+    const { provider } = await openView();
+    expect(executeCommand).toHaveBeenCalledWith('setContext', hasAgentDocsContextKey, false);
+    expect(provider.roots.flatMap(root => root.groups)).toEqual([]);
   });
 
   test('opens a listed markdown file as a notebook', async () => {

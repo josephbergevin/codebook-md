@@ -81,6 +81,8 @@ interface Scan {
   settings: config.DynamicFolderGroupConfig;
   plainInclusions: Set<string>;
   patternInclusions: string[];
+  // Doc types left out of the finished tree
+  hiddenDocTypes: Set<string>;
   // Every folder looked at, with its modified time (0 when it did not exist)
   watched: Map<string, number>;
   dirsWalked: number;
@@ -487,10 +489,20 @@ function labelDoc(scan: Scan, doc: PlacedDoc, duplicate?: string): void {
   }
 }
 
+/** isHiddenType reports whether the settings leave a doc type out of the group. */
+function isHiddenType(scan: Scan, docType: string | undefined): boolean {
+  return docType !== undefined && scan.hiddenDocTypes.has(docType);
+}
+
 function toFolder(scan: Scan, node: DirNode, entityId: string, isTop: boolean): FolderGroupFolder | undefined {
+  // A skill with supporting files is a folder; hiding skills hides all of it
+  if (node.doc && isHiddenType(scan, getDocMeta(node.doc.absPath).type)) {
+    return undefined;
+  }
+
   const folder = new FolderGroupFolder(node.name, entityId);
   const fileIdPrefix = isTop ? entityId.replace(/-0$/, '') : entityId;
-  node.files.forEach((file, index) => {
+  node.files.filter(file => !isHiddenType(scan, file.docType)).forEach((file, index) => {
     file.entityId = `${fileIdPrefix}-${index + 1}`;
     folder.files.push(file);
   });
@@ -652,6 +664,7 @@ export function createDynamicFolderGroupFromPath(filePath: string): FolderGroup 
       settings,
       plainInclusions: new Set(inclusions.filter(entry => !isGlobPattern(entry))),
       patternInclusions: inclusions.filter(isGlobPattern),
+      hiddenDocTypes: new Set(settings.hiddenDocTypes ?? []),
       watched: new Map<string, number>(),
       dirsWalked: 0,
     };

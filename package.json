@@ -381,6 +381,62 @@
           "description": "Show an agent rule that is scoped to a folder under that folder in the Dynamic Folder Group, instead of where the rule file is kept. The scope is read from the rule's front matter: applyTo, paths, globs or fileMatchPattern. For example, a rule with applyTo: \"extractor/**\" is listed under the extractor folder.",
           "scope": "window"
         },
+        "codebook-md.dynamicFolderGroup.startCollapsed": {
+          "type": "boolean",
+          "default": false,
+          "description": "Start the Dynamic Folder Group collapsed in the My Notebooks view. Opening or closing it by hand is remembered until this setting changes.",
+          "scope": "window"
+        },
+        "codebook-md.dynamicFolderGroup.icon": {
+          "type": "string",
+          "default": "",
+          "pattern": "^[a-z][a-z0-9-]*$|^$",
+          "description": "Icon shown beside the Dynamic Folder Group's name: a codicon name such as target, book or rocket. Leave empty for the default icon.",
+          "scope": "window"
+        },
+        "codebook-md.dynamicFolderGroup.position": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "description": "Where the Dynamic Folder Group sits among your own folder groups in the My Notebooks view: the number of your folder groups listed before it. 0 puts it first. Dragging the group in Side Bar Settings sets this.",
+          "scope": "window"
+        },
+        "codebook-md.dynamicFolderGroup.hiddenDocTypes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "readme",
+              "changelog",
+              "license",
+              "policy",
+              "instructions",
+              "rule",
+              "skill",
+              "prompt",
+              "agent",
+              "notebook",
+              "markdown"
+            ],
+            "enumDescriptions": [
+              "README files",
+              "Changelogs",
+              "License files",
+              "Project policy files such as CONTRIBUTING.md",
+              "Agent instruction files such as AGENTS.md",
+              "Rules",
+              "Skills",
+              "Prompts",
+              "Agent definitions",
+              "Runnable notebooks",
+              "Other markdown files"
+            ]
+          },
+          "uniqueItems": true,
+          "default": [],
+          "description": "Kinds of document the Dynamic Folder Group leaves out. For example, add skill to show the group without skills.",
+          "scope": "window"
+        },
         "codebook-md.aiDocs.enabled": {
           "type": "boolean",
           "default": true,
@@ -404,6 +460,32 @@
             "dist"
           ],
           "description": "File and folder names the AI Docs view skips when it looks through the workspace. * is a wildcard.",
+          "scope": "window"
+        },
+        "codebook-md.aiDocs.hiddenDocTypes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "instructions",
+              "rule",
+              "skill",
+              "prompt",
+              "agent",
+              "reference"
+            ],
+            "enumDescriptions": [
+              "Instructions",
+              "Rules",
+              "Skills",
+              "Prompts",
+              "Agent Definitions",
+              "Agent References"
+            ]
+          },
+          "uniqueItems": true,
+          "default": [],
+          "description": "Groups the AI Docs view leaves out. For example, add reference to hide Agent References.",
           "scope": "window"
         },
         "codebook-md.output.showExecutableCodeInOutput": {
@@ -478,6 +560,13 @@
         "shortTitle": "Refresh",
         "category": "Codebook",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "codebook-md.openSideBarSettings",
+        "title": "Codebook: Side Bar Settings",
+        "shortTitle": "Side Bar Settings",
+        "category": "Codebook",
+        "icon": "$(settings-gear)"
       },
       {
         "command": "codebook-md.createNewNotebook",
@@ -734,6 +823,11 @@
           "command": "codebook-md.refreshAiDocs",
           "when": "view == codebook-md-ai-docs-view",
           "group": "navigation@2"
+        },
+        {
+          "command": "codebook-md.openSideBarSettings",
+          "when": "view == codebook-md-ai-docs-view || view == codebook-md-notebooks-view",
+          "group": "navigation@3"
         }
       ],
       "commandPalette": [

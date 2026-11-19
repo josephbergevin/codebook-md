@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="{{csp}}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Side Bar Settings</title>
+    <link rel="stylesheet" href="{{codiconsCssUri}}" />
+    <style>
+      body {
+        margin: 0;
+        padding: 0 24px 40px;
+        font-family: var(--vscode-font-family);
+        font-size: var(--vscode-font-size);
+        color: var(--vscode-foreground);
+        background-color: var(--vscode-editor-background);
+      }
+      button,
+      input {
+        font-family: inherit;
+        font-size: inherit;
+      }
+      :focus-visible {
+        outline: 1px solid var(--vscode-focusBorder);
+        outline-offset: 1px;
+      }
+      .bar {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px 16px;
+        padding: 14px 0 12px;
+        border-bottom: 1px solid var(--vscode-panel-border);
+        background-color: var(--vscode-editor-background);
+      }
+      .bar h1 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        font-size: 1.25em;
+        font-weight: 600;
+      }
+      .scope {
+        display: inline-flex;
+        border: 1px solid var(--vscode-button-border, var(--vscode-panel-border));
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .scope button {
+        padding: 3px 12px;
+        border: none;
+        background: none;
+        color: var(--vscode-foreground);
+        cursor: pointer;
+      }
+      .scope button[aria-checked="true"] {
+        background-color: var(--vscode-button-background);
+        color: var(--vscode-button-foreground);
+      }
+      .scope button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .saved {
+        min-width: 4em;
+        color: var(--vscode-descriptionForeground);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+      .saved.on {
+        opacity: 1;
+      }
+      .lead {
+        margin: 12px 0 18px;
+        max-width: 70ch;
+        color: var(--vscode-descriptionForeground);
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(240px, 340px) minmax(0, 1fr);
+        gap: 28px;
+        align-items: start;
+      }
+      /* The list stays in view while a long set of options scrolls */
+      .layout nav {
+        position: sticky;
+        top: 64px;
+      }
+      @media (max-width: 680px) {
+        body {
+          padding: 0 16px 32px;
+        }
+        .layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .layout nav {
+          position: static;
+        }
+      }
+      h2 {
+        margin: 0 0 4px;
+        font-size: 0.85em;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--vscode-descriptionForeground);
+      }
+      .hint {
+        margin: 0 0 8px;
+        font-size: 0.9em;
+        color: var(--vscode-descriptionForeground);
+      }
+      .rows {
+        margin: 0 0 22px;
+        padding: 0;
+        list-style: none;
+        border: 1px solid var(--vscode-panel-border);
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      .vrow {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding: 2px 6px 2px 2px;
+        border-bottom: 1px solid var(--vscode-panel-border);
+      }
+      .vrow:last-child {
+        border-bottom: none;
+      }
+      .vrow.selected {
+        background-color: var(--vscode-list-inactiveSelectionBackground);
+      }
+      .vrow.off .select {
+        opacity: 0.55;
+      }
+      .vrow.dragging {
+        opacity: 0.4;
+      }
+      .vrow.drop-before {
+        box-shadow: inset 0 2px 0 var(--vscode-focusBorder);
+      }
+      .vrow.drop-after {
+        box-shadow: inset 0 -2px 0 var(--vscode-focusBorder);
+      }
+      .grip {
+        flex: none;
+        width: 16px;
+        color: var(--vscode-descriptionForeground);
+        cursor: grab;
+      }
+      .grip.none {
+        visibility: hidden;
+      }
+      .icon-btn {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px;
+        border: none;
+        border-radius: 4px;
+        background: none;
+        color: var(--vscode-foreground);
+        cursor: pointer;
+      }
+      .icon-btn:hover {
+        background-color: var(--vscode-toolbar-hoverBackground);
+      }
+      .select {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 4px;
+        border: none;
+        background: none;
+        color: var(--vscode-foreground);
+        text-align: left;
+        cursor: pointer;
+      }
+      .select .names {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .select .vn,
+      .select .vd {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .select .vd {
+        font-size: 0.9em;
+        color: var(--vscode-descriptionForeground);
+      }
+      .tag {
+        flex: none;
+        padding: 0 6px;
+        border: 1px solid var(--vscode-panel-border);
+        border-radius: 8px;
+        font-size: 0.8em;
+        color: var(--vscode-descriptionForeground);
+      }
+      .detail h3 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 4px;
+        font-size: 1.15em;
+        font-weight: 600;
+      }
+      .detail .where {
+        margin: 0 0 16px;
+        color: var(--vscode-descriptionForeground);
+      }
+      .field {
+        max-width: 560px;
+        margin-bottom: 18px;
+      }
+      .field-head {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 4px;
+        font-weight: 600;
+      }
+      .field-head .icon-btn {
+        padding: 2px;
+        opacity: 0.6;
+      }
+      .field-head .icon-btn:hover,
+      .field-head .icon-btn:focus-visible {
+        opacity: 1;
+      }
+      .text {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 4px 8px;
+        border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+        border-radius: 2px;
+        background-color: var(--vscode-input-background);
+        color: var(--vscode-input-foreground);
+      }
+      .help {
+        margin: 4px 0 0;
+        font-size: 0.9em;
+        color: var(--vscode-descriptionForeground);
+      }
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 12px;
+        margin-top: 4px;
+        font-size: 0.9em;
+        color: var(--vscode-descriptionForeground);
+      }
+      .link {
+        padding: 0;
+        border: none;
+        background: none;
+        color: var(--vscode-textLink-foreground);
+        cursor: pointer;
+      }
+      .link:hover {
+        text-decoration: underline;
+      }
+      .sw {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .sw input {
+        appearance: none;
+        -webkit-appearance: none;
+        flex: none;
+        position: relative;
+        width: 30px;
+        height: 18px;
+        margin: 0;
+        border: 1px solid var(--vscode-checkbox-border, var(--vscode-panel-border));
+        border-radius: 9px;
+        background-color: var(--vscode-input-background);
+        cursor: pointer;
+      }
+      .sw input::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: var(--vscode-descriptionForeground);
+        transition: transform 0.12s ease;
+      }
+      .sw input:checked {
+        border-color: var(--vscode-button-background);
+        background-color: var(--vscode-button-background);
+      }
+      .sw input:checked::after {
+        transform: translateX(12px);
+        background-color: var(--vscode-button-foreground);
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        max-width: 100%;
+        padding: 2px 3px 2px 9px;
+        border-radius: 11px;
+        background-color: var(--vscode-badge-background);
+        color: var(--vscode-badge-foreground);
+      }
+      .chip span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .chip button {
+        display: inline-flex;
+        padding: 1px;
+        border: none;
+        border-radius: 50%;
+        background: none;
+        color: inherit;
+        cursor: pointer;
+      }
+      .chip .codicon {
+        font-size: 12px;
+      }
+      .chips .text {
+        flex: 1;
+        width: auto;
+        min-width: 130px;
+      }
+      .checks {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+        gap: 4px 14px;
+      }
+      .check {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+      }
+      .check input {
+        margin: 0;
+        accent-color: var(--vscode-button-background);
+      }
+      .icons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .icons button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 28px;
+        height: 28px;
+        padding: 0 6px;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        background: none;
+        color: var(--vscode-foreground);
+        cursor: pointer;
+      }
+      .icons button:hover {
+        background-color: var(--vscode-toolbar-hoverBackground);
+      }
+      .icons button[aria-checked="true"] {
+        border-color: var(--vscode-focusBorder);
+        background-color: var(--vscode-list-inactiveSelectionBackground);
+      }
+      .empty {
+        color: var(--vscode-descriptionForeground);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="bar">
+      <h1><span class="codicon codicon-list-tree" aria-hidden="true"></span>Side Bar Settings</h1>
+      <div class="scope" id="scope" role="radiogroup" aria-label="Save settings to">
+        <button type="button" role="radio" data-scope="workspace" data-fk="scope:workspace">Workspace</button>
+        <button type="button" role="radio" data-scope="user" data-fk="scope:user">User</button>
+      </div>
+      <span class="saved" id="saved" role="status" aria-live="polite"></span>
+    </header>
+    <p class="lead">Changes apply as you make them, and the side bar shows the result. Options of the generated groups are VS Code settings, saved to the workspace or to your user settings. Folder groups you build are saved in <span id="config-file">.vscode/codebook-md.json</span>.</p>
+    <main class="layout">
+      <nav aria-label="Groups and views">
+        <h2 id="groups-title">Groups in My Notebooks</h2>
+        <p class="hint">Drag to reorder, or press Alt+Up and Alt+Down on a group.</p>
+        <ul class="rows" id="groups" aria-labelledby="groups-title"></ul>
+        <h2 id="views-title">Views</h2>
+        <ul class="rows" id="views" aria-labelledby="views-title"></ul>
+      </nav>
+      <section class="detail" id="detail" aria-label="Options"></section>
+    </main>
+    <script type="application/json" id="page-data">{{pageData}}</script>
+    <script nonce="{{nonce}}">
+      (function () {
+        const vscode = acquireVsCodeApi();
+        const pageData = JSON.parse(document.getElementById("page-data").textContent);
+        const groupsList = document.getElementById("groups");
+        const viewsList = document.getElementById("views");
+        const detail = document.getElementById("detail");
+        const savedNote = document.getElementById("saved");
+        const AI_DOCS = "aiDocs";
+
+        let state = pageData.state;
+        let selected = (vscode.getState() || {}).selected || pageData.selectId || "related";
+        // A state that arrived while a text box held unsaved typing
+        let pendingState = null;
+        let savedTimer = null;
+        let draggingId = null;
+
+        // Builds an element. Text always goes in as text, never as markup.
+        function el(tag, attrs, children) {
+          const node = document.createElement(tag);
+          Object.keys(attrs || {}).forEach(function (name) {
+            const value = attrs[name];
+            if (value === undefined || value === null || value === false) {
+              return;
+            }
+            if (name === "text") {
+              node.textContent = value;
+            } else if (name === "class") {
+              node.className = value;
+            } else if (name.indexOf("on") === 0) {
+              node.addEventListener(name.slice(2), value);
+            } else {
+              node.setAttribute(name, value === true ? "" : String(value));
+            }
+          });
+          (children || []).forEach(function (child) {
+            if (child) {
+              node.appendChild(child);
+            }
+          });
+          return node;
+        }
+
+        function icon(name, extraClass) {
+          const safe = /^[a-z][a-z0-9-]*$/.test(name || "") ? name : "circle-outline";
+          return el("span", { class: "codicon codicon-" + safe + (extraClass ? " " + extraClass : ""), "aria-hidden": "true" });
+        }
+
+        function post(message) {
+          vscode.postMessage(message);
+        }
+
+        function findGroup(id) {
+          return state.groups.find(function (group) {
+            return group.id === id;
+          });
+        }
+
+        function setSelected(id) {
+          selected = id;
+          vscode.setState({ selected: selected });
+          render();
+        }
+
+        // ---- The list of groups and views ------------------------------------
+
+        function toggleShown(row) {
+          if (row.id === "related") {
+            post({ command: "setSetting", key: "dynamicFolderGroup.enabled", value: row.hidden });
+          } else if (row.id === AI_DOCS) {
+            post({ command: "setSetting", key: "aiDocs.enabled", value: row.hidden });
+          } else {
+            post({ command: "updateGroup", index: row.index, patch: { hide: !row.hidden } });
+          }
+        }
+
+        function rowEl(row, draggable) {
+          const eyeLabel = (row.hidden ? "Show " : "Hide ") + row.name;
+          const item = el("li", {
+            class: "vrow" + (row.id === selected ? " selected" : "") + (row.hidden ? " off" : ""),
+            "data-id": row.id,
+            draggable: draggable ? "true" : undefined,
+          }, [
+            el("span", { class: "grip codicon codicon-gripper" + (draggable ? "" : " none"), "aria-hidden": "true" }),
+            el("button", {
+              type: "button", class: "icon-btn", title: eyeLabel, "aria-label": eyeLabel,
+              "aria-pressed": String(!row.hidden), "data-fk": "row:" + row.id + ":eye",
+              onclick: function () { toggleShown(row); },
+            }, [icon(row.hidden ? "eye-closed" : "eye")]),
+            el("button", {
+              type: "button", class: "select", "aria-current": row.id === selected ? "true" : undefined,
+              "data-fk": "row:" + row.id + ":select",
+              onclick: function () { setSelected(row.id); },
+            }, [
+              icon(row.icon || row.defaultIcon),
+              el("span", { class: "names" }, [
+                el("span", { class: "vn", text: row.name }),
+                el("span", { class: "vd", text: row.summary }),
+              ]),
+            ]),
+            el("span", { class: "tag", text: row.kind === "auto" ? "auto" : "yours" }),
+          ]);
+          if (draggable) {
+            item.addEventListener("keydown", function (event) {
+              if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+                event.preventDefault();
+                moveBy(row.id, event.key === "ArrowUp" ? -1 : 1);
+              }
+            });
+          }
+          return item;
+        }
+
+        // Sends a new order, and keeps the selection on the same group: the
+        // groups built by hand are numbered by position, so their ids change
+        function sendOrder(order) {
+          const handBuilt = order.filter(function (id) { return id !== "related"; });
+          const renumber = function (id) {
+            return id === "related" || id === AI_DOCS ? id : "group:" + handBuilt.indexOf(id);
+          };
+          const active = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.fk : null;
+          if (active && active.indexOf("row:") === 0) {
+            const parts = active.split(":");
+            const suffix = parts.pop();
+            refocusKey = "row:" + renumber(parts.slice(1).join(":")) + ":" + suffix;
+          }
+          selected = renumber(selected);
+          vscode.setState({ selected: selected });
+          post({ command: "setOrder", order: order });
+        }
+
+        function moveBy(id, delta) {
+          const order = state.groups.map(function (group) { return group.id; });
+          const from = order.indexOf(id);
+          const to = from + delta;
+          if (from === -1 || to < 0 || to >= order.length) {
+            return;
+          }
+          order.splice(from, 1);
+          order.splice(to, 0, id);
+          sendOrder(order);
+        }
+
+        function clearDropMarks() {
+          groupsList.querySelectorAll(".drop-before, .drop-after").forEach(function (row) {
+            row.classList.remove("drop-before", "drop-after");
+          });
+        }
+
+        function dropTarget(event) {
+          const row = event.target.closest ? event.target.closest(".vrow") : null;
+          if (!row || !groupsList.contains(row)) {
+            return null;
+          }
+          const box = row.getBoundingClientRect();
+          return { row: row, after: event.clientY > box.top + box.height / 2 };
+        }
+
+        groupsList.addEventListener("dragstart", function (event) {
+          const row = event.target.closest ? event.target.closest(".vrow") : null;
+          if (!row) {
+            return;
+          }
+          draggingId = row.dataset.id;
+          row.classList.add("dragging");
+          if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", draggingId);
+          }
+        });
+        groupsList.addEventListener("dragover", function (event) {
+          const target = draggingId ? dropTarget(event) : null;
+          if (!target) {
+            return;
+          }
+          event.preventDefault();
+          clearDropMarks();
+          target.row.classList.add(target.after ? "drop-after" : "drop-before");
+        });
+        groupsList.addEventListener("dragleave", function (event) {
+          if (!groupsList.contains(event.relatedTarget)) {
+            clearDropMarks();
+          }
+        });
+        groupsList.addEventListener("drop", function (event) {
+          const target = draggingId ? dropTarget(event) : null;
+          clearDropMarks();
+          if (!target) {
+            return;
+          }
+          event.preventDefault();
+          const order = state.groups.map(function (group) { return group.id; }).filter(function (id) {
+            return id !== draggingId;
+          });
+          const at = order.indexOf(target.row.dataset.id) + (target.after ? 1 : 0);
+          order.splice(at, 0, draggingId);
+          const before = state.groups.map(function (group) { return group.id; }).join("|");
+          if (order.join("|") !== before) {
+            sendOrder(order);
+          }
+        });
+        groupsList.addEventListener("dragend", function () {
+          draggingId = null;
+          clearDropMarks();
+          groupsList.querySelectorAll(".dragging").forEach(function (row) {
+            row.classList.remove("dragging");
+          });
+        });
+
+        // ---- The selected group's options ------------------------------------
+
+        function sourceText(field) {
+          if (field.isOverridden) {
+            return "A workspace setting overrides this";
+          }
+          if (field.source === "workspace") {
+            return "Workspace setting";
+          }
+          return field.source === "user" ? "User setting" : "Default";
+        }
+
+        function metaEl(field) {
+          const parts = [el("span", { text: sourceText(field) })];
+          if (field.isSetInScope) {
+            parts.push(el("button", {
+              type: "button", class: "link", "data-fk": field.key + ":reset",
+              text: field.resetsTo === "user" ? "Use my user setting" : "Reset to default",
+              onclick: function () { post({ command: "resetSetting", key: field.key }); },
+            }));
+          }
+          return el("div", { class: "meta" }, parts);
+        }
+
+        function openInSettingsEl(field) {
+          const label = "Open " + field.label + " in Settings";
+          return el("button", {
+            type: "button", class: "icon-btn", title: label, "aria-label": label, "data-fk": field.key + ":open",
+            onclick: function () { post({ command: "openSetting", key: field.key }); },
+          }, [icon("settings-gear")]);
+        }
+
+        function switchEl(label, checked, fk, onChange) {
+          const input = el("input", { type: "checkbox", role: "switch", checked: checked, "data-fk": fk });
+          input.checked = checked;
+          input.addEventListener("change", function () { onChange(input.checked); });
+          return el("label", { class: "sw" }, [input, el("span", { text: label })]);
+        }
+
+        function textEl(value, label, fk, onChange) {
+          const input = el("input", { type: "text", class: "text", "aria-label": label, spellcheck: "false", "data-fk": fk });
+          input.value = value || "";
+          input.dataset.initial = input.value;
+          input.addEventListener("change", function () {
+            input.dataset.initial = input.value;
+            onChange(input.value);
+          });
+          return input;
+        }
+
+        function chipsEl(values, label, placeholder, fk, onChange) {
+          const list = Array.isArray(values) ? values : [];
+          const chips = list.map(function (value) {
+            return el("span", { class: "chip" }, [
+              el("span", { text: value }),
+              el("button", {
+                type: "button", title: "Remove " + value, "aria-label": "Remove " + value, "data-fk": fk + ":remove:" + value,
+                onclick: function () {
+                  refocusKey = fk + ":add";
+                  onChange(list.filter(function (other) { return other !== value; }));
+                },
+              }, [icon("close")]),
+            ]);
+          });
+          const input = el("input", {
+            type: "text", class: "text", placeholder: placeholder || "Add", "aria-label": label + ": " + (placeholder || "add"),
+            spellcheck: "false", "data-fk": fk + ":add",
+          });
+          input.dataset.initial = "";
+          input.addEventListener("keydown", function (event) {
+            if (event.key !== "Enter") {
+              return;
+            }
+            event.preventDefault();
+            const value = input.value.trim();
+            input.value = "";
+            if (value !== "" && list.indexOf(value) === -1) {
+              onChange(list.concat([value]));
+            }
+          });
+          return el("div", { class: "chips" }, chips.concat([input]));
+        }
+
+        function checksEl(choices, hidden, fk, onChange) {
+          const off = Array.isArray(hidden) ? hidden : [];
+          return el("div", { class: "checks" }, (choices || []).map(function (choice) {
+            const input = el("input", { type: "checkbox", "data-fk": fk + ":" + choice.id });
+            input.checked = off.indexOf(choice.id) === -1;
+            input.addEventListener("change", function () {
+              const next = off.filter(function (id) { return id !== choice.id; });
+              if (!input.checked) {
+                next.push(choice.id);
+              }
+              onChange(next);
+            });
+            return el("label", { class: "check" }, [input, el("span", { text: choice.label })]);
+          }));
+        }
+
+        function iconsEl(value, defaultLabel, fk, onChange) {
+          const names = state.icons.slice();
+          if (value && names.indexOf(value) === -1) {
+            names.unshift(value);
+          }
+          const buttons = [el("button", {
+            type: "button", role: "radio", "aria-checked": String(!value), "data-fk": fk + ":none", text: defaultLabel,
+            onclick: function () { onChange(""); },
+          })].concat(names.map(function (name) {
+            return el("button", {
+              type: "button", role: "radio", "aria-checked": String(value === name), title: name, "aria-label": name,
+              "data-fk": fk + ":" + name,
+              onclick: function () { onChange(name); },
+            }, [icon(name)]);
+          }));
+          return el("div", { class: "icons", role: "radiogroup", "aria-label": "Icon" }, buttons);
+        }
+
+        // One VS Code setting: its control, where its value comes from and a reset
+        function settingEl(field) {
+          const set = function (value) {
+            post({ command: "setSetting", key: field.key, value: value });
+          };
+          let control;
+          let head = el("div", { class: "field-head" }, [el("span", { text: field.label }), openInSettingsEl(field)]);
+          if (field.kind === "boolean") {
+            control = el("div", { class: "field-head" }, [switchEl(field.label, field.value === true, field.key, set), openInSettingsEl(field)]);
+            head = null;
+          } else if (field.kind === "text") {
+            control = textEl(field.value, field.label, field.key, set);
+          } else if (field.kind === "list") {
+            control = chipsEl(field.value, field.label, field.placeholder, field.key, set);
+          } else if (field.kind === "hidden-choices") {
+            control = checksEl(field.choices, field.value, field.key, set);
+          } else {
+            control = iconsEl(field.value, "Default", field.key, set);
+          }
+          return el("div", { class: "field", "data-key": field.key }, [
+            head,
+            control,
+            field.help ? el("p", { class: "help", text: field.help }) : null,
+            metaEl(field),
+          ]);
+        }
+
+        function plainField(label, control) {
+          return el("div", { class: "field" }, [
+            label ? el("div", { class: "field-head" }, [el("span", { text: label })]) : null,
+            control,
+          ]);
+        }
+
+        // A group built by hand: saved in codebook-md.json, which has no levels
+        function handBuiltDetail(group) {
+          const fk = function (name) { return "group:" + group.index + ":" + name; };
+          const patch = function (name) {
+            return function (value) {
+              const changes = {};
+              changes[name] = value;
+              post({ command: "updateGroup", index: group.index, patch: changes });
+            };
+          };
+          return [
+            el("h3", {}, [icon(group.icon || "folder"), el("span", { text: group.name })]),
+            el("p", { class: "where" }, [
+              el("span", { text: group.summary + ". Saved in " }),
+              el("button", {
+                type: "button", class: "link", text: state.configFile || "codebook-md.json", "data-fk": fk("file"),
+                onclick: function () { post({ command: "openConfigFile" }); },
+              }),
+            ]),
+            plainField(null, switchEl("Show this group", !group.hidden, fk("show"), function (shown) {
+              post({ command: "updateGroup", index: group.index, patch: { hide: !shown } });
+            })),
+            plainField("Name", textEl(group.name, "Name", fk("name"), patch("name"))),
+            plainField("Description", textEl(group.description, "Description", fk("description"), patch("description"))),
+            plainField("Icon", iconsEl(group.icon, "None", fk("icon"), patch("icon"))),
+            plainField(null, switchEl("Start collapsed", group.collapsed, fk("collapsed"), patch("collapsed"))),
+          ];
+        }
+
+        function settingsDetail(title, iconName, where, fields) {
+          return [
+            el("h3", {}, [icon(iconName), el("span", { text: title })]),
+            el("p", { class: "where", text: where }),
+          ].concat(fields.map(settingEl));
+        }
+
+        function scopeName() {
+          return state.scope === "workspace" ? "workspace" : "user";
+        }
+
+        function detailNodes() {
+          if (selected === AI_DOCS) {
+            return settingsDetail("AI Docs", "robot",
+              "Every agent doc in the workspace, grouped by type. Changes are saved to your " + scopeName() + " settings.", state.aiDocs);
+          }
+          const group = findGroup(selected);
+          if (!group) {
+            return [el("p", { class: "empty", text: "Choose a group to see its options." })];
+          }
+          if (group.kind === "auto") {
+            return settingsDetail(group.name, group.icon || "target",
+              "Built around the file you have open. Changes are saved to your " + scopeName() + " settings.", state.related);
+          }
+          return handBuiltDetail(group);
+        }
+
+        // ---- Drawing ---------------------------------------------------------
+
+        // The control to focus after the next draw, when it is not the one in use now
+        let refocusKey = null;
+
+        function hasUnsavedTyping() {
+          const active = document.activeElement;
+          return !!active && active.tagName === "INPUT" && active.type === "text"
+            && active.dataset.initial !== undefined && active.value !== active.dataset.initial;
+        }
+
+        function render() {
+          const active = document.activeElement;
+          const focusKey = refocusKey || (active && active.dataset ? active.dataset.fk : null);
+          refocusKey = null;
+
+          if (selected !== AI_DOCS && !findGroup(selected)) {
+            selected = "related";
+          }
+
+          document.querySelectorAll("#scope button").forEach(function (button) {
+            const isCurrent = button.dataset.scope === state.scope;
+            button.setAttribute("aria-checked", String(isCurrent));
+            button.tabIndex = isCurrent ? 0 : -1;
+            button.disabled = button.dataset.scope === "workspace" && !state.hasWorkspace;
+          });
+          if (state.configFile) {
+            document.getElementById("config-file").textContent = state.configFile;
+          }
+
+          groupsList.replaceChildren.apply(groupsList, state.groups.map(function (group) {
+            const row = Object.assign({ defaultIcon: group.kind === "auto" ? "target" : "folder" }, group);
+            return rowEl(row, state.groups.length > 1);
+          }));
+
+          const aiEnabled = state.aiDocs.find(function (field) { return field.key === "aiDocs.enabled"; });
+          viewsList.replaceChildren(rowEl({
+            id: AI_DOCS, kind: "auto", name: "AI Docs", summary: "Agent docs across the workspace",
+            icon: "", defaultIcon: "robot", hidden: !(aiEnabled && aiEnabled.value === true),
+          }, false));
+
+          detail.replaceChildren.apply(detail, detailNodes());
+
+          if (focusKey) {
+            const next = Array.from(document.querySelectorAll("[data-fk]")).find(function (node) {
+              return node.dataset.fk === focusKey;
+            });
+            if (next && !next.disabled) {
+              next.focus();
+            }
+          }
+        }
+
+        function showSaved() {
+          savedNote.textContent = "Saved";
+          savedNote.classList.add("on");
+          if (savedTimer) {
+            clearTimeout(savedTimer);
+          }
+          savedTimer = setTimeout(function () {
+            savedNote.classList.remove("on");
+          }, 1500);
+        }
+
+        function applyState(next, saved) {
+          state = next;
+          render();
+          if (saved) {
+            showSaved();
+          }
+        }
+
+        document.getElementById("scope").addEventListener("click", function (event) {
+          const button = event.target.closest ? event.target.closest("button[data-scope]") : null;
+          if (button && !button.disabled && button.dataset.scope !== state.scope) {
+            refocusKey = "scope:" + button.dataset.scope;
+            post({ command: "setScope", scope: button.dataset.scope });
+          }
+        });
+        document.getElementById("scope").addEventListener("keydown", function (event) {
+          if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+            return;
+          }
+          const other = state.scope === "workspace" ? "user" : "workspace";
+          if (other === "workspace" && !state.hasWorkspace) {
+            return;
+          }
+          event.preventDefault();
+          refocusKey = "scope:" + other;
+          post({ command: "setScope", scope: other });
+        });
+
+        // Typing that has not been saved yet is not drawn over; the newer
+        // state waits until the box is left
+        document.addEventListener("focusout", function () {
+          if (pendingState) {
+            const waiting = pendingState;
+            pendingState = null;
+            setTimeout(function () { applyState(waiting.state, waiting.saved); }, 0);
+          }
+        });
+
+        window.addEventListener("message", function (event) {
+          const message = event.data;
+          if (!message) {
+            return;
+          }
+          if (message.command === "state" && message.state) {
+            if (hasUnsavedTyping()) {
+              pendingState = { state: message.state, saved: message.saved === true };
+            } else {
+              applyState(message.state, message.saved === true);
+            }
+          } else if (message.command === "select" && typeof message.id === "string") {
+            setSelected(message.id);
+          }
+        });
+
+        render();
+      })();
+    </script>
+  </body>
+</html>
