@@ -403,7 +403,7 @@ Every code cell runs in a directory, shown on the left of the cell's status bar,
 below the code. By default that is the `codebook-md.execPath` setting
 (`./codebook-md/`, resolved next to the markdown file).
 
-Click that path — or **Configure** — to set an **Execution path** for one cell.
+Click that path — or the gear (⚙) on the right — to set an **Execution path** for one cell.
 A relative path is taken from your workspace folder, so `scripts/db` means the
 same thing on every machine; an absolute path is used as-is. Buttons under the
 field fill in the workspace folder or the folder holding the markdown file, and
@@ -434,7 +434,7 @@ Support for workspace, user, and folder-level configurations
 
 ### Enhanced Configuration UI
 
-Click **Configure** in the status bar below a code cell to set how that one cell
+Click the gear (⚙) in the status bar below a code cell to set how that one cell
 runs and shows its output.
 
 - Every option shows where its value comes from: **Default**, **From your
