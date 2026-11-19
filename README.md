@@ -119,7 +119,11 @@ You can customize the dynamic folder group through VS Code settings (`settings.j
     "dist"
   ],
   "codebook-md.dynamicFolderGroup.includeAgentDocs": true,
-  "codebook-md.dynamicFolderGroup.placeRulesByScope": true
+  "codebook-md.dynamicFolderGroup.placeRulesByScope": true,
+  "codebook-md.dynamicFolderGroup.startCollapsed": false,
+  "codebook-md.dynamicFolderGroup.icon": "",
+  "codebook-md.dynamicFolderGroup.position": 0,
+  "codebook-md.dynamicFolderGroup.hiddenDocTypes": []
 }
 ```
 
@@ -132,6 +136,12 @@ You can customize the dynamic folder group through VS Code settings (`settings.j
 - `exclusions`: Patterns to exclude from the search (default: `["node_modules", "out", "dist"]`)
 - `includeAgentDocs`: Find agent docs in their standard locations without listing those folders in `subFolderInclusions` (default: `true`)
 - `placeRulesByScope`: Show a rule that is scoped to a folder under that folder, instead of where the rule file is kept (default: `true`). See [Scoped Rules](#scoped-rules).
+- `startCollapsed`: Start the group collapsed (default: `false`). Opening or closing it by hand is remembered until this setting changes.
+- `icon`: A codicon name shown beside the group's name, such as `target` or `rocket` (default: empty, for the built-in icon)
+- `position`: How many of your own folder groups are listed before this one (default: `0`, which puts it first)
+- `hiddenDocTypes`: Kinds of document to leave out (default: `[]`). One or more of `readme`, `changelog`, `license`, `policy`, `instructions`, `rule`, `skill`, `prompt`, `agent`, `notebook`, `markdown`. For example, `["skill"]` shows the group without skills.
+
+You do not have to edit these by hand: see [Side Bar Settings](#side-bar-settings).
 
 The dynamic folder group will only show folders that contain markdown files after applying exclusions, providing a clean and focused view of relevant documentation.
 
@@ -197,9 +207,12 @@ The **AI Docs** view lists every agent doc in the workspace in one place, groupe
 {
   "codebook-md.aiDocs.enabled": true,
   "codebook-md.aiDocs.includeUserDocs": true,
-  "codebook-md.aiDocs.exclusions": ["node_modules", "out", "dist"]
+  "codebook-md.aiDocs.exclusions": ["node_modules", "out", "dist"],
+  "codebook-md.aiDocs.hiddenDocTypes": []
 }
 ```
+
+`hiddenDocTypes` leaves groups out of the view: one or more of `instructions`, `rule`, `skill`, `prompt`, `agent`, `reference`.
 
 ##### Health Checks
 
@@ -219,6 +232,26 @@ An agent doc with a problem gets a warning mark, in AI Docs and in Related Docs.
 
 **Codebook: New Skill** (the **+** button on the AI Docs view, or the Command Palette) asks for a name and a description, creates `<name>/SKILL.md` with its front matter filled in, and opens it. The skill goes in the skills folder the workspace already uses. If there are several you choose one, and if there is none `.agents/skills` is created.
 
+#### Side Bar Settings
+
+Everything about the side bar can be set from the side bar itself. Changes apply as you make them, so the side bar next to you is the preview.
+
+**The drawer.** Each group in My Notebooks has a gear in its header. It opens a few options right under the header, without leaving the side bar:
+
+- On the generated group: find agent docs, place scoped rules at their folder, start collapsed, and the list of folders to look inside.
+- On a folder group you built: its name and description, start collapsed, and **Hide group**.
+- **All settings** opens the full panel on that group.
+
+**The panel.** **Codebook: Side Bar Settings** (the gear button on the My Notebooks and AI Docs views, or the Command Palette) opens an editor tab with every group and view in one list, and the options of the selected one beside it.
+
+- **Reorder** the groups by dragging them, or with Alt+Up and Alt+Down. The generated group can sit anywhere among your own.
+- **Show or hide** a group or the AI Docs view with the eye on its row. A hidden group stays in the list, so this is also where you bring one back.
+- **Per group:** name, description, icon, start collapsed. The generated group and the AI Docs view also let you choose which doc types they show, for example Related Docs without skills.
+- **Workspace or User.** Options of the generated group and the AI Docs view are VS Code settings. The switch at the top chooses where a change is saved. Each option says where its current value comes from (workspace setting, user setting or default) and can be reset. The gear beside an option opens it in the Settings UI.
+- **Folder groups you build** are saved in `.vscode/codebook-md.json`, which has one level, so they have no Workspace/User switch.
+
+**Keyboard in My Notebooks.** The tree works from the keyboard the way AI Docs does: Up and Down move between rows, Right and Left open and close a folder or group, Enter opens a file, Home and End jump to the ends. Tab from a row reaches its buttons. On a skill that lists supporting files, Enter opens the skill and Space shows or hides the list.
+
 #### User-Defined Virtual Folders
 
 The Codebook MD extension allows you to create user-defined virtual folders in the activity bar. This feature enables you to organize your markdown files into a hierarchical structure, making it easier to navigate and access your documentation.
@@ -237,6 +270,12 @@ The configuration for user-defined virtual folders is stored in a JSON file loca
   - `icon`: Optional path to a custom icon for the folder
   - `hide`: Optional boolean to hide a folder in the UI
   - `files`: Array of file entries in this folder
+
+- Folder groups (the top-level entries in `folderGroups`) also take:
+  - `icon`: A codicon name shown beside the group's name, such as `rocket`
+  - `hide`: Hide the whole group
+  - `collapsed`: Start the group collapsed
+  - The order of the entries is the order of the groups. [Side Bar Settings](#side-bar-settings) changes all of these for you.
 
 - Files:
   - `name`: Display name for the file

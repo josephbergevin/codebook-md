@@ -14,6 +14,8 @@ procedure.
 | `documentationView.ts` | `codebook-md-documentation-view` | `templates/documentation.html` |
 | `aiDocsView.ts` | `codebook-md-ai-docs-view` | `templates/aiDocs.html` |
 | `configModal.ts` | — (modal panel) | generated inline |
+| `sideBarSettingsPanel.ts` | — (editor tab) | `templates/sideBarSettings.html` |
+| `groupDrawerHtml.ts` | — (part of `notebooksView.ts`) | the gear, icon and settings drawer of a My Notebooks group |
 
 All three views live in the `codebook-md-activitybar` container declared in
 `package.json` `contributes.views`.

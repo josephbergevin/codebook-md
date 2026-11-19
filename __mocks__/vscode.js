@@ -95,6 +95,11 @@ const vscode = {
     Left: 'Left',
     Right: 'Right',
   },
+  ConfigurationTarget: {
+    Global: 1,
+    Workspace: 2,
+    WorkspaceFolder: 3,
+  },
   ViewColumn: {
     Active: -1,
     Beside: -2,

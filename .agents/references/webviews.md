@@ -15,6 +15,15 @@ activity bar container `codebook-md-activitybar` holding three views, each
 the largest webview module and generates its markup inline rather than from a
 template file.
 
+`src/webview/sideBarSettingsPanel.ts` is the Side Bar Settings editor tab
+(`templates/sideBarSettings.html`). It follows a different shape from the
+views: the page renders itself from a state object and never has its HTML
+replaced. Every change is a message; the extension writes it through
+`src/sideBarSettings.ts` and posts the new state back. The same module backs
+the drawer under each group in My Notebooks
+(`src/webview/groupDrawerHtml.ts`), so a setting has one place that decides
+whether a value may be written.
+
 ## The two-file provider pattern
 
 A webview is **two files**:

@@ -129,3 +129,47 @@ describe('getWorkspaceFolderFor', () => {
     expect(outcome(() => config.getWorkspaceFolderFor(path.join(path.sep, 'elsewhere', 'a.ts')))).toBe(expected);
   });
 });
+
+describe('getDynamicFolderGroupConfig', () => {
+  const getConfiguration = jest.requireMock('vscode').workspace.getConfiguration as jest.Mock;
+  const withValues = (values: Record<string, unknown>) => getConfiguration.mockReturnValueOnce({
+    get: jest.fn((key: string, defaultValue: unknown) => (key in values ? values[key] : defaultValue)),
+  });
+
+  it('defaults the options the side bar settings added', () => {
+    withValues({});
+    expect(config.getDynamicFolderGroupConfig()).toMatchObject({ startCollapsed: false, icon: '', position: 0, hiddenDocTypes: [] });
+  });
+
+  it('reads them from their flat keys', () => {
+    withValues({
+      'dynamicFolderGroup.startCollapsed': true,
+      'dynamicFolderGroup.icon': 'rocket',
+      'dynamicFolderGroup.position': 2,
+      'dynamicFolderGroup.hiddenDocTypes': ['skill'],
+    });
+    expect(config.getDynamicFolderGroupConfig()).toMatchObject({ startCollapsed: true, icon: 'rocket', position: 2, hiddenDocTypes: ['skill'] });
+  });
+
+  it('turns a position that is not a whole number from zero up into one', () => {
+    withValues({ 'dynamicFolderGroup.position': -3 });
+    expect(config.getDynamicFolderGroupConfig().position).toBe(0);
+    withValues({ 'dynamicFolderGroup.position': 1.8 });
+    expect(config.getDynamicFolderGroupConfig().position).toBe(1);
+    withValues({ 'dynamicFolderGroup.position': 'first' });
+    expect(config.getDynamicFolderGroupConfig().position).toBe(0);
+  });
+});
+
+describe('getAiDocsConfig', () => {
+  const getConfiguration = jest.requireMock('vscode').workspace.getConfiguration as jest.Mock;
+
+  it('reads the groups to leave out, and leaves none out by default', () => {
+    getConfiguration.mockReturnValueOnce({ get: jest.fn((_key: string, defaultValue: unknown) => defaultValue) });
+    expect(config.getAiDocsConfig().hiddenDocTypes).toEqual([]);
+    getConfiguration.mockReturnValueOnce({
+      get: jest.fn((key: string, defaultValue: unknown) => (key === 'aiDocs.hiddenDocTypes' ? ['reference'] : defaultValue)),
+    });
+    expect(config.getAiDocsConfig().hiddenDocTypes).toEqual(['reference']);
+  });
+});

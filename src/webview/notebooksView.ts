@@ -18,6 +18,9 @@ import { clearDocMetaCache, docTooltip, getDocMeta } from '../docMeta';
 import { scopeMatchesFile } from '../docScope';
 import { activeFilePaths, samePaths } from './activeFile';
 import { isMarkdownFileName } from '../docTypes';
+import * as sideBarSettings from '../sideBarSettings';
+import { folderGroupDrawerHtml, gearButtonHtml, groupIconHtml, relatedDrawerHtml } from './groupDrawerHtml';
+import { refreshSideBarSettingsPanel } from './sideBarSettingsPanel';
 import {
   activeRowAttrs, appliesMarkHtml, docIconHtml, escapeHtml, hintHtml, issueMarkHtml,
   plainFileIconHtml, scopeChipHtml, titleAttr,
@@ -217,6 +220,22 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
             commands.executeCommand('codebook-md.openDocumentation', data.section);
           }
           break;
+        case 'setSetting':
+          // A switch or list in a group's drawer; the change redraws the view
+          // through the configuration listener below
+          void this._writeSetting(data.key, data.value);
+          break;
+        case 'updateGroup':
+          // A field in the drawer of a group built by hand
+          if (sideBarSettings.updateFolderGroup(config.getCodebookConfigFilePath(), data.index, data.patch)) {
+            this._updateWebview();
+            // The settings panel lists the same groups
+            refreshSideBarSettingsPanel();
+          }
+          break;
+        case 'openSideBarSettings':
+          commands.executeCommand('codebook-md.openSideBarSettings', typeof data.groupId === 'string' ? data.groupId : undefined);
+          break;
       }
     });
 
@@ -251,6 +270,16 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
         this._updateWebview();
       }
     }));
+  }
+
+  /** Writes a setting changed in a drawer, and says so when it cannot be saved. */
+  private async _writeSetting(key: unknown, value: unknown): Promise<void> {
+    try {
+      await sideBarSettings.writeSetting(key, value, sideBarSettings.defaultScope());
+    } catch (error) {
+      console.error('Could not save the side bar setting:', error);
+      window.showErrorMessage(`Codebook: could not save the setting - ${error instanceof Error ? error.message : error}`);
+    }
   }
 
   /**
@@ -349,50 +378,17 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
     this._shownActiveFiles = this._htmlActiveFiles;
     this._redrawOnShow = false;
 
-    // Build HTML for the folder groups
+    // Build HTML for the folder groups. The generated group sits among the
+    // ones built by hand, at the position the settings give it.
     let folderGroupsHtml = '';
-
-    // Create and add the dynamic folder group based on current editor
-    if (this._currentEditorFile) {
-      // Generate the dynamic folder group from the current editor file path
-      this._dynamicFolderGroup = relatedDocs.createDynamicFolderGroupFromPath(this._currentEditorFile);
-
-      if (this._dynamicFolderGroup && this._dynamicFolderGroup.folders.length > 0) {
-        folderGroupsHtml += `
-          <div class="folder-group dynamic-folder-group" id="dynamic-folder-group">
-            <div class="folder-group-header dynamic-header" onclick="toggleFolderGroup(this.parentElement, event)">
-              <h2 class="folder-group-title">
-                <svg class="folder-group-chevron icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z" />
-                </svg>
-                <svg class="icon-svg context-icon" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M8 1.2c-.68 0-1.33.13-1.92.36L5.2 1.13a6.8 6.8 0 0 0-3.1 10.18l.89-.99a5.3 5.3 0 0 1 2.42-7.9l2 .4A4.8 4.8 0 0 0 3.2 8c0 2.66 2.16 4.8 4.8 4.8a4.8 4.8 0 0 0 4.24-7.02l.77-.64A6.78 6.78 0 0 1 14.8 8a6.78 6.78 0 0 1-6.8 6.8A6.78 6.78 0 0 1 1.2 8 6.83 6.83 0 0 1 8 1.2z"/>
-                  <path d="M6.5 6h4l1 2-3.5 3.5L5 9l1.5-3z"/>
-                </svg>
-                ${this._escapeHtml(this._dynamicFolderGroup.name)}
-              </h2>
-              <p class="folder-group-description">${this._escapeHtml(this._dynamicFolderGroup.description)}</p>
-            </div>
-            <div class="folder-group-content">`
-          ;
-
-        // Add folders for this dynamic group
-        // We use special index 'dynamic' to distinguish from regular folder groups
-        this._dynamicFolderGroup.folders.forEach((folder, folderIndex) => {
-          folderIndex++;
-          const folderIndexStr = `dynamic-${folderIndex}`;
-          folderGroupsHtml += this._buildDynamicFolderHtml(folder, 0, folderIndexStr);
-        });
-
-        folderGroupsHtml += `
-            </div>
-          </div>
-        `;
-      }
-    }
+    const dynamicSettings = config.getDynamicFolderGroupConfig();
+    const dynamicGroupHtml = this._buildDynamicGroupHtml(dynamicSettings);
+    const handBuiltGroups = codebookConfig.folderGroups ?? [];
+    const dynamicPosition = sideBarSettings.relatedPosition(dynamicSettings.position, handBuiltGroups.length);
 
     // If there are no folder groups, display a message
-    if (!codebookConfig.folderGroups || codebookConfig.folderGroups.length === 0) {
+    if (handBuiltGroups.length === 0) {
+      folderGroupsHtml += dynamicGroupHtml;
       folderGroupsHtml += '<p class="no-data">No notebooks found. Add folders and files using the buttons below.</p>';
       folderGroupsHtml += `
         <div class="global-actions">
@@ -414,21 +410,27 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
       `;
     } else {
       // Process each folder group
-      codebookConfig.folderGroups.forEach((folderGroup, groupIndex) => {
-        groupIndex++;
+      handBuiltGroups.forEach((folderGroup, arrayIndex) => {
+        if (arrayIndex === dynamicPosition) {
+          folderGroupsHtml += dynamicGroupHtml;
+        }
+        const groupIndex = arrayIndex + 1;
         if (folderGroup.hide) {
           return; // Skip hidden folder groups
         }
+        const startsCollapsed = folderGroup.collapsed === true;
         // Start the folder group with its title and description
         folderGroupsHtml += `
-          <div class="folder-group" id="folder-group-${this._escapeHtml(groupIndex.toString())}">
+          <div class="folder-group${startsCollapsed ? ' collapsed' : ''}" id="folder-group-${this._escapeHtml(groupIndex.toString())}" data-group-key="group:${this._escapeHtml(folderGroup.name)}" data-start-collapsed="${startsCollapsed}">
             <div class="folder-group-header" onclick="toggleFolderGroup(this.parentElement, event)">
               <h2 class="folder-group-title">
                 <svg class="folder-group-chevron icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
                   <path d="M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z" />
                 </svg>
-                ${this._escapeHtml(folderGroup.name)}
+                ${groupIconHtml(folderGroup.icon)}
+                <span class="folder-group-name">${this._escapeHtml(folderGroup.name)}</span>
               </h2>
+              ${gearButtonHtml(folderGroup.name)}
               ${folderGroup.description ? `<p class="folder-group-description">${this._escapeHtml(folderGroup.description)}</p>` : ''}
               <div class="folder-group-actions" onclick="event.stopPropagation()">
                 <button class="action-button" title="Add Folder" onclick="addFolderToGroup(${groupIndex})">
@@ -447,6 +449,7 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
                 </button>
               </div>
             </div>
+            ${folderGroupDrawerHtml(folderGroup, arrayIndex)}
             <div class="folder-group-content">`
           ;
 
@@ -467,6 +470,9 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
           </div>
         `;
       });
+      if (dynamicPosition >= handBuiltGroups.length) {
+        folderGroupsHtml += dynamicGroupHtml;
+      }
     }
 
     // Read the HTML template
@@ -486,6 +492,55 @@ export class NotebooksViewProvider implements WebviewViewProvider, Disposable {
     htmlContent = htmlContent.replace('{{folders}}', () => folderGroupsHtml);
 
     return htmlContent;
+  }
+
+  /**
+   * Build the generated group for the file the tree is built around.
+   * @returns an empty string when there is no such file, the group is turned
+   * off or it has nothing to show
+   */
+  private _buildDynamicGroupHtml(settings: config.DynamicFolderGroupConfig): string {
+    this._dynamicFolderGroup = this._currentEditorFile
+      ? relatedDocs.createDynamicFolderGroupFromPath(this._currentEditorFile)
+      : undefined;
+    const group = this._dynamicFolderGroup;
+    if (!group || group.folders.length === 0) {
+      return '';
+    }
+
+    // The group's own icon when one is set, otherwise the one it has always had
+    const iconHtml = groupIconHtml(settings.icon) || `<svg class="icon-svg context-icon" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 1.2c-.68 0-1.33.13-1.92.36L5.2 1.13a6.8 6.8 0 0 0-3.1 10.18l.89-.99a5.3 5.3 0 0 1 2.42-7.9l2 .4A4.8 4.8 0 0 0 3.2 8c0 2.66 2.16 4.8 4.8 4.8a4.8 4.8 0 0 0 4.24-7.02l.77-.64A6.78 6.78 0 0 1 14.8 8a6.78 6.78 0 0 1-6.8 6.8A6.78 6.78 0 0 1 1.2 8 6.83 6.83 0 0 1 8 1.2z"/>
+                  <path d="M6.5 6h4l1 2-3.5 3.5L5 9l1.5-3z"/>
+                </svg>`;
+    const startsCollapsed = settings.startCollapsed === true;
+
+    let html = `
+          <div class="folder-group dynamic-folder-group${startsCollapsed ? ' collapsed' : ''}" id="dynamic-folder-group" data-group-key="${sideBarSettings.relatedGroupId}" data-start-collapsed="${startsCollapsed}">
+            <div class="folder-group-header dynamic-header" onclick="toggleFolderGroup(this.parentElement, event)">
+              <h2 class="folder-group-title">
+                <svg class="folder-group-chevron icon-svg" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z" />
+                </svg>
+                ${iconHtml}
+                <span class="folder-group-name">${this._escapeHtml(group.name)}</span>
+              </h2>
+              ${gearButtonHtml(group.name)}
+              <p class="folder-group-description">${this._escapeHtml(group.description)}</p>
+            </div>
+            ${relatedDrawerHtml(settings)}
+            <div class="folder-group-content">`;
+
+    // The special index 'dynamic' tells these folders from the ones built by hand
+    group.folders.forEach((folder, folderIndex) => {
+      html += this._buildDynamicFolderHtml(folder, 0, `dynamic-${folderIndex + 1}`);
+    });
+
+    html += `
+            </div>
+          </div>
+        `;
+    return html;
   }
 
   /**

@@ -18,6 +18,7 @@ import { WelcomeViewProvider } from './webview/welcomeView';
 import { DocumentationViewProvider } from './webview/documentationView';
 import { AiDocsViewProvider } from './webview/aiDocsView';
 import { runNewSkillCommand } from './newSkill';
+import { openSideBarSettingsPanel } from './webview/sideBarSettingsPanel';
 import * as configModal from './webview/configModal';
 import * as codeLens from './codeLens';
 import * as shellSession from './shellSession';
@@ -875,9 +876,10 @@ export async function activate(context: ExtensionContext) {
         return; // User canceled or no change
       }
 
-      // Get current folders from configuration
+      // Get current folders from configuration: the group this folder is in,
+      // which is not always the one named "Workspace"
       const configPath = config.getCodebookConfigFilePath();
-      const folderGroup = folders.getWorkspaceFolderGroup(configPath);
+      const folderGroup = folders.getFolderGroupWithFolder(configPath, folderName);
 
       // Find the folder entry by its name
       const folder = folderGroup.findFolder(folderName);
@@ -1105,9 +1107,10 @@ export async function activate(context: ExtensionContext) {
         return; // User canceled or no change
       }
 
-      // Get current folders from configuration
+      // Get current folders from configuration: the group this file is
+      // listed in, which is not always the one named "Workspace"
       const configPath = config.getCodebookConfigFilePath();
-      const folderGroup = folders.getWorkspaceFolderGroup(configPath);
+      const folderGroup = folders.getFolderGroupWithFile(configPath, entry.name, entry.path);
       const workspacePath = config.getWorkspaceFolder();
       let fileRenamed = false;
 
@@ -1316,6 +1319,21 @@ export async function activate(context: ExtensionContext) {
     } catch (error) {
       console.error('refreshAiDocs failed:', error);
       window.showErrorMessage(`Codebook: could not refresh AI Docs - ${error instanceof Error ? error.message : error}`);
+    }
+  });
+  context.subscriptions.push(disposable);
+
+  // Register the command that opens the Side Bar Settings panel. A drawer's
+  // "All settings" link passes the group to show first.
+  disposable = commands.registerCommand('codebook-md.openSideBarSettings', (groupId?: unknown) => {
+    try {
+      openSideBarSettingsPanel(context, {
+        selectId: typeof groupId === 'string' ? groupId : undefined,
+        onGroupsChanged: () => notebooksViewProvider.updateWebview(),
+      });
+    } catch (error) {
+      console.error('openSideBarSettings failed:', error);
+      window.showErrorMessage(`Codebook: could not open Side Bar Settings - ${error instanceof Error ? error.message : error}`);
     }
   });
   context.subscriptions.push(disposable);

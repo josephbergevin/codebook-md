@@ -24,6 +24,7 @@ Extension source. See the root [AGENTS.md](../AGENTS.md) for project-wide rules.
 | `aiDocs.ts` | Finds every agent doc in a workspace folder for the AI Docs view, non-blocking, and decides which docs apply to a file |
 | `docHealth.ts` | Health checks for agent docs: skill front matter, broken links, dead scope patterns, copied skills |
 | `newSkill.ts` | The New Skill command: name and description checks, `SKILL.md` content, where the skill goes |
+| `sideBarSettings.ts` | What the side bar's settings UI reads and writes: the list of settings it owns, their workspace/user/default values, and the options and order of folder groups in `codebook-md.json`. Checks every value before writing |
 | `createNotebook.ts` | Notebook creation commands |
 | `prompt.ts` | Chat/prompt construction |
 | `taskListToggle.ts` | Applies task list checkbox clicks from the notebook renderer to the cell source |

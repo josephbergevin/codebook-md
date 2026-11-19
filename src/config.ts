@@ -172,6 +172,14 @@ export interface DynamicFolderGroupConfig {
   // Show a rule that is scoped to a folder (applyTo, paths, globs,
   // fileMatchPattern) under that folder instead of where the file is kept
   placeRulesByScope: boolean;
+  // Start the group collapsed in the My Notebooks view
+  startCollapsed: boolean;
+  // Codicon name shown beside the group's name; empty for the default icon
+  icon: string;
+  // How many of the folder groups built by hand are listed before this one
+  position: number;
+  // Doc types the group leaves out, e.g. 'skill'
+  hiddenDocTypes: string[];
 }
 
 // getDynamicFolderGroupConfig returns the configuration for the dynamic folder group
@@ -186,7 +194,11 @@ export function getDynamicFolderGroupConfig(): DynamicFolderGroupConfig {
     subFolderInclusions: config.get<string[]>('dynamicFolderGroup.subFolderInclusions', []),
     exclusions: config.get<string[]>('dynamicFolderGroup.exclusions', ['node_modules', 'out', 'dist']),
     includeAgentDocs: config.get<boolean>('dynamicFolderGroup.includeAgentDocs', true),
-    placeRulesByScope: config.get<boolean>('dynamicFolderGroup.placeRulesByScope', true)
+    placeRulesByScope: config.get<boolean>('dynamicFolderGroup.placeRulesByScope', true),
+    startCollapsed: config.get<boolean>('dynamicFolderGroup.startCollapsed', false),
+    icon: config.get<string>('dynamicFolderGroup.icon', ''),
+    position: Math.max(0, Math.floor(config.get<number>('dynamicFolderGroup.position', 0)) || 0),
+    hiddenDocTypes: config.get<string[]>('dynamicFolderGroup.hiddenDocTypes', [])
   };
 }
 
@@ -198,6 +210,8 @@ export interface AiDocsConfig {
   includeUserDocs: boolean;
   // File and folder names the scan skips
   exclusions: string[];
+  // Groups the view leaves out, by key: 'skill', 'reference', ...
+  hiddenDocTypes: string[];
 }
 
 // getAiDocsConfig returns the configuration for the AI Docs view
@@ -206,7 +220,8 @@ export function getAiDocsConfig(): AiDocsConfig {
   return {
     enabled: config.get<boolean>('aiDocs.enabled', true),
     includeUserDocs: config.get<boolean>('aiDocs.includeUserDocs', true),
-    exclusions: config.get<string[]>('aiDocs.exclusions', ['node_modules', 'out', 'dist'])
+    exclusions: config.get<string[]>('aiDocs.exclusions', ['node_modules', 'out', 'dist']),
+    hiddenDocTypes: config.get<string[]>('aiDocs.hiddenDocTypes', [])
   };
 }
 

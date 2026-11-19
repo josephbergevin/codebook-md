@@ -177,9 +177,13 @@ export class AiDocsViewProvider implements WebviewViewProvider, Disposable {
     try {
       const settings = config.getAiDocsConfig();
       const started = Date.now();
-      this._roots = settings.enabled
+      const roots = settings.enabled
         ? await scanAiDocs(this._rootSpecs(settings), { exclusions: settings.exclusions })
         : [];
+      // Groups turned off in the settings are left out of everything that
+      // follows, including the count that decides whether the view shows
+      const hidden = new Set(settings.hiddenDocTypes ?? []);
+      this._roots = roots.map(root => ({ ...root, groups: root.groups.filter(group => !hidden.has(group.key)) }));
       const elapsed = Date.now() - started;
       if (elapsed > slowScanMs) {
         console.log(`AI Docs: scanning the workspace for agent docs took ${elapsed} ms`);

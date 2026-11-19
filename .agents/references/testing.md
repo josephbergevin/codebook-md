@@ -26,6 +26,9 @@ Tests live in `src/test/` and mirror the structure of `src/`:
 | `src/aiDocs.ts` | `src/test/aiDocs.test.ts` |
 | `src/docHealth.ts` | `src/test/docHealth.test.ts` |
 | `src/webview/aiDocsView.ts` | `src/test/webview/aiDocsView.test.ts` |
+| `src/sideBarSettings.ts` | `src/test/sideBarSettings.test.ts` |
+| `src/webview/sideBarSettingsPanel.ts` | `src/test/webview/sideBarSettingsPanel.test.ts` |
+| `src/webview/groupDrawerHtml.ts` | `src/test/webview/groupDrawerHtml.test.ts` |
 | `src/languages/go.ts` | `src/test/languages/go.test.ts` |
 | `src/languages/http.ts` | `src/test/languages/http.test.ts` |
 | `src/webview/configModal.ts` | `src/test/webview/configModal.test.ts` |

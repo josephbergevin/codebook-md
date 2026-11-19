@@ -91,6 +91,7 @@
         <li><a href="#ai-docs">AI Docs View</a></li>
         <li><a href="#health-checks">Agent Doc Health Checks</a></li>
         <li><a href="#new-skill">New Skill</a></li>
+        <li><a href="#side-bar-settings">Side Bar Settings</a></li>
         <li><a href="#executable-code">Executable Code Blocks</a></li>
         <li><a href="#run-from-text-editor">Running Blocks from the Text Editor</a></li>
         <li><a href="#switch-views">Switching Between Text and Notebook</a></li>
@@ -409,7 +410,12 @@ echo "Hello from CodebookMD!"
           </li>
           <li><code>includeAgentDocs</code>: Find agent docs in their standard locations without listing those folders in <code>subFolderInclusions</code> (default: <code>true</code>). See <a href="#agent-docs">Agent Docs</a>.</li>
           <li><code>placeRulesByScope</code>: Show a rule that is scoped to a folder under that folder, instead of where the rule file is kept (default: <code>true</code>). See <a href="#scoped-rules">Scoped Rules</a>.</li>
+          <li><code>startCollapsed</code>: Start the group collapsed (default: <code>false</code>). Opening or closing it by hand is remembered until this setting changes.</li>
+          <li><code>icon</code>: A codicon name shown beside the group's name, such as <code>target</code> or <code>rocket</code> (default: empty, for the built-in icon)</li>
+          <li><code>position</code>: How many of your own folder groups are listed before this one (default: <code>0</code>, which puts it first)</li>
+          <li><code>hiddenDocTypes</code>: Kinds of document to leave out (default: <code>[]</code>). One or more of <code>readme</code>, <code>changelog</code>, <code>license</code>, <code>policy</code>, <code>instructions</code>, <code>rule</code>, <code>skill</code>, <code>prompt</code>, <code>agent</code>, <code>notebook</code>, <code>markdown</code>.</li>
         </ul>
+        <p>You do not have to edit these by hand: see <a href="#side-bar-settings">Side Bar Settings</a>.</p>
 
         <h4 id="agent-docs">Agent Docs: Skills, Rules and Prompts</h4>
         <p>The dynamic folder group finds the markdown files written for coding agents and groups them by type under the folder that holds them:</p>
@@ -479,6 +485,7 @@ applyTo: "extractor/**"
           <li><code>codebook-md.aiDocs.enabled</code>: Show the view when the workspace has agent docs (default: <code>true</code>)</li>
           <li><code>codebook-md.aiDocs.includeUserDocs</code>: Also list the agent docs in your home folder (default: <code>true</code>)</li>
           <li><code>codebook-md.aiDocs.exclusions</code>: File and folder names the view skips (default: <code>["node_modules", "out", "dist"]</code>)</li>
+          <li><code>codebook-md.aiDocs.hiddenDocTypes</code>: Groups to leave out (default: <code>[]</code>). One or more of <code>instructions</code>, <code>rule</code>, <code>skill</code>, <code>prompt</code>, <code>agent</code>, <code>reference</code>.</li>
         </ul>
 
         <h3 id="health-checks">Health Checks</h3>
@@ -495,6 +502,32 @@ applyTo: "extractor/**"
 
         <h3 id="new-skill">New Skill</h3>
         <p><strong>Codebook: New Skill</strong> (the <strong>+</strong> button on the AI Docs view, or the Command Palette) asks for a name and a description, creates <code>&lt;name&gt;/SKILL.md</code> with its front matter filled in, and opens it. The skill goes in the skills folder the workspace already uses. If there are several you choose one, and if there is none <code>.agents/skills</code> is created.</p>
+      </section>
+
+      <section id="side-bar-settings">
+        <h2>Side Bar Settings</h2>
+        <p>Everything about the side bar can be set from the side bar itself. Changes apply as you make them, so the side bar next to you is the preview.</p>
+
+        <h3>The Drawer</h3>
+        <p>Each group in My Notebooks has a gear in its header. It opens a few options right under the header, without leaving the side bar.</p>
+        <ul>
+          <li><span class="feature-highlight">On the generated group:</span> find agent docs, place scoped rules at their folder, start collapsed, and the list of folders to look inside.</li>
+          <li><span class="feature-highlight">On a folder group you built:</span> its name and description, start collapsed, and <strong>Hide group</strong>.</li>
+          <li><span class="feature-highlight">All settings:</span> opens the full panel on that group.</li>
+        </ul>
+
+        <h3>The Panel</h3>
+        <p><strong>Codebook: Side Bar Settings</strong> (the gear button on the My Notebooks and AI Docs views, or the Command Palette) opens an editor tab with every group and view in one list, and the options of the selected one beside it.</p>
+        <ul>
+          <li><span class="feature-highlight">Reorder:</span> drag the groups, or use Alt+Up and Alt+Down. The generated group can sit anywhere among your own.</li>
+          <li><span class="feature-highlight">Show or hide:</span> the eye on a row shows or hides that group or the AI Docs view. A hidden group stays in the list, so this is also where you bring one back.</li>
+          <li><span class="feature-highlight">Per group:</span> name, description, icon and start collapsed. The generated group and the AI Docs view also let you choose which doc types they show, for example Related Docs without skills.</li>
+          <li><span class="feature-highlight">Workspace or User:</span> options of the generated group and the AI Docs view are VS Code settings. The switch at the top chooses where a change is saved. Each option says where its current value comes from (workspace setting, user setting or default) and can be reset. The gear beside an option opens it in the Settings UI.</li>
+          <li><span class="feature-highlight">Folder groups you build:</span> saved in <code>.vscode/codebook-md.json</code>, which has one level, so they have no Workspace/User switch. A group's <code>icon</code>, <code>hide</code> and <code>collapsed</code> values and the order of the groups can also be edited there by hand.</li>
+        </ul>
+
+        <h3>Keyboard in My Notebooks</h3>
+        <p>The tree works from the keyboard the way AI Docs does: Up and Down move between rows, Right and Left open and close a folder or group, Enter opens a file, Home and End jump to the ends. Tab from a row reaches its buttons. On a skill that lists supporting files, Enter opens the skill and Space shows or hides the list.</p>
       </section>
 
       <section id="executable-code">

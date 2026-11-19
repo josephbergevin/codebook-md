@@ -61,10 +61,17 @@ Execution history (`codebook-md.executionHistory.*`): `enabled`, `historyLimit`.
 
 Dynamic folder group (`codebook-md.dynamicFolderGroup.*`): `enabled`, `name`,
 `description`, `subFolderInclusions` (plain names, or patterns such as
-`tooling/**`), `exclusions`, `includeAgentDocs`, `placeRulesByScope`.
+`tooling/**`), `exclusions`, `includeAgentDocs`, `placeRulesByScope`,
+`startCollapsed`, `icon` (a codicon name), `position` (how many hand-built
+groups come before it) and `hiddenDocTypes`.
 
 AI Docs view (`codebook-md.aiDocs.*`): `enabled`, `includeUserDocs`,
-`exclusions`.
+`exclusions`, `hiddenDocTypes`.
+
+The Side Bar Settings panel and the group drawers edit these two families.
+A setting they should offer needs an entry in `relatedFields` or
+`aiDocsFields` in `src/sideBarSettings.ts` as well as its declaration in
+`package.json`; a test checks that the two agree on type and choices.
 
 Per-language objects: `codebook-md.go`, `.bash`, `.javascript`, `.typescript`,
 `.sql`, `.python`, `.http` — each with its own exec options plus a nested
@@ -124,7 +131,11 @@ as the integrated terminal.
 
 `.vscode/codebook-md.json` holds user-defined virtual folders. Folders carry
 `name`, `folderPath` (dot-separated hierarchy), optional `icon`, optional
-`hide`, and `files`; each file carries `name` and `path`.
+`hide`, and `files`; each file carries `name` and `path`. A folder group
+(a top-level entry) also carries `icon` (a codicon name), `hide` and
+`collapsed`, and the order of the entries is the order of the groups. These
+are written by `updateFolderGroup` and `applyGroupOrder` in
+`src/sideBarSettings.ts`.
 
 `src/folders.ts` implements the `FolderGroup` system:
 
