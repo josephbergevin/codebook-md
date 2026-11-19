@@ -4,6 +4,88 @@ All notable changes to the Codebook MD extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.24.0] - 2026-11-19
+
+### Added
+
+- **Related Docs finds your agent docs.** Skills, instruction files
+  (`AGENTS.md`, `CLAUDE.md`, `copilot-instructions.md`), rules,
+  prompts, agent definitions and references are found in each tool's
+  folders and listed per type under the folder they belong to. Rows
+  are named from front matter, so skills no longer all read "Skill";
+  the exact name, description and path are in the hover text. A skill
+  that bundles other files becomes a folder that opens `SKILL.md` and
+  lists them. Turn it off with
+  `codebook-md.dynamicFolderGroup.includeAgentDocs`.
+- **Scoped rules appear at the folder they cover.** A rule that says
+  which files it applies to (`applyTo`, `paths`, `globs` or
+  `fileMatchPattern`) is listed under that folder, with its scope as
+  a chip on the row, and is marked when its pattern matches the open
+  file. See *Changed* for what moves.
+- **AI Docs view.** A new side bar view lists every agent doc in the
+  workspace, grouped by type, with each workspace folder and the docs
+  in your home tool folders as groups of their own. It marks the docs
+  an agent would load for the open file, shows size and a token
+  estimate in the hover text, filters by name or description, and
+  works from the keyboard. New settings: `codebook-md.aiDocs.enabled`,
+  `.includeUserDocs`, `.exclusions` and `.hiddenDocTypes`.
+- **Health checks for agent docs.** A warning mark in AI Docs and
+  Related Docs flags a skill with no name or description, a name that
+  differs from its folder, a description over 1,024 characters, front
+  matter that is never closed, broken relative links, a rule scope
+  that matches nothing, and a skill copied into two skills folders.
+- **Codebook: New Skill** creates a `SKILL.md` from a name and a
+  description. **Codebook: Refresh AI Docs** rescans the workspace.
+- **Side Bar Settings.** *Codebook: Side Bar Settings* (also a gear
+  on the My Notebooks and AI Docs title bars) opens a panel listing
+  the My Notebooks groups and the AI Docs view. Reorder groups by
+  dragging or with Alt+Up/Down, show or hide them, and set a name,
+  description, icon, start collapsed and the doc types shown. A
+  Workspace/User switch picks where a setting is saved; each option
+  shows where its value comes from and can be reset. Changes apply as
+  you make them.
+- **A gear on each My Notebooks group** opens a drawer with the
+  options changed most often and a link to the panel.
+- **Keyboard navigation in My Notebooks.** Arrow keys, Home, End,
+  Enter and Space move through the tree and open rows. Groups now
+  stay open or closed when the view redraws.
+- **New Related Docs settings:**
+  `codebook-md.dynamicFolderGroup.startCollapsed`, `.icon`,
+  `.position` and `.hiddenDocTypes`. Folder groups in
+  `.vscode/codebook-md.json` accept `"collapsed": true`.
+- `codebook-md.dynamicFolderGroup.subFolderInclusions` accepts glob
+  patterns such as `tooling/**`.
+- Each kind of markdown file has its own tinted icon, the row of the
+  file open in the editor is highlighted, and a file reached through
+  a symlink is listed once with its other paths beside it.
+
+### Changed
+
+- **Scoped rules move in Related Docs.**
+  `codebook-md.dynamicFolderGroup.placeRulesByScope` is on by default,
+  so a scoped rule that was listed under Rules (or under
+  `.github/instructions`, if you include that folder) now appears
+  under the folder it applies to. Turn the setting off to keep every
+  rule where its file is kept.
+- **The Configure button below a code cell is now just the gear.**
+  Its tooltip still names it.
+- Related Docs follows the workspace folder the open file is in.
+- Related Docs lists entries in name order and never walks
+  `node_modules` or `.git`. In exclusions, only `*` is a wildcard.
+
+### Fixed
+
+- **A file or folder with an apostrophe in its name did nothing when
+  clicked** in the side bar. Names were written into the row's click
+  handler, so an apostrophe ended it early, and a crafted name could
+  run script in the view. Names now travel as data attributes.
+- **Rename failed for rows outside the "Workspace" group.** The
+  rename buttons on folder and file rows looked only in the group
+  named "Workspace". They now find the row's own group.
+- **Adding a file could overwrite another group's folders.** With no
+  group named "Workspace", the fallback pointed at the first group
+  and replaced its folders on save. It now adds a new group.
+
 ## [0.23.0] - 2026-09-25
 
 ### Added
