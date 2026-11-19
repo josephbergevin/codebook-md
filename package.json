@@ -1,7 +1,7 @@
 {
   "name": "codebook-md",
   "displayName": "CodebookMD - Runnable Markdown Notebooks",
-  "description": "Run the code blocks in your markdown files. Open any README or runbook as a notebook and execute Go, Shell, Python, JavaScript, TypeScript, SQL and HTTP - locally, with output inline.",
+  "description": "Run the code blocks in your markdown files. Open any README or runbook as a notebook and execute Go, Shell, Python, JavaScript, TypeScript, SQL and HTTP - locally, with output inline. Also browse and health-check your AI agent docs: AGENTS.md, CLAUDE.md, skills and rules.",
   "icon": "extension/src/img/logo_3_128x128.png",
   "publisher": "josephbergevin",
   "repository": {
@@ -17,9 +17,11 @@
     "executable markdown",
     "runbook",
     "readme",
-    "code-blocks",
-    "codebook",
-    "markdown-it",
+    "agents.md",
+    "claude",
+    "agent skills",
+    "copilot instructions",
+    "ai agents",
     "mermaid",
     "math",
     "go",
@@ -33,9 +35,7 @@
     "http",
     "sql",
     "jupyter",
-    "documentation",
-    "preview",
-    "rendering"
+    "documentation"
   ],
   "version": "0.24.0",
   "categories": [
